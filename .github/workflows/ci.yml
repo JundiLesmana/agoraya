@@ -23,16 +23,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
 
       - name: Install dependencies from lockfile
         run: pnpm install --frozen-lockfile
