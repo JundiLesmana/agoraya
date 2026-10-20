@@ -100,7 +100,7 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Core
 | Teknologi | Fungsi |
