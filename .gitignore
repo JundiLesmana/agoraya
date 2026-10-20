@@ -1,33 +1,25 @@
-# ── Dependencies ─────────────────────────────────────────
 node_modules/
 .pnpm-store/
-
-# ── Next.js build output ─────────────────────────────────
 .next/
 out/
 dist/
 
-# ── Environment & secrets ────────────────────────────────
 .env
 .env.*
 !.env.example
 
-# ── Test / coverage output ───────────────────────────────
 coverage/
 playwright-report/
 test-results/
 *.log
 
-# ── Tooling caches ───────────────────────────────────────
 .eslintcache
 .turbo/
 *.tsbuildinfo
 
-# ── Editor / OS ──────────────────────────────────────────
 .vscode/
 .idea/
 .DS_Store
 
-# ── Repository-local decisions (untracked by design) ─────
 docs/
 DRAFT.md

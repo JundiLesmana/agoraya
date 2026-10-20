@@ -1,4 +1,4 @@
-# 📖 DOCUMENTATION.md — Agoraya
+# DOCUMENTATION.md — Agoraya
 
 > Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform Agoraya.
 > Terakhir diperbarui: 2026-10-20
