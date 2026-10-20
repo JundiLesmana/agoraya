@@ -1194,13 +1194,12 @@ Jika satu entry dimanipulasi, semua hash berikutnya akan invalid → **tamper-ev
 
 ### 16.1 Workflow Singkat
 
-1. Baca `AGENTS.md` + `docs/ai/INDEX.md`
-2. Checkout branch dari `development`
-3. Implement satu issue, satu branch
-4. Tambah tests
-5. Jalankan quality gates
-6. Buka PR ke `development`
-7. Tunggu review + CI
+1. Checkout branch dari `development`
+2. Implement satu issue, satu branch
+3. Tambah tests
+4. Jalankan quality gates
+5. Buka PR ke `development`
+6. Tunggu review + CI
 
 ### 16.2 Naming Conventions
 
