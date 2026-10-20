@@ -96,3 +96,5 @@ export function createLogger(options?: LoggerOptions): Logger {
 
 // Default server logger (import once at application startup).
 export const serverLogger = createLogger({ service: DEFAULT_SERVICE });
+
+export { logger } from './logger';
