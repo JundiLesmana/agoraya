@@ -1,4 +1,4 @@
-# 🏛️ GovHub.ID — Agoraya
+# Agoraya
 
 > **Platform Transparansi, Pelaporan Publik, dan Tata Kelola Pemerintahan Digital untuk Indonesia**
 
@@ -10,7 +10,7 @@
 
 ---
 
-## 📋 Daftar Isi
+## Daftar Isi
 
 - [Tentang Proyek](#-tentang-proyek)
 - [Fitur Utama](#-fitur-utama)
@@ -29,9 +29,9 @@
 
 ---
 
-## 🎯 Tentang Proyek
+## Tentang Proyek
 
-GovHub.ID (Agoraya) adalah platform web yang dirancang untuk meningkatkan transparansi pemerintahan, memfasilitasi pelaporan warga, dan mengoptimalkan pengambilan keputusan berbasis data di sektor publik Indonesia.
+Agoraya adalah platform web yang dirancang untuk meningkatkan transparansi pemerintahan, memfasilitasi pelaporan warga, dan mengoptimalkan pengambilan keputusan berbasis data di sektor publik Indonesia.
 
 ### Visi
 Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui transparansi data, pelaporan yang akuntabel, dan gamifikasi partisipasi sipil.
@@ -48,52 +48,52 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 
 ---
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-### 🏠 Public Dashboard & Open Data
+### Public Dashboard & Open Data
 - **SatuData.id Landing Page** — Visualisasi data agregat publik (BPS API)
 - **Statistik Daerah** — Peta & grafik kemiskinan, anggaran, infrastruktur per wilayah
 - **Open Government Data** — Dataset terbuka dengan filter, search, dan download
 - **Leaderboard Instansi** — Peringkat kinerja penanganan laporan dengan tingkat kesulitan
 
-### 📝 Civic Reporting & Accountability
+### Civic Reporting & Accountability
 - **Lapor Warga** — Pelaporan masalah dengan foto/dokumen, geotag, dan kategori
 - **Tracking Laporan** — Status real-time dengan ETA pasti
 - **Skor Urgensi Otomatis** — Gabungan vote warga + AI classification + proximity + dampak
 - **Eskalasi SLA** — Peer-to-peer → atasan → dashboard publik ("Terlambat Ditangani")
 - **Visualisasi Bencana** — Peta bencana (kebakaran, banjir) sesuai urgensi
 
-### 🏢 CMS & Pendataan (Maker-Checker)
+### CMS & Pendataan (Maker-Checker)
 - **CMS Civic Reporting** — Input & review laporan warga
 - **CMS Open Government Data** — Kelola dataset publik
 - **CMS Data-Driven Insight** — Analitik & insight
 - **CMS Public Service Tracking** — Tracking layanan publik
 
-### 📊 Data-Driven Insight
+### Data-Driven Insight
 - **Anggaran** — Visualisasi anggaran dengan peta & grafik
 - **Proyek** — Prioritisasi proyek pemerintah (Decision Engine)
 - **Insight Dashboard** — Analitik tren, anomali, dan rekomendasi AI
 
-### 🏛️ Layanan Publik Digital
+### Layanan Publik Digital
 - **Pengajuan & Perizinan Online** — Formulir daring dengan tracking status
 - **Download Surat** — Surat jadi bisa diunduh mandiri
 - **Public Service Tracking** — Warga & instansi bisa pantau progress
 
-### 🎮 Gamification & Civic Rewards
+### Gamification & Civic Rewards
 - **Poin Individu** — Reward untuk partisipasi warga
 - **Kredit Sipil RT/Kelurahan** — Poin kolektif untuk proyek komunitas (taman, dll.)
 
-### 🤖 AI & Chatbot
+### AI & Chatbot
 - **Chatbot Bantuan** — Jawab berdasarkan dataset, arahkan user
 - **Escalate ke Operator** — Tombol hubungi operator untuk kasus kompleks
 - **AI Classification** — Klasifikasi & ekstraksi otomatis untuk laporan
 
-### 🔐 Command Center
+### Command Center
 - **Dashboard Monitoring** — Jumlah laporan aktif, rata-rata penyelesaian
 - **Indikator Status** — Merah/Kuning/Hijau berdasarkan SLA
 - **Prioritas Urgensi** — Laporan warga yang ter-upvote naik prioritas
 
-### 🔑 Identity & Auth
+### Identity & Auth
 - **NIK sebagai Username** — Login dengan NIK + OTP Email
 - **Manual KYC** — Verifikasi identitas manual untuk validitas data maksimal
 - **RBAC + ABAC** — Isolasi akses granular per instansi, jabatan, wilayah
@@ -141,7 +141,7 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 
 ---
 
-## 🏗️ Arsitektur
+## Arsitektur
 
 ### Modular Monolith
 
@@ -183,7 +183,7 @@ Infrastructure Adapter (Brevo, BPS, AI, Cloudinary)
 
 ---
 
-## 📦 Prasyarat
+## Prasyarat
 
 - **Node.js** ≥ 22 (lihat `.nvmrc`)
 - **pnpm** ≥ 9 (package manager)
@@ -199,7 +199,7 @@ Infrastructure Adapter (Brevo, BPS, AI, Cloudinary)
 
 ---
 
-## 🚀 Instalasi & Setup
+## Instalasi & Setup
 
 ### 1. Clone Repository
 ```bash
@@ -234,7 +234,7 @@ Buka [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 Buat file `.env.local` dari `.env.example`. **Jangan pernah commit nilai secret.**
 
@@ -269,11 +269,11 @@ AI_API_KEY=                # API key provider AI
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-> ⚠️ **Penting**: Variabel `NEXT_PUBLIC_*` akan terekspos ke client. Jangan taruh secret di sana.
+> **Penting**: Variabel `NEXT_PUBLIC_*` akan terekspos ke client. Jangan taruh secret di sana.
 
 ---
 
-## 💻 Development
+## Development
 
 ### Scripts Utama
 
@@ -311,7 +311,7 @@ chore(deps): update drizzle-orm to 0.35 (#60)
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Test Pyramid
 
@@ -345,7 +345,7 @@ pnpm exec playwright test
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -374,7 +374,7 @@ pnpm db:migrate
 
 ---
 
-## 📂 Struktur Proyek
+## Struktur Proyek
 
 ```
 agoraya/
@@ -382,35 +382,6 @@ agoraya/
 │   ├── ISSUE_TEMPLATE/       # Bug, feature, task templates
 │   ├── workflows/ci.yml      # CI pipeline
 │   └── pull_request_template.md
-├── design-figma/             # Export design Figma (PDF)
-├── docs/
-│   ├── ai/                   # AI agent context docs
-│   │   ├── INDEX.md           # Entry point & read order
-│   │   ├── PROJECT_CONTEXT.md
-│   │   ├── ARCHITECTURE.md
-│   │   ├── ENGINEERING_STANDARDS.md
-│   │   ├── SECURITY_BASELINE.md
-│   │   ├── SCOPE_AND_NON_GOALS.md
-│   │   ├── TASK_PROTOCOL.md
-│   │   ├── TASK_BRIEF_TEMPLATE.md
-│   │   ├── SDLC_WORKFLOW.md
-│   │   ├── QUALITY_GATE.md
-│   │   ├── TESTING_STRATEGY.md
-│   │   ├── EMAIL_BREVO.md
-│   │   ├── CI_CD.md
-│   │   └── DECISION_LOG.md
-│   ├── adr/                  # Architecture Decision Records
-│   │   ├── 0001-modular-monolith.md
-│   │   ├── 0002-web-only-integrations.md
-│   │   └── 0003-ai-is-explanatory.md
-│   ├── prompting/            # Format prompting terstruktur
-│   │   ├── PROMPTING_GUIDE.md
-│   │   ├── PROMPT_TEMPLATES.md
-│   │   └── CONTEXT_RULES.md
-│   └── principles/           # Software principles
-│       ├── SOFTWARE_PRINCIPLES.md
-│       ├── CODING_STANDARDS.md
-│       └── SECURITY_CHECKLIST.md
 ├── src/
 │   ├── app/                  # Next.js App Router pages
 │   ├── components/           # Shared UI components
@@ -425,58 +396,36 @@ agoraya/
 │       ├── gamification/     # Poin & Kredit Sipil
 │       ├── chatbot/          # AI Chatbot
 │       └── command-center/   # Command Center
-├── AGENTS.md                 # AI agent engineering contract
 ├── CONTRIBUTING.md           # Contributing guide
 ├── DOCUMENTATION.md          # Dokumentasi lengkap
-├── README.md                 # File ini
-├── .editorconfig
-├── .nvmrc                    # Node.js version (22)
+├── README.md                
 └── package.json
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Baca panduan lengkap di [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ### Quick Start
 
-1. Baca `AGENTS.md` dan `docs/ai/INDEX.md`
-2. Checkout dari `development`: `git checkout -b feature/GH-XX-deskripsi development`
-3. Implement dengan scope minimal — satu issue per branch
-4. Tambah tests (unit + negative security jika relevan)
-5. Jalankan quality gates: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-6. Buka PR ke `development` dengan template yang sudah disediakan
-
-### Untuk AI Agent / Coding Assistant
-
-Gunakan format prompting terstruktur di `docs/prompting/PROMPTING_GUIDE.md` agar:
-- ✅ AI tetap dalam konteks (tidak keluar scope)
-- ✅ Hemat token (tidak bolak-balik klarifikasi)
-- ✅ Output terstruktur dan konsisten
-- ✅ Kualitas code terjaga
+1. Checkout dari `development`: `git checkout -b feature/GH-XX-deskripsi development`
+2. Implement dengan scope minimal — satu issue per branch
+3. Tambah tests (unit + negative security jika relevan)
+4. Jalankan quality gates: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+5. Buka PR ke `development` dengan template yang sudah disediakan
 
 ---
 
-## 📚 Dokumentasi Lengkap
+## Dokumentasi Lengkap
 
 | Dokumen | Deskripsi |
 |---------|-----------|
 | [DOCUMENTATION.md](./DOCUMENTATION.md) | **Dokumentasi teknis lengkap** |
-| [AGENTS.md](./AGENTS.md) | Kontrak engineering untuk AI agents |
-| [docs/ai/INDEX.md](./docs/ai/INDEX.md) | Index konteks AI |
-| [docs/prompting/PROMPTING_GUIDE.md](./docs/prompting/PROMPTING_GUIDE.md) | Panduan format prompting |
-| [docs/principles/SOFTWARE_PRINCIPLES.md](./docs/principles/SOFTWARE_PRINCIPLES.md) | Prinsip software engineering |
 
 ---
 
-## 👥 Tim
-
-**Techfourma** — Tim pengembang GovHub.ID / Agoraya
-
----
-
-## 📄 Lisensi
+## Lisensi
 
 Proprietary. Hak cipta dilindungi.
