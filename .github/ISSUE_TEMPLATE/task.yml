@@ -1,0 +1,39 @@
+name: Engineering task / chore
+description: Bounded engineering work with a verifiable exit condition
+title: "[CHORE] "
+labels: ["chore", "triage"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: Which code/docs/config/tests should exist when finished?
+    validations:
+      required: true
+  - type: textarea
+    id: exit
+    attributes:
+      label: Exit criteria
+      description: Observable and verifiable; do not say only "works".
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and non-goals
+      description: Preserve current behavior; list files/modules intentionally outside scope.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: Commands, tests, migration/rollback, CI/CD or manual review steps.
+    validations:
+      required: true

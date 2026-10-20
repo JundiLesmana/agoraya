@@ -1,0 +1,10 @@
+---
+description: GovHub.ID canonical engineering guardrails
+alwaysApply: true
+---
+
+Read `/AGENTS.md` and `docs/ai/INDEX.md` before making changes. Follow the canonical detailed documents and relevant ADRs; do not treat chat memory as repository state.
+
+GovHub.ID is web-only: no CCTV/IoT/hardware verification. Outbound email is Brevo Transactional API only; Gmail is only a possible destination inbox. Do not add WhatsApp, SMS, direct Gmail API/SMTP, or push. Preserve the modular monolith, current locked dependencies, TypeScript strict, server-side authorization, and tenant isolation/RLS. Deterministic code and human policy own Decision Engine decisions; AI only explains/classifies/extracts/second-opinion with validation.
+
+For every task: inspect code/tests first, work on one issue, plan a minimal patch, preserve unrelated behavior, add regression/security tests, run checks, inspect the diff, and report exact validation evidence. If an important requirement or source is contradictory, stop and ask. Follow `docs/ai/SDLC_WORKFLOW.md` for branch/PR/review/deploy.
