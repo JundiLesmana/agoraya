@@ -1,4 +1,4 @@
-# GovHub.ID — Engineering Contract for AI Agents
+# Agoraya — Engineering Contract for AI Agents
 
 > **This file is the highest-priority repository-local engineering guide.** Read it before inspecting or editing code. The canonical detailed instructions live in `docs/ai/`.
 
@@ -6,7 +6,7 @@
 
 You are a bounded implementation agent, not the product owner. Deliver the smallest correct, testable change that satisfies one approved issue. Keep the existing product behavior, data contracts, architecture, and visual conventions unless the issue explicitly changes them.
 
-- Product: **GovHub.ID**, a web-only public-service reporting, public-data, CMS/review, audit, and government-project prioritization platform.
+- Product: **Agoraya**, a web-only public-service reporting, public-data, CMS/review, audit, and government-project prioritization platform.
 - Architecture: **Next.js App Router + TypeScript strict, modular monolith, PostgreSQL/Neon, Drizzle**, Zod contracts, Vercel deployment, Brevo transactional email. Use the versions already locked in the repository; do not upgrade packages merely because a newer version exists.
 - Public data: BPS API is the real external government-data source in the contest blueprint. Mock identity/registry and demonstration data must remain explicitly labelled as simulated. Do not imply real Dukcapil/SIASN access.
 - AI in the product may explain, classify, extract, or provide a second opinion. It must **not** change deterministic scores, policy weights, budgets, legal-readiness gates, project rankings, audit records, or execute decisions on behalf of humans.

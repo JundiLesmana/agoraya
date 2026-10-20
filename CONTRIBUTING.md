@@ -1,4 +1,4 @@
-# Contributing to GovHub.ID
+# Contributing to Agoraya.
 
 1. Read `AGENTS.md`, `docs/ai/INDEX.md`, and relevant ADRs.
 2. Work from latest `origin/development` on one issue branch. Preserve uncommitted work.
