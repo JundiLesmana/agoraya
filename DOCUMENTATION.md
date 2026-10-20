@@ -1,6 +1,6 @@
-# 📖 DOCUMENTATION.md — GovHub.ID (Agoraya)
+# 📖 DOCUMENTATION.md — Agoraya
 
-> Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform GovHub.ID.
+> Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform Agoraya.
 > Terakhir diperbarui: 2026-10-20
 
 ---
@@ -31,9 +31,9 @@
 
 ## 1. Pendahuluan
 
-### 1.1 Apa itu GovHub.ID?
+### 1.1 Apa itu Agoraya?
 
-GovHub.ID adalah platform web tata kelola pemerintahan digital yang menggabungkan:
+Agoraya adalah platform web tata kelola pemerintahan digital yang menggabungkan:
 - **Transparansi data publik** — Visualisasi anggaran, statistik, dan open government data
 - **Pelaporan warga** — Sistem pelaporan dan tracking masalah publik
 - **CMS pemerintahan** — Pendataan dengan workflow Maker-Checker
@@ -69,7 +69,7 @@ CI/CD:     GitHub Actions + Vercel
 
 ### 2.1 Modular Monolith
 
-GovHub.ID menggunakan arsitektur **Modular Monolith** — satu aplikasi Next.js dengan modul-modul feature yang terisolasi.
+Agoraya menggunakan arsitektur **Modular Monolith** — satu aplikasi Next.js dengan modul-modul feature yang terisolasi.
 
 **Mengapa bukan microservices?**
 - Tim kecil; satu deployable unit lebih efisien
@@ -887,7 +887,7 @@ Menggunakan **shadcn/ui + Radix UI** dengan Tailwind CSS:
 
 ## 9. AI & Chatbot
 
-### 9.1 Prinsip AI dalam GovHub.ID
+### 9.1 Prinsip AI dalam Agoraya
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -1326,4 +1326,4 @@ pnpm db:migrate
 
 ---
 
-*Dokumentasi ini adalah source of truth untuk pengembangan GovHub.ID. Update setiap ada perubahan arsitektur, fitur, atau keputusan penting.*
+*Dokumentasi ini adalah source of truth untuk pengembangan Agoraya. Update setiap ada perubahan arsitektur, fitur, atau keputusan penting.*
