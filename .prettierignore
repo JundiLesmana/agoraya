@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+.turbo/
+
+# Generated files
+pnpm-lock.yaml
+next-env.d.ts
