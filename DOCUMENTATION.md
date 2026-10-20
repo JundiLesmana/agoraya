@@ -1005,6 +1005,23 @@ pnpm dev
 
 ---
 
+### 10.7 Database CLI (Drizzle)
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm db:generate` | Generate SQL migration files from `src/lib/db/schema.ts` into `db/migrations/` |
+| `pnpm db:migrate` | Apply pending migrations (use `DATABASE_URL_UNPOOLED` for DDL) |
+| `pnpm db:push` | Push schema directly to DB (development only, no versioning) |
+| `pnpm db:studio` | Open Drizzle Studio to inspect data |
+| `pnpm db:seed` | Seed BPS snapshots + demo scenario (idempotent) |
+| `pnpm db:reset` | Truncate all data tables then re-seed (clean demo state) |
+| `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
+
+Connection pooling is configured in `src/lib/db/index.ts` (pooled `DATABASE_URL` for
+the app, direct `DATABASE_URL_UNPOOLED` for migrations/reset/rollback). All seed
+data is explicitly synthetic (`sourceLabel = 'SIMULATED'`); no real NIK, citizen
+PII, or production credentials are ever seeded.
+
 ## 11. Testing Strategy
 
 ### 11.1 Test Pyramid
