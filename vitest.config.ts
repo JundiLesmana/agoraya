@@ -6,10 +6,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@tests': path.resolve(__dirname, './tests'),
+      '@helpers': path.resolve(__dirname, './tests/helpers'),
     },
   },
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/security/**/*.test.ts', 'tests/load/**/*.test.ts'],
     exclude: ['node_modules/**', '.next/**', 'out/**', 'dist/**', 'coverage/**', 'test-results/**', 'playwright-report/**'],
     environment: 'node',
     coverage: {
