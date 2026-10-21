@@ -27,6 +27,7 @@ import {
   index,
   uniqueIndex,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,19 @@ export const userStatusEnum = pgEnum("user_status", [
   "active",
   "inactive",
   "suspended",
+]);
+
+export const kycStatusEnum = pgEnum("kyc_status", [
+  "pending",
+  "partially_approved",
+  "verified",
+  "rejected",
+  "expired",
+]);
+
+export const kycApprovalDecisionEnum = pgEnum("kyc_approval_decision", [
+  "approved",
+  "rejected",
 ]);
 
 export const ticketStatusEnum = pgEnum("ticket_status", [
@@ -363,6 +377,67 @@ export const auditEvents = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// KYC roster (citizen registry — simulated data only, no real Dukcapil/SIASN)
+// ---------------------------------------------------------------------------
+
+export const kycRoster = pgTable(
+  "kyc_roster",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    /** SIMULATED NIK — never a real government identity number. */
+    nikHash: varchar("nik_hash", { length: 64 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    status: kycStatusEnum("kyc_status").notNull().default("pending"),
+    /** ISO 8601 expiry for verified KYC; null until verified. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Who submitted the entry to the roster. */
+    submittedBy: uuid("submitted_by")
+      .references(() => users.id, { onDelete: "set null" }),
+    ...auditColumns,
+  },
+  (t) => ({
+    tenantIdx: index("kyc_roster_tenant_id_idx").on(t.tenantId),
+    statusIdx: index("kyc_roster_status_idx").on(t.status),
+    userUniq: uniqueIndex("kyc_roster_tenant_user_idx").on(t.tenantId, t.userId),
+    nikTenantIdx: index("kyc_roster_nik_hash_tenant_idx").on(t.nikHash, t.tenantId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// KYC approvals (append-only dual-approval audit trail)
+// ---------------------------------------------------------------------------
+
+export const kycApprovals = pgTable(
+  "kyc_approvals",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    rosterId: uuid("roster_id")
+      .references(() => kycRoster.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    approverId: uuid("approver_id")
+      .references(() => users.id, { onDelete: "set null" }),
+    approvalSlot: integer("approval_slot").notNull(),
+    decision: kycApprovalDecisionEnum("kyc_approval_decision").notNull(),
+    reason: text("reason"),
+    ...auditColumns,
+  },
+  (t) => ({
+    rosterIdx: index("kyc_approvals_roster_id_idx").on(t.rosterId),
+    tenantIdx: index("kyc_approvals_tenant_id_idx").on(t.tenantId),
+    rosterSlotUniq: uniqueIndex("kyc_approvals_roster_slot_idx").on(t.rosterId, t.approvalSlot),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // All tables (used by the Drizzle client and seed scripts)
 // ---------------------------------------------------------------------------
 
@@ -381,4 +456,6 @@ export const tables = {
   ticketAuditLogs,
   bpsSnapshots,
   auditEvents,
+  kycRoster,
+  kycApprovals,
 } as const;
