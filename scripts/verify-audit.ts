@@ -22,9 +22,9 @@ function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry {
     targetId: row.targetId,
     metadata: row.metadata as Readonly<Record<string, unknown>>,
     occurredAt: row.createdAt,
-    previousHash: null,
-    hash: null,
-    signature: null,
+    previousHash: '',
+    hash: '',
+    signature: '',
   };
 }
 
