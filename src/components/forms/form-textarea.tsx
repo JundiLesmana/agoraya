@@ -6,12 +6,8 @@ import { Textarea, type TextareaProps } from '@/components/ui/textarea';
 import { useFormFieldContext } from './form-field';
 import { cn } from '@/lib/utils';
 
-export interface FormTextareaProps extends Omit<TextareaProps, 'name'> {}
+export type FormTextareaProps = Omit<TextareaProps, 'name'>;
 
-/**
- * Textarea registered with the enclosing `<FormField>`. Surfaces
- * validation state via `aria-invalid`/`aria-describedby` and styling.
- */
 export function FormTextarea({ className, ...props }: FormTextareaProps) {
   const { register, getFieldState } = useFormContext();
   const field = useFormFieldContext();
