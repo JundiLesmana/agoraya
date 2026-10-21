@@ -19,7 +19,6 @@ describe("JobQueue", () => {
     await queue.enqueue("failing", {}, new Date("2026-01-01T00:00:00Z"));
     await queue.processNext(new Date("2026-01-01T00:00:00Z"));
     await queue.processNext(new Date("2026-01-01T00:00:00.020Z"));
-    await queue.processNext(new Date("2026-01-01T00:00:00.040Z"));
     expect((await repo.listDeadLetter(10)).length).toBe(1);
   });
 });
