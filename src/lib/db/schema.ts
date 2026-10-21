@@ -27,7 +27,6 @@ import {
   index,
   uniqueIndex,
   pgEnum,
-  boolean,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -66,6 +65,22 @@ export const bpsSourceEnum = pgEnum("bps_source", [
   "BPS_API",
   "SIMULATED",
   "CITIZEN_UNVERIFIED",
+]);
+
+export const cmsContentStatusEnum = pgEnum("cms_content_status", [
+  "draft",
+  "in_review",
+  "published",
+  "archived",
+]);
+export const cmsRiskDecisionEnum = pgEnum("cms_risk_decision", [
+  "approved",
+  "rejected",
+]);
+export const cmsRiskLevelEnum = pgEnum("cms_risk_level", [
+  "low",
+  "medium",
+  "high",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -438,6 +453,134 @@ export const kycApprovals = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// CMS content, risk review, immutable versions, and audit events
+// ---------------------------------------------------------------------------
+export const cmsContents = pgTable(
+  "cms_contents",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    slug: varchar("slug", { length: 160 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: jsonb("body").$type<Record<string, unknown>>().notNull(),
+    status: cmsContentStatusEnum("status").notNull().default("draft"),
+    version: integer("version").notNull().default(1),
+    createdBy: uuid("created_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    ...auditColumns,
+  },
+  (t) => ({
+    tenantSlug: uniqueIndex("cms_contents_tenant_slug_idx").on(
+      t.tenantId,
+      t.slug,
+    ),
+    tenantStatus: index("cms_contents_tenant_status_idx").on(
+      t.tenantId,
+      t.status,
+    ),
+  }),
+);
+
+export const cmsContentVersions = pgTable(
+  "cms_content_versions",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    version: integer("version").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: jsonb("body").$type<Record<string, unknown>>().notNull(),
+    status: cmsContentStatusEnum("status").notNull(),
+    changedBy: uuid("changed_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    changeReason: text("change_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentVersion: uniqueIndex("cms_content_versions_content_version_idx").on(
+      t.contentId,
+      t.version,
+    ),
+    tenantContent: index("cms_content_versions_tenant_content_idx").on(
+      t.tenantId,
+      t.contentId,
+    ),
+  }),
+);
+
+export const cmsRiskReviews = pgTable(
+  "cms_risk_reviews",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    reviewerId: uuid("reviewer_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    score: integer("score").notNull(),
+    level: cmsRiskLevelEnum("level").notNull(),
+    decision: cmsRiskDecisionEnum("decision").notNull(),
+    rationale: text("rationale").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentIdx: index("cms_risk_reviews_content_id_idx").on(t.contentId),
+    reviewerUnique: uniqueIndex("cms_risk_reviews_content_reviewer_idx").on(
+      t.contentId,
+      t.reviewerId,
+    ),
+  }),
+);
+
+export const cmsAuditLogs = pgTable(
+  "cms_audit_logs",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    actorId: uuid("actor_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    action: varchar("action", { length: 100 }).notNull(),
+    previousStatus: cmsContentStatusEnum("previous_status"),
+    nextStatus: cmsContentStatusEnum("next_status"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentCreated: index("cms_audit_logs_content_created_idx").on(
+      t.contentId,
+      t.createdAt,
+    ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // All tables (used by the Drizzle client and seed scripts)
 // ---------------------------------------------------------------------------
 
@@ -458,4 +601,8 @@ export const tables = {
   auditEvents,
   kycRoster,
   kycApprovals,
+  cmsContents,
+  cmsContentVersions,
+  cmsRiskReviews,
+  cmsAuditLogs,
 } as const;
