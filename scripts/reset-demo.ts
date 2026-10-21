@@ -1,23 +1,9 @@
-/**
- * Agoraya — Reset demo database to a clean, seeded state.
- *
- * Run with: `pnpm script:reset-demo` or `pnpm db:reset`.
- *
- * 1. Truncates all data tables (clean state, schema preserved).
- * 2. Re-seeds BPS snapshots and the demo scenario.
- *
- * Uses `DATABASE_URL_UNPOOLED` (direct connection) because TRUNCATE is DDL
- * and must not run through the pooled Neon connection.
- */
-
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { sql } from "drizzle-orm";
 import * as schema from "../src/lib/db/schema.js";
 import { seedAll } from "../db/seed/index.js";
+import { logger } from "../src/lib/logger/logger.js";
 
-// All data tables. TRUNCATE ... CASCADE handles FK dependencies, so order here
-// does not matter; the result is an empty (clean) schema.
 const DATA_TABLES = [
   "audit_events",
   "ticket_audit_logs",
@@ -51,10 +37,10 @@ async function main(): Promise<void> {
         sql`, `,
       )} CASCADE`,
     );
-    console.log("[reset-demo] truncated all data tables — clean state");
+    logger.info("[reset-demo] truncated all data tables — clean state");
 
     const result = await seedAll(adminDb);
-    console.log("[reset-demo] seeded demo data:", JSON.stringify(result));
+    logger.info("[reset-demo] seeded demo data", { result });
   } finally {
     await admin.end();
   }

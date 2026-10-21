@@ -1,12 +1,3 @@
-/**
- * Agoraya — Idempotent database seed.
- *
- * Run with: `pnpm script:seed` (runs `tsx scripts/seed.ts`).
- *
- * Seeds BPS snapshots and the demo scenario without resetting existing data.
- * Safe to run repeatedly.
- */
-
 import { seedAll } from "../db/seed/index.js";
 
 async function main(): Promise<void> {
