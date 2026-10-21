@@ -20,6 +20,7 @@ import type * as schema from "../../src/lib/db/schema.js";
 import {
   auditEvents,
   permissions,
+  rbacPolicies,
   rolePermissions,
   roles,
   tickets,
@@ -31,6 +32,7 @@ import type {
   userStatusEnum,
   ticketStatusEnum,
 } from "../../src/lib/db/schema.js";
+import { builtinPolicyDefinitions } from "../../src/modules/rbac/policies/definitions.js";
 
 type UserStatus = (typeof userStatusEnum.enumValues)[number];
 type TicketStatus = (typeof ticketStatusEnum.enumValues)[number];
@@ -249,6 +251,7 @@ export async function seedDemoScenario(
   permissions: number;
   tickets: number;
   auditEvents: number;
+  policies: number;
 }> {
   // 1. Tenant (upsert on slug)
   await dbx
@@ -353,6 +356,46 @@ export async function seedDemoScenario(
     },
   ]);
 
+  // 9. Built-in RBAC policies (global). Idempotent upsert on the policy key.
+  //    `status` and `version` are preserved so a locally edited policy is not
+  //    reset by re-running the seed.
+  const policyDefinitions = builtinPolicyDefinitions();
+  for (const definition of policyDefinitions) {
+    await dbx
+      .insert(rbacPolicies)
+      .values({
+        id: randomUUID(),
+        key: definition.key,
+        name: definition.name,
+        description: definition.description ?? null,
+        effect: definition.effect,
+        priority: definition.priority,
+        status: definition.status,
+        version: 1,
+        tenantId: definition.tenantId,
+        roles: [...definition.roles],
+        permissions: [...definition.permissions],
+        resources: [...definition.resources],
+        actions: [...definition.actions],
+        conditions: definition.conditions.map((condition) => ({ ...condition })),
+      })
+      .onConflictDoUpdate({
+        target: rbacPolicies.key,
+        set: {
+          name: definition.name,
+          description: definition.description ?? null,
+          effect: definition.effect,
+          priority: definition.priority,
+          roles: [...definition.roles],
+          permissions: [...definition.permissions],
+          resources: [...definition.resources],
+          actions: [...definition.actions],
+          conditions: definition.conditions.map((condition) => ({ ...condition })),
+          updatedAt: now,
+        },
+      });
+  }
+
   return {
     tenants: 1,
     users: USER_SEEDS.length,
@@ -360,5 +403,6 @@ export async function seedDemoScenario(
     permissions: PERMISSION_SEEDS.length,
     tickets: TICKET_SEEDS.length,
     auditEvents: 3,
+    policies: policyDefinitions.length,
   };
 }
