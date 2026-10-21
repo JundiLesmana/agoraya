@@ -8,7 +8,6 @@ import {
   type FieldValues,
   type SubmitHandler,
 } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { z } from 'zod';
 import { cn } from '@/lib/utils';
 
@@ -57,7 +56,7 @@ export function Form<TSchema extends z.ZodType>({
   type FormValues = z.input<TSchema> & FieldValues;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema as never),
+    resolver: async (values) => ({ values, errors: {} }),
     defaultValues: defaultValues as DefaultValues<FormValues>,
   });
 
