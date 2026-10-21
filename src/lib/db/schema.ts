@@ -27,6 +27,7 @@ import {
   index,
   uniqueIndex,
   pgEnum,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -39,9 +40,23 @@ export const userStatusEnum = pgEnum("user_status", [
   "suspended",
 ]);
 
+export const kycStatusEnum = pgEnum("kyc_status", [
+  "pending",
+  "partially_approved",
+  "verified",
+  "rejected",
+  "expired",
+]);
+
+export const kycApprovalDecisionEnum = pgEnum("kyc_approval_decision", [
+  "approved",
+  "rejected",
+]);
+
 export const ticketStatusEnum = pgEnum("ticket_status", [
   "draft",
   "submitted",
+  "verified",
   "in_progress",
   "resolved",
   "rejected",
@@ -52,6 +67,22 @@ export const bpsSourceEnum = pgEnum("bps_source", [
   "BPS_API",
   "SIMULATED",
   "CITIZEN_UNVERIFIED",
+]);
+
+export const cmsContentStatusEnum = pgEnum("cms_content_status", [
+  "draft",
+  "in_review",
+  "published",
+  "archived",
+]);
+export const cmsRiskDecisionEnum = pgEnum("cms_risk_decision", [
+  "approved",
+  "rejected",
+]);
+export const cmsRiskLevelEnum = pgEnum("cms_risk_level", [
+  "low",
+  "medium",
+  "high",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -177,6 +208,11 @@ export const rolePermissions = pgTable(
     permissionId: uuid("permission_id")
       .references(() => permissions.id, { onDelete: "cascade" })
       .notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.roleId, t.permissionId] }),
@@ -192,9 +228,72 @@ export const userRoles = pgTable(
     roleId: uuid("role_id")
       .references(() => roles.id, { onDelete: "cascade" })
       .notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    grantedBy: uuid("granted_by").references(() => users.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.userId, t.roleId] }),
+    roleIdx: index("user_roles_role_id_idx").on(t.roleId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// RBAC: policies (PDP policy definitions)
+// ---------------------------------------------------------------------------
+
+export const rbacPolicies = pgTable(
+  "rbac_policies",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    key: varchar("key", { length: 100 }).notNull().unique(),
+    name: varchar("name", { length: 200 }).notNull(),
+    description: text("description"),
+    effect: varchar("effect", { length: 20 }).notNull().default("allow"),
+    priority: integer("priority").notNull().default(100),
+    status: varchar("status", { length: 20 }).notNull().default("active"),
+    version: integer("version").notNull().default(1),
+    tenantId: uuid("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
+    roles: jsonb("roles").$type<string[]>().notNull(),
+    permissions: jsonb("permissions").$type<string[]>().notNull(),
+    resources: jsonb("resources").$type<string[]>().notNull(),
+    actions: jsonb("actions").$type<string[]>().notNull(),
+    conditions: jsonb("conditions").$type<unknown>().notNull(),
+    ...auditColumns,
+  },
+  (t) => ({
+    statusIdx: index("rbac_policies_status_idx").on(t.status),
+    tenantIdx: index("rbac_policies_tenant_id_idx").on(t.tenantId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// RBAC: policy version history (append-only review trail)
+// ---------------------------------------------------------------------------
+
+export const rbacPolicyVersions = pgTable(
+  "rbac_policy_versions",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    policyId: uuid("policy_id")
+      .references(() => rbacPolicies.id, { onDelete: "cascade" })
+      .notNull(),
+    policyKey: varchar("policy_key", { length: 100 }).notNull(),
+    version: integer("version").notNull(),
+    definition: jsonb("definition").$type<unknown>().notNull(),
+    changedBy: uuid("changed_by").references(() => users.id, { onDelete: "set null" }),
+    reason: text("reason"),
+    ...auditColumns,
+  },
+  (t) => ({
+    policyVersionIdx: uniqueIndex("rbac_policy_versions_policy_id_version_idx").on(
+      t.policyId,
+      t.version,
+    ),
+    policyKeyIdx: index("rbac_policy_versions_policy_key_idx").on(t.policyKey),
   }),
 );
 
@@ -216,12 +315,70 @@ export const tickets = pgTable(
     status: ticketStatusEnum("ticket_status").notNull().default("draft"),
     urgency: varchar("urgency", { length: 50 }).notNull().default("medium"),
     location: jsonb("location"),
+    assigneeId: uuid("assignee_id").references(() => users.id),
+    duplicateOfId: uuid("duplicate_of_id"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    responseDueAt: timestamp("response_due_at", { withTimezone: true }),
+    firstRespondedAt: timestamp("first_responded_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    slaEscalatedAt: timestamp("sla_escalated_at", { withTimezone: true }),
     ...auditColumns,
   },
   (t) => ({
     tenantIdx: index("tickets_tenant_id_idx").on(t.tenantId),
     statusIdx: index("tickets_status_idx").on(t.status),
     citizenIdx: index("tickets_citizen_id_idx").on(t.citizenId),
+    responseDueIdx: index("tickets_response_due_at_idx").on(t.responseDueAt),
+    duplicateIdx: index("tickets_duplicate_of_id_idx").on(t.duplicateOfId),
+    duplicateFk: foreignKey({
+      columns: [t.duplicateOfId],
+      foreignColumns: [t.id],
+      name: "tickets_duplicate_of_id_tickets_id_fk",
+    }),
+  }),
+);
+
+export const ticketEvidence = pgTable(
+  "ticket_evidence",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    ticketId: uuid("ticket_id")
+      .references(() => tickets.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    uploadedBy: uuid("uploaded_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    storageKey: varchar("storage_key", { length: 512 }).notNull(),
+    mediaType: varchar("media_type", { length: 100 }).notNull(),
+    purpose: varchar("purpose", { length: 50 }).notNull().default("qc"),
+    note: text("note"),
+    ...auditColumns,
+  },
+  (t) => ({ ticketIdx: index("ticket_evidence_ticket_id_idx").on(t.ticketId) }),
+);
+
+export const ticketVotes = pgTable(
+  "ticket_votes",
+  {
+    ticketId: uuid("ticket_id")
+      .references(() => tickets.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    voterId: uuid("voter_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    value: integer("value").notNull(),
+    ...auditColumns,
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.ticketId, t.voterId] }),
+    ticketIdx: index("ticket_votes_ticket_id_idx").on(t.ticketId),
   }),
 );
 
@@ -295,6 +452,195 @@ export const auditEvents = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// KYC roster (citizen registry — simulated data only, no real Dukcapil/SIASN)
+// ---------------------------------------------------------------------------
+
+export const kycRoster = pgTable(
+  "kyc_roster",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    /** SIMULATED NIK — never a real government identity number. */
+    nikHash: varchar("nik_hash", { length: 64 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    status: kycStatusEnum("kyc_status").notNull().default("pending"),
+    /** ISO 8601 expiry for verified KYC; null until verified. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Who submitted the entry to the roster. */
+    submittedBy: uuid("submitted_by")
+      .references(() => users.id, { onDelete: "set null" }),
+    ...auditColumns,
+  },
+  (t) => ({
+    tenantIdx: index("kyc_roster_tenant_id_idx").on(t.tenantId),
+    statusIdx: index("kyc_roster_status_idx").on(t.status),
+    userUniq: uniqueIndex("kyc_roster_tenant_user_idx").on(t.tenantId, t.userId),
+    nikTenantIdx: index("kyc_roster_nik_hash_tenant_idx").on(t.nikHash, t.tenantId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// KYC approvals (append-only dual-approval audit trail)
+// ---------------------------------------------------------------------------
+
+export const kycApprovals = pgTable(
+  "kyc_approvals",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    rosterId: uuid("roster_id")
+      .references(() => kycRoster.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    approverId: uuid("approver_id")
+      .references(() => users.id, { onDelete: "set null" }),
+    approvalSlot: integer("approval_slot").notNull(),
+    decision: kycApprovalDecisionEnum("kyc_approval_decision").notNull(),
+    reason: text("reason"),
+    ...auditColumns,
+  },
+  (t) => ({
+    rosterIdx: index("kyc_approvals_roster_id_idx").on(t.rosterId),
+    tenantIdx: index("kyc_approvals_tenant_id_idx").on(t.tenantId),
+    rosterSlotUniq: uniqueIndex("kyc_approvals_roster_slot_idx").on(t.rosterId, t.approvalSlot),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// CMS content, risk review, immutable versions, and audit events
+// ---------------------------------------------------------------------------
+export const cmsContents = pgTable(
+  "cms_contents",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    slug: varchar("slug", { length: 160 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: jsonb("body").$type<Record<string, unknown>>().notNull(),
+    status: cmsContentStatusEnum("status").notNull().default("draft"),
+    version: integer("version").notNull().default(1),
+    createdBy: uuid("created_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    ...auditColumns,
+  },
+  (t) => ({
+    tenantSlug: uniqueIndex("cms_contents_tenant_slug_idx").on(
+      t.tenantId,
+      t.slug,
+    ),
+    tenantStatus: index("cms_contents_tenant_status_idx").on(
+      t.tenantId,
+      t.status,
+    ),
+  }),
+);
+
+export const cmsContentVersions = pgTable(
+  "cms_content_versions",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    version: integer("version").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: jsonb("body").$type<Record<string, unknown>>().notNull(),
+    status: cmsContentStatusEnum("status").notNull(),
+    changedBy: uuid("changed_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    changeReason: text("change_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentVersion: uniqueIndex("cms_content_versions_content_version_idx").on(
+      t.contentId,
+      t.version,
+    ),
+    tenantContent: index("cms_content_versions_tenant_content_idx").on(
+      t.tenantId,
+      t.contentId,
+    ),
+  }),
+);
+
+export const cmsRiskReviews = pgTable(
+  "cms_risk_reviews",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    reviewerId: uuid("reviewer_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    score: integer("score").notNull(),
+    level: cmsRiskLevelEnum("level").notNull(),
+    decision: cmsRiskDecisionEnum("decision").notNull(),
+    rationale: text("rationale").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentIdx: index("cms_risk_reviews_content_id_idx").on(t.contentId),
+    reviewerUnique: uniqueIndex("cms_risk_reviews_content_reviewer_idx").on(
+      t.contentId,
+      t.reviewerId,
+    ),
+  }),
+);
+
+export const cmsAuditLogs = pgTable(
+  "cms_audit_logs",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    contentId: uuid("content_id")
+      .references(() => cmsContents.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    actorId: uuid("actor_id")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    action: varchar("action", { length: 100 }).notNull(),
+    previousStatus: cmsContentStatusEnum("previous_status"),
+    nextStatus: cmsContentStatusEnum("next_status"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    contentCreated: index("cms_audit_logs_content_created_idx").on(
+      t.contentId,
+      t.createdAt,
+    ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // All tables (used by the Drizzle client and seed scripts)
 // ---------------------------------------------------------------------------
 
@@ -307,8 +653,18 @@ export const tables = {
   permissions,
   rolePermissions,
   userRoles,
+  rbacPolicies,
+  rbacPolicyVersions,
   tickets,
+  ticketEvidence,
+  ticketVotes,
   ticketAuditLogs,
   bpsSnapshots,
   auditEvents,
+  kycRoster,
+  kycApprovals,
+  cmsContents,
+  cmsContentVersions,
+  cmsRiskReviews,
+  cmsAuditLogs,
 } as const;

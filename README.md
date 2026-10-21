@@ -137,6 +137,7 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 |-----------|--------|
 | **Vitest** | Unit & integration tests |
 | **Playwright** | E2E testing |
+| **k6** | Load testing |
 | **GitHub Actions** | CI pipeline |
 
 ---
@@ -289,6 +290,17 @@ pnpm test:integration  # Integration tests
 pnpm db:studio      # Drizzle Studio (DB GUI)
 ```
 
+### Utility Scripts
+
+```bash
+pnpm script:seed                     # Populate demo data (idempotent)
+pnpm script:reset-demo               # Reset demo tables and reseed clean state
+pnpm script:verify-audit             # Verify audit trail integrity
+pnpm script:export-snapshot -- out.json  # Export a JSON snapshot
+```
+
+See the script source headers for operational notes and environment requirements.
+
 ### Branch Model
 
 ```
@@ -339,6 +351,12 @@ pnpm test --watch
 
 # E2E
 pnpm exec playwright test
+
+# Coverage
+pnpm test:coverage
+
+# Load
+pnpm test:load
 ```
 
 > Detail lengkap: lihat `docs/ai/TESTING_STRATEGY.md`

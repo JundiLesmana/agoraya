@@ -1,1 +1,1 @@
-export { MockDukcapilProvider, mockDukcapilProvider } from './service';
+export { MockDukcapilProvider } from './service';

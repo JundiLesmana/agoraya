@@ -9,7 +9,7 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1 --port 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -24,6 +24,9 @@
     "test:security": "vitest run tests/security --passWithNoTests",
     "test:load": "vitest run tests/load --passWithNoTests",
     "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "test:coverage": "vitest run --coverage",
+    "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:security && pnpm test:load",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -34,7 +37,13 @@
     "script:seed": "tsx scripts/seed.ts",
     "script:reset-demo": "tsx scripts/reset-demo.ts",
     "script:verify-audit": "tsx scripts/verify-audit.ts",
-    "script:export-snapshot": "tsx scripts/export-snapshot.ts"
+    "script:export-snapshot": "tsx scripts/export-snapshot.ts",
+    "seed": "tsx scripts/seed.ts",
+    "reset-demo": "tsx scripts/reset-demo.ts",
+    "verify-audit": "tsx scripts/verify-audit.ts",
+    "export-snapshot": "tsx scripts/export-snapshot.ts",
+    "db:reset-demo": "tsx scripts/reset-demo.ts",
+    "ci:security": "pnpm lint && pnpm test:security"
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.2.0",
