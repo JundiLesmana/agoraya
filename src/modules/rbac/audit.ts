@@ -28,6 +28,11 @@ export interface AuditEvent {
   readonly occurredAt: Date;
 }
 
+export { AuditHashChain } from "../audit/hash-chain";
+export { verifyAuditTrail } from "../audit/verify";
+export { exportAuditTrail } from "../audit/anchor-export";
+export type { AuditEntry, AuditEntryInput, AuditVerificationResult } from "../audit/types";
+
 /** Persistence port for audit records. */
 export interface AuditSink {
   record(event: AuditEvent): Promise<void>;
