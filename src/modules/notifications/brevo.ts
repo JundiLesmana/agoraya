@@ -44,11 +44,4 @@ export class BrevoEmailClient {
       throw new BrevoError(error instanceof Error ? error.message : String(error));
     }
   }
-
-  async sendWithWrap(message: NotificationMessage): Promise<NotificationDeliveryResult> {
-    return this.send(message).catch((error: unknown) => {
-      if (error instanceof BrevoError) throw error;
-      throw new BrevoError(error instanceof Error ? error.message : String(error));
-    });
-  }
 }
