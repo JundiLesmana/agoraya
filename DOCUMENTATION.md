@@ -1,4 +1,4 @@
-# 📖 DOCUMENTATION.md — Agoraya
+# DOCUMENTATION.md — Agoraya
 
 > Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform Agoraya.
 > Terakhir diperbarui: 2026-10-20
@@ -1005,6 +1005,23 @@ pnpm dev
 
 ---
 
+### 10.7 Database CLI (Drizzle)
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm db:generate` | Generate SQL migration files from `src/lib/db/schema.ts` into `db/migrations/` |
+| `pnpm db:migrate` | Apply pending migrations (use `DATABASE_URL_UNPOOLED` for DDL) |
+| `pnpm db:push` | Push schema directly to DB (development only, no versioning) |
+| `pnpm db:studio` | Open Drizzle Studio to inspect data |
+| `pnpm db:seed` | Seed BPS snapshots + demo scenario (idempotent) |
+| `pnpm db:reset` | Truncate all data tables then re-seed (clean demo state) |
+| `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
+
+Connection pooling is configured in `src/lib/db/index.ts` (pooled `DATABASE_URL` for
+the app, direct `DATABASE_URL_UNPOOLED` for migrations/reset/rollback). All seed
+data is explicitly synthetic (`sourceLabel = 'SIMULATED'`); no real NIK, citizen
+PII, or production credentials are ever seeded.
+
 ## 11. Testing Strategy
 
 ### 11.1 Test Pyramid
@@ -1194,13 +1211,12 @@ Jika satu entry dimanipulasi, semua hash berikutnya akan invalid → **tamper-ev
 
 ### 16.1 Workflow Singkat
 
-1. Baca `AGENTS.md` + `docs/ai/INDEX.md`
-2. Checkout branch dari `development`
-3. Implement satu issue, satu branch
-4. Tambah tests
-5. Jalankan quality gates
-6. Buka PR ke `development`
-7. Tunggu review + CI
+1. Checkout branch dari `development`
+2. Implement satu issue, satu branch
+3. Tambah tests
+4. Jalankan quality gates
+5. Buka PR ke `development`
+6. Tunggu review + CI
 
 ### 16.2 Naming Conventions
 
