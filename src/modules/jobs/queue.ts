@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { JobHandlerRegistry } from "./handlers";
+import type { JobHandlerRegistry } from "./handlers";
 import type { JobEnvelope, JobMetrics } from "./types";
 import type { JobRepository } from "./repository";
 

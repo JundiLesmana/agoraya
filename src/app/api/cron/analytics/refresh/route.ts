@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDefaultDatabase } from "@/lib/db";
+import { getDefaultDatabase } from "@/lib/db/client";
 import { serverLogger } from "@/lib/logger";
 import {
   invalidateAggregateCache,

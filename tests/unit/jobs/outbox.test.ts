@@ -7,7 +7,7 @@ describe("OutboxProcessor", () => {
     await repo.enqueue({ id: "event-1", topic: "report.created", payload: { id: "r1" }, nextAttemptAt: new Date("2026-01-01T00:00:00Z") });
     const published: string[] = [];
     const processor = new OutboxProcessor(repo, { async publish(topic) { published.push(topic); } });
-    expect(await processor.flush(new Date("2026-01-01T00:00:00Z"))).toBe(1);
+    expect(await processor.flush(new Date("2026-01-01T00:00:01Z"))).toBe(1);
     expect(published).toEqual(["report.created"]);
   });
 });

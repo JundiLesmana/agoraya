@@ -18,7 +18,7 @@ async function main(): Promise<void> {
     rolePermissions: await db.select().from(rolePermissions),
     userRoles: await db.select().from(userRoles),
     tickets: await db.select().from(tickets).orderBy(asc(tickets.createdAt)),
-    auditEvents: await db.select().from(auditEvents).orderBy(asc(auditEvents.sequence)),
+    auditEvents: await db.select().from(auditEvents).orderBy(asc(auditEvents.createdAt)),
     bpsSnapshots: await db.select().from(bpsSnapshots).orderBy(asc(bpsSnapshots.dataset)),
   };
 

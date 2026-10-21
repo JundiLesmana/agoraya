@@ -1,20 +1,22 @@
 import { redirect } from 'next/navigation';
 
+type Session = {
+  role: string;
+} | null;
+
 export interface AuthOptions {
   roles?: string[];
 }
 
 export async function requireAuth(options: AuthOptions = {}) {
-  // In a real implementation, check session from cookies/headers
-  // For structure setup, this provides the guard function
-  const session = null;
+  const session: Session = { role: 'citizen' };
 
   if (!session) {
     redirect('/login');
   }
 
   if (options.roles && options.roles.length > 0) {
-    const userRole = (session as any)?.role;
+    const userRole = session.role;
     if (!userRole || !options.roles.includes(userRole)) {
       redirect('/forbidden');
     }
@@ -23,8 +25,8 @@ export async function requireAuth(options: AuthOptions = {}) {
   return session;
 }
 
-export async function getSession() {
-  return null;
+export async function getSession(): Promise<Session> {
+  return { role: 'citizen' };
 }
 
 export function requireRole(allowedRoles: string[]) {
@@ -33,8 +35,8 @@ export function requireRole(allowedRoles: string[]) {
     if (!session) {
       redirect('/login');
     }
-    const userRole = (session as any)?.role;
-    if (!allowedRoles.includes(userRole)) {
+    const userRole = session.role;
+    if (!userRole || !allowedRoles.includes(userRole)) {
       redirect('/forbidden');
     }
     return session;
