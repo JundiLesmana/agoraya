@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { IdentityProvider, CitizenData, IdentityVerificationResult } from '../identity-provider/provider';
 import { logger } from '@/lib/logger';
-
-const MOCK_CITIZENS: Record<string, CitizenData> = { ... };
+import { MOCK_CITIZENS } from './mock-citizens';
 
 export class MockDukcapilProvider implements IdentityProvider {
   async verify(nik: string, _additionalData?: Record<string, unknown>): Promise<IdentityVerificationResult> {
