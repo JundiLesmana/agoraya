@@ -137,6 +137,7 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 |-----------|--------|
 | **Vitest** | Unit & integration tests |
 | **Playwright** | E2E testing |
+| **k6** | Load testing |
 | **GitHub Actions** | CI pipeline |
 
 ---
@@ -339,6 +340,12 @@ pnpm test --watch
 
 # E2E
 pnpm exec playwright test
+
+# Coverage
+pnpm test:coverage
+
+# Load
+pnpm test:load
 ```
 
 > Detail lengkap: lihat `docs/ai/TESTING_STRATEGY.md`
