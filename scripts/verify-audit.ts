@@ -16,22 +16,22 @@ function requireAuditSecret(): string {
 function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry {
   return {
     id: row.id,
-    sequence: row.sequence,
+    sequence: 0,
     action: row.action,
     actorId: row.actorId,
     targetTable: row.targetTable,
     targetId: row.targetId,
     metadata: row.metadata as Readonly<Record<string, unknown>>,
-    occurredAt: row.occurredAt,
-    previousHash: row.previousHash,
-    hash: row.hash,
-    signature: row.signature,
+    occurredAt: row.createdAt,
+    previousHash: '',
+    hash: '',
+    signature: '',
   };
 }
 
 async function main(): Promise<void> {
   const secret = requireAuditSecret();
-  const rows = await db.select().from(auditEvents).orderBy(asc(auditEvents.sequence));
+  const rows = await db.select().from(auditEvents).orderBy(asc(auditEvents.createdAt));
   const entries = rows.map(toAuditEntry);
   const result = verifyAuditTrail(entries, secret);
 

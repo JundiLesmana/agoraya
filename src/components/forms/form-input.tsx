@@ -6,12 +6,8 @@ import { Input, type InputProps } from '@/components/ui/input';
 import { useFormFieldContext } from './form-field';
 import { cn } from '@/lib/utils';
 
-export interface FormInputProps extends Omit<InputProps, 'name'> {}
+export type FormInputProps = Omit<InputProps, 'name'>;
 
-/**
- * Text input registered with the enclosing `<FormField>`. Surfaces
- * validation state via `aria-invalid`/`aria-describedby` and styling.
- */
 export function FormInput({ className, ...props }: FormInputProps) {
   const { register, getFieldState } = useFormContext();
   const field = useFormFieldContext();

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
+import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { cn } from '@/lib/utils';
 
@@ -90,7 +90,7 @@ export function Map({
 }: MapProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
-  const maplibreRef = React.useRef<typeof import('maplibre-gl') | null>(null);
+  const maplibreRef = React.useRef<{ Marker: typeof MapLibreMarker; Popup: typeof MapLibrePopup } | null>(null);
   const markersRef = React.useRef<MapLibreMarker[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const latest = useLatest({ style, center, zoom, onLoad, markerColor });

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { logger } from "@/lib/logger";
 import type { OutboxRepository } from "../jobs/repository";
-import { BrevoEmailClient } from "./brevo";
+import type { BrevoEmailClient } from "./brevo";
 import { renderNotificationTemplate } from "./templates";
 import type { NotificationAuditContext, NotificationTemplateName } from "./types";
 
