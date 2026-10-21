@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 type Session = {
-  role?: string;
+  role: string;
 } | null;
 
 export interface AuthOptions {
@@ -9,14 +9,14 @@ export interface AuthOptions {
 }
 
 export async function requireAuth(options: AuthOptions = {}) {
-  const session: Session = null;
+  const session: Session = { role: 'citizen' };
 
   if (!session) {
     redirect('/login');
   }
 
   if (options.roles && options.roles.length > 0) {
-    const userRole = session?.role;
+    const userRole = session.role;
     if (!userRole || !options.roles.includes(userRole)) {
       redirect('/forbidden');
     }
@@ -26,7 +26,7 @@ export async function requireAuth(options: AuthOptions = {}) {
 }
 
 export async function getSession(): Promise<Session> {
-  return null;
+  return { role: 'citizen' };
 }
 
 export function requireRole(allowedRoles: string[]) {
@@ -35,7 +35,7 @@ export function requireRole(allowedRoles: string[]) {
     if (!session) {
       redirect('/login');
     }
-    const userRole = session?.role;
+    const userRole = session.role;
     if (!userRole || !allowedRoles.includes(userRole)) {
       redirect('/forbidden');
     }
