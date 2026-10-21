@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { type Sql } from 'postgres';
 import {
   PooledDatabase,
@@ -6,16 +7,18 @@ import {
   getDefaultDatabase,
   closeDefaultDatabase,
   type Database,
-} from '@/lib/db';
+} from '@/lib/db/client';
 import { DatabaseError } from '@/lib/errors';
 
-function mockSqlClient(): Sql {
+type MockedSqlClient = Sql & { unsafe: Mock; begin: Mock; end: Mock };
+
+function mockSqlClient(): MockedSqlClient {
   const unsafe = vi.fn().mockResolvedValue([]);
   return {
     unsafe,
     begin: vi.fn(),
     end: vi.fn().mockResolvedValue(undefined),
-  } as unknown as Sql;
+  } as unknown as MockedSqlClient;
 }
 
 describe('lib/db', () => {

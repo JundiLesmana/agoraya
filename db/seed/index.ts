@@ -20,6 +20,7 @@ export async function seedAll(dbx: typeof db = db): Promise<{
   permissions: number;
   tickets: number;
   auditEvents: number;
+  policies: number;
 }> {
   const bpsCount = await seedBpsSnapshots(dbx);
   const scenario = await seedDemoScenario(dbx);
@@ -32,7 +33,7 @@ async function main(): Promise<void> {
     `[db:seed] complete — BPS snapshots: ${result.bpsSnapshots}, ` +
       `tenants: ${result.tenants}, users: ${result.users}, roles: ${result.roles}, ` +
       `permissions: ${result.permissions}, tickets: ${result.tickets}, ` +
-      `audit_events: ${result.auditEvents}`,
+      `policies: ${result.policies}, audit_events: ${result.auditEvents}`,
   );
 }
 

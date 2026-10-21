@@ -32,7 +32,7 @@ export async function createSession(userId: string): Promise<{ sessionId: string
   return { sessionId, token, expiresAt };
 }
 
-export async function validateSession(token: string): Promise<{ valid: boolean; userId?: string; sessionId?: string }> {
+export async function validateSession(token: string): Promise<{ valid: boolean; userId?: string; sessionId?: string; tenantId?: string }> {
   if (!token) {
     return { valid: false };
   }
@@ -59,14 +59,16 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     return { valid: false };
   }
 
-  const [user] = await db.select({ status: users.status }).from(users).where(eq(users.id, session.userId));
+  const [user] = await db.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
   if (!user || user.status !== 'active') {
     logger.warn('session.user_inactive', { sessionId: session.id, userId: session.userId });
     await db.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
-  return { valid: true, userId: session.userId, sessionId: session.id };
+  // The tenant is part of the session context: authorization decisions are
+  // scoped to it (see the RBAC module's policy decision point).
+  return { valid: true, userId: session.userId, sessionId: session.id, tenantId: user.tenantId };
 }
 
 export async function destroySession(token: string): Promise<void> {
