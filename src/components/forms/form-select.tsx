@@ -6,12 +6,8 @@ import { Select, type SelectProps } from '@/components/ui/select';
 import { useFormFieldContext } from './form-field';
 import { cn } from '@/lib/utils';
 
-export interface FormSelectProps extends Omit<SelectProps, 'name'> {}
+export type FormSelectProps = Omit<SelectProps, 'name'>;
 
-/**
- * Select registered with the enclosing `<FormField>`. Surfaces
- * validation state via `aria-invalid`/`aria-describedby` and styling.
- */
 export function FormSelect({ className, ...props }: FormSelectProps) {
   const { register, getFieldState } = useFormContext();
   const field = useFormFieldContext();
