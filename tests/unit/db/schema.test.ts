@@ -158,6 +158,7 @@ describe("foundation database schema", () => {
     expect(ticketStatusEnum.enumValues).toEqual([
       "draft",
       "submitted",
+      "verified",
       "in_progress",
       "resolved",
       "rejected",
