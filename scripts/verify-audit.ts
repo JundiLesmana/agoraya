@@ -16,6 +16,7 @@ function requireAuditSecret(): string {
 function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry {
   return {
     id: row.id,
+    sequence: row.sequence,
     action: row.action,
     actorId: row.actorId,
     targetTable: row.targetTable,
