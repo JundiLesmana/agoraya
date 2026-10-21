@@ -1,17 +1,3 @@
-/**
- * Agoraya — Rollback the most recent (or a named) migration.
- *
- * Run with: `pnpm db:rollback [<migration-name>]`
- *
- * Examples:
- *   pnpm db:rollback                    # rollback the last applied migration
- *   pnpm db:rollback 0001_initial_schema
- *
- * Executes `<name>.down.sql` from `db/migrations/` against
- * `DATABASE_URL_UNPOOLED`, then removes the entry from drizzle-kit's
- * `_journal` table so `pnpm db:migrate` treats it as pending again.
- */
-
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { sql } from "drizzle-orm";
