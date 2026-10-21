@@ -1,0 +1,11 @@
+DROP TRIGGER IF EXISTS cms_audit_logs_append_only ON cms_audit_logs;
+DROP TRIGGER IF EXISTS cms_risk_reviews_append_only ON cms_risk_reviews;
+DROP TRIGGER IF EXISTS cms_versions_append_only ON cms_content_versions;
+DROP FUNCTION IF EXISTS prevent_cms_history_mutation();
+DROP TABLE IF EXISTS cms_audit_logs;
+DROP TABLE IF EXISTS cms_risk_reviews;
+DROP TABLE IF EXISTS cms_content_versions;
+DROP TABLE IF EXISTS cms_contents;
+DROP TYPE IF EXISTS cms_risk_decision;
+DROP TYPE IF EXISTS cms_risk_level;
+DROP TYPE IF EXISTS cms_content_status;
