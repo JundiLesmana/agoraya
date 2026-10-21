@@ -27,6 +27,7 @@ import {
   index,
   uniqueIndex,
   pgEnum,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ export const kycApprovalDecisionEnum = pgEnum("kyc_approval_decision", [
 export const ticketStatusEnum = pgEnum("ticket_status", [
   "draft",
   "submitted",
+  "verified",
   "in_progress",
   "resolved",
   "rejected",
@@ -313,12 +315,70 @@ export const tickets = pgTable(
     status: ticketStatusEnum("ticket_status").notNull().default("draft"),
     urgency: varchar("urgency", { length: 50 }).notNull().default("medium"),
     location: jsonb("location"),
+    assigneeId: uuid("assignee_id").references(() => users.id),
+    duplicateOfId: uuid("duplicate_of_id"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    responseDueAt: timestamp("response_due_at", { withTimezone: true }),
+    firstRespondedAt: timestamp("first_responded_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    slaEscalatedAt: timestamp("sla_escalated_at", { withTimezone: true }),
     ...auditColumns,
   },
   (t) => ({
     tenantIdx: index("tickets_tenant_id_idx").on(t.tenantId),
     statusIdx: index("tickets_status_idx").on(t.status),
     citizenIdx: index("tickets_citizen_id_idx").on(t.citizenId),
+    responseDueIdx: index("tickets_response_due_at_idx").on(t.responseDueAt),
+    duplicateIdx: index("tickets_duplicate_of_id_idx").on(t.duplicateOfId),
+    duplicateFk: foreignKey({
+      columns: [t.duplicateOfId],
+      foreignColumns: [t.id],
+      name: "tickets_duplicate_of_id_tickets_id_fk",
+    }),
+  }),
+);
+
+export const ticketEvidence = pgTable(
+  "ticket_evidence",
+  {
+    id: uuid("id").primaryKey().notNull(),
+    ticketId: uuid("ticket_id")
+      .references(() => tickets.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    uploadedBy: uuid("uploaded_by")
+      .references(() => users.id, { onDelete: "restrict" })
+      .notNull(),
+    storageKey: varchar("storage_key", { length: 512 }).notNull(),
+    mediaType: varchar("media_type", { length: 100 }).notNull(),
+    purpose: varchar("purpose", { length: 50 }).notNull().default("qc"),
+    note: text("note"),
+    ...auditColumns,
+  },
+  (t) => ({ ticketIdx: index("ticket_evidence_ticket_id_idx").on(t.ticketId) }),
+);
+
+export const ticketVotes = pgTable(
+  "ticket_votes",
+  {
+    ticketId: uuid("ticket_id")
+      .references(() => tickets.id, { onDelete: "cascade" })
+      .notNull(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "cascade" })
+      .notNull(),
+    voterId: uuid("voter_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    value: integer("value").notNull(),
+    ...auditColumns,
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.ticketId, t.voterId] }),
+    ticketIdx: index("ticket_votes_ticket_id_idx").on(t.ticketId),
   }),
 );
 
@@ -596,6 +656,8 @@ export const tables = {
   rbacPolicies,
   rbacPolicyVersions,
   tickets,
+  ticketEvidence,
+  ticketVotes,
   ticketAuditLogs,
   bpsSnapshots,
   auditEvents,
