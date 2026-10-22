@@ -235,6 +235,37 @@ Buka [http://localhost:3000](http://localhost:3000).
 
 ---
 
+## Local Development
+
+### Prerequisites
+- Node.js ≥ 22, pnpm ≥ 9
+- PostgreSQL 16 CLI: `psql`, `createdb`
+  - macOS: `brew install postgresql@16`
+  - Ubuntu/Debian: `sudo apt install postgresql-16`
+  - Arch Linux: `sudo pacman -S postgresql`
+  - WSL2: `sudo apt install postgresql-client-16`
+
+### First-time setup
+```bash
+# 1. Copy dan isi env
+cp .env.example .env.local
+# Set minimal: AUTH_SECRET (min 32 chars), DATABASE_URL dan DATABASE_URL_UNPOOLED
+
+# 2. Setup local DB (run sekali)
+bash scripts/setup-local-db.sh
+
+# 3. Apply migrations
+pnpm db:migrate:local
+
+# 4. Seed demo data
+pnpm db:seed
+
+# 5. Jalankan dev server
+pnpm dev
+```
+
+---
+
 ## Environment Variables
 
 Buat file `.env.local` dari `.env.example`. **Jangan pernah commit nilai secret.**
