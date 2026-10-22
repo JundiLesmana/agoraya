@@ -15,12 +15,13 @@ function generateToken(): string {
 }
 
 export async function createSession(userId: string): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
+  const database = db();
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_HOURS * 60 * 60 * 1000);
   const sessionId = crypto.randomUUID();
 
-  await db.insert(userSessions).values({
+  await database.insert(userSessions).values({
     id: sessionId,
     userId,
     tokenHash,
@@ -37,9 +38,10 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     return { valid: false };
   }
 
+  const database = db();
   const tokenHash = hashToken(token);
 
-  const [session] = await db
+  const [session] = await database
     .select({
       id: userSessions.id,
       userId: userSessions.userId,
@@ -55,14 +57,14 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
 
   if (new Date() > session.expiresAt) {
     logger.warn('session.expired', { sessionId: session.id, userId: session.userId });
-    await db.delete(userSessions).where(eq(userSessions.id, session.id));
+    await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
-  const [user] = await db.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
+  const [user] = await database.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
   if (!user || user.status !== 'active') {
     logger.warn('session.user_inactive', { sessionId: session.id, userId: session.userId });
-    await db.delete(userSessions).where(eq(userSessions.id, session.id));
+    await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
@@ -74,8 +76,9 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
 export async function destroySession(token: string): Promise<void> {
   if (!token) return;
 
+  const database = db();
   const tokenHash = hashToken(token);
-  await db.delete(userSessions).where(eq(userSessions.tokenHash, tokenHash));
+  await database.delete(userSessions).where(eq(userSessions.tokenHash, tokenHash));
   logger.info('session.destroyed', { tokenHash: tokenHash.substring(0, 8) });
 }
 

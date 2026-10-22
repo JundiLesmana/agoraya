@@ -12,7 +12,9 @@ import { db } from "../../src/lib/db/index.js";
 import { seedBpsSnapshots } from "./bps-snapshot.js";
 import { seedDemoScenario } from "./demo-scenario.js";
 
-export async function seedAll(dbx: typeof db = db): Promise<{
+type DbClient = ReturnType<typeof db>;
+
+export async function seedAll(dbx: DbClient = db()): Promise<{
   bpsSnapshots: number;
   tenants: number;
   users: number;

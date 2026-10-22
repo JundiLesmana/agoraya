@@ -30,8 +30,9 @@ function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry {
 }
 
 async function main(): Promise<void> {
+  const database = db();
   const secret = requireAuditSecret();
-  const rows = await db.select().from(auditEvents).orderBy(asc(auditEvents.createdAt));
+  const rows = await database.select().from(auditEvents).orderBy(asc(auditEvents.createdAt));
   const entries = rows.map(toAuditEntry);
   const result = verifyAuditTrail(entries, secret);
 
