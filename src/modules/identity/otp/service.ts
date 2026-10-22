@@ -20,11 +20,12 @@ function generateCode(): string {
 }
 
 export async function generateOtp(identifier: string): Promise<{ success: boolean; message: string }> {
+  const database = db();
   const identifierHash = hashValue(identifier.toLowerCase().trim());
 
   // Rate limiting: count recent requests
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
-  const recentRequests = await db
+  const recentRequests = await database
     .select()
     .from(otpCodes)
     .where(and(eq(otpCodes.identifierHash, identifierHash), gt(otpCodes.createdAt, windowStart)));
@@ -39,7 +40,7 @@ export async function generateOtp(identifier: string): Promise<{ success: boolea
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
   const id = crypto.randomUUID();
 
-  await db.insert(otpCodes).values({
+  await database.insert(otpCodes).values({
     id,
     identifierHash,
     codeHash,
@@ -58,10 +59,11 @@ export async function generateOtp(identifier: string): Promise<{ success: boolea
 }
 
 export async function verifyOtp(identifier: string, code: string): Promise<{ valid: boolean; message: string }> {
+  const database = db();
   const identifierHash = hashValue(identifier.toLowerCase().trim());
   const codeHash = hashValue(code);
 
-  const [otpRecord] = await db
+  const [otpRecord] = await database
     .select()
     .from(otpCodes)
     .where(eq(otpCodes.identifierHash, identifierHash))
@@ -84,7 +86,7 @@ export async function verifyOtp(identifier: string, code: string): Promise<{ val
   }
 
   if (otpRecord.codeHash !== codeHash) {
-    await db
+    await database
       .update(otpCodes)
       .set({ attempts: (otpRecord.attempts as number) + 1 })
       .where(eq(otpCodes.id, otpRecord.id));
@@ -93,7 +95,7 @@ export async function verifyOtp(identifier: string, code: string): Promise<{ val
   }
 
   // Mark as used by deleting or incrementing attempts to prevent reuse
-  await db.delete(otpCodes).where(eq(otpCodes.id, otpRecord.id));
+  await database.delete(otpCodes).where(eq(otpCodes.id, otpRecord.id));
   logger.info('otp.verified', { identifierHash: identifierHash.substring(0, 8) });
 
   return { valid: true, message: 'OTP verified successfully' };

@@ -12,15 +12,19 @@ import * as schema from './schema/index';
 let client: ReturnType<typeof postgres> | null = null;
 let dbInstance: PostgresJsDatabase<typeof schema> | null = null;
 
+function getConnectionString(): string {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not defined. Copy .env.example to .env.local and set DATABASE_URL.');
+  }
+
+  return connectionString;
+}
+
 export function getDb(): PostgresJsDatabase<typeof schema> {
   if (!dbInstance) {
-    const connectionString = process.env.DATABASE_URL;
-
-    if (!connectionString) {
-      throw new Error('DATABASE_URL is not defined. Copy .env.example to .env.local and set DATABASE_URL.');
-    }
-
-    client = postgres(connectionString, {
+    client = client ?? postgres(getConnectionString(), {
       max: 10,
       connect_timeout: 10,
       idle_timeout: 20,
@@ -37,15 +41,6 @@ export function getDb(): PostgresJsDatabase<typeof schema> {
 }
 
 export { getDb as db };
-
-export function getDbClient(): ReturnType<typeof postgres> {
-  return client ??= postgres(process.env.DATABASE_URL ?? '', {
-    max: 10,
-    connect_timeout: 10,
-    idle_timeout: 20,
-    max_lifetime: 60 * 30,
-  });
-}
 
 export async function withTransaction<T>(
   fn: (tx: PostgresJsDatabase<typeof schema>) => Promise<T>,
