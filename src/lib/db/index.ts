@@ -1,4 +1,3 @@
-
 export { PooledDatabase, createDatabase, getDefaultDatabase, closeDefaultDatabase } from './client';
 export type { Database, Row } from './types';
 
