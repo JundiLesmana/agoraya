@@ -16,7 +16,7 @@
 import { randomUUID } from "crypto";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
-import type * as schema from "../../src/lib/db/schema.js";
+import type * as schema from "../../src/lib/db/schema/index.js";
 import {
   auditEvents,
   permissions,
@@ -27,11 +27,11 @@ import {
   tenants,
   userRoles,
   users,
-} from "../../src/lib/db/schema.js";
+} from "../../src/lib/db/schema/index.js";
 import type {
   userStatusEnum,
   ticketStatusEnum,
-} from "../../src/lib/db/schema.js";
+} from "../../src/lib/db/schema/index.js";
 import { builtinPolicyDefinitions } from "../../src/modules/rbac/policies/definitions.js";
 
 type UserStatus = (typeof userStatusEnum.enumValues)[number];

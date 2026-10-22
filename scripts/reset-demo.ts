@@ -1,7 +1,8 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { sql } from "drizzle-orm";
-import * as schema from "../src/lib/db/schema.js";
+import * as schema from "../src/lib/db/schema/index.js";
 import { seedAll } from "../db/seed/index.js";
 import { logger } from "../src/lib/logger/logger.js";
 
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
     );
     logger.info("[reset-demo] truncated all data tables — clean state");
 
-    const result = await seedAll(adminDb);
+    const result = await seedAll(adminDb as PostgresJsDatabase<typeof schema>);
     logger.info("[reset-demo] seeded demo data", { result });
   } finally {
     await admin.end();

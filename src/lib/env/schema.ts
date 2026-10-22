@@ -10,6 +10,7 @@ export const EnvSchema = z.object({
 
   // Database (required)
   DATABASE_URL: z.string().url(),
+  DATABASE_URL_UNPOOLED: z.string().url().optional(),
   CRON_SECRET: z.string().min(32).optional(),
 
   // Auth & OTP

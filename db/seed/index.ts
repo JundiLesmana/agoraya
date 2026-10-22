@@ -8,11 +8,13 @@
  * reuse a direct (unpooled) connection.
  */
 
-import { db } from "../../src/lib/db/index.js";
+import { getDb } from "../../src/lib/db/index.js";
 import { seedBpsSnapshots } from "./bps-snapshot.js";
 import { seedDemoScenario } from "./demo-scenario.js";
 
-export async function seedAll(dbx: typeof db = db): Promise<{
+type DbClient = ReturnType<typeof getDb>;
+
+export async function seedAll(dbx: DbClient = getDb()): Promise<{
   bpsSnapshots: number;
   tenants: number;
   users: number;

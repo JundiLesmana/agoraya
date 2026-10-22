@@ -1,10 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   tables,
+  kycStatusEnum,
+  kycApprovalDecisionEnum,
+  cmsContentStatusEnum,
+  cmsRiskLevelEnum,
+  cmsRiskDecisionEnum,
   userStatusEnum,
   ticketStatusEnum,
   bpsSourceEnum,
-} from "../../../src/lib/db/schema.js";
+} from "../../../src/lib/db/schema/index.js";
 
 // Drizzle pgTable exposes columns as own properties and the DB table name
 // behind an internal symbol, so we cast to a loose record for introspection.
@@ -23,6 +28,16 @@ const EXPECTED_TABLES = [
   "ticketAuditLogs",
   "bpsSnapshots",
   "auditEvents",
+  "rbacPolicies",
+  "rbacPolicyVersions",
+  "ticketEvidence",
+  "ticketVotes",
+  "kycRoster",
+  "kycApprovals",
+  "cmsContents",
+  "cmsContentVersions",
+  "cmsRiskReviews",
+  "cmsAuditLogs",
 ] as const;
 
 // Column keys as exposed on the Drizzle table object (camelCase TS property names).
@@ -105,6 +120,120 @@ const TABLE_COLUMNS: Record<string, readonly string[]> = {
     "createdAt",
     "updatedAt",
   ],
+  rbacPolicies: [
+    "id",
+    "key",
+    "name",
+    "description",
+    "effect",
+    "priority",
+    "status",
+    "version",
+    "tenantId",
+    "roles",
+    "permissions",
+    "resources",
+    "actions",
+    "conditions",
+    "createdAt",
+    "updatedAt",
+  ],
+  rbacPolicyVersions: [
+    "id",
+    "policyId",
+    "policyKey",
+    "version",
+    "definition",
+    "changedBy",
+    "reason",
+    "createdAt",
+    "updatedAt",
+  ],
+  ticketEvidence: [
+    "id",
+    "ticketId",
+    "tenantId",
+    "uploadedBy",
+    "storageKey",
+    "mediaType",
+    "purpose",
+    "note",
+    "createdAt",
+    "updatedAt",
+  ],
+  ticketVotes: ["ticketId", "tenantId", "voterId", "value", "createdAt", "updatedAt"],
+  kycRoster: [
+    "id",
+    "tenantId",
+    "userId",
+    "nikHash",
+    "name",
+    "status",
+    "expiresAt",
+    "submittedBy",
+    "createdAt",
+    "updatedAt",
+  ],
+  kycApprovals: [
+    "id",
+    "rosterId",
+    "tenantId",
+    "approverId",
+    "approvalSlot",
+    "decision",
+    "reason",
+    "createdAt",
+    "updatedAt",
+  ],
+  cmsContents: [
+    "id",
+    "tenantId",
+    "slug",
+    "title",
+    "body",
+    "status",
+    "version",
+    "createdBy",
+    "publishedAt",
+    "archivedAt",
+    "deletedAt",
+    "createdAt",
+    "updatedAt",
+  ],
+  cmsContentVersions: [
+    "id",
+    "contentId",
+    "tenantId",
+    "version",
+    "title",
+    "body",
+    "status",
+    "changedBy",
+    "changeReason",
+    "createdAt",
+  ],
+  cmsRiskReviews: [
+    "id",
+    "contentId",
+    "tenantId",
+    "reviewerId",
+    "score",
+    "level",
+    "decision",
+    "rationale",
+    "createdAt",
+  ],
+  cmsAuditLogs: [
+    "id",
+    "contentId",
+    "tenantId",
+    "actorId",
+    "action",
+    "previousStatus",
+    "nextStatus",
+    "metadata",
+    "createdAt",
+  ],
 };
 
 // DB table names (snake_case) as registered with pgTable.
@@ -121,6 +250,16 @@ const DB_TABLE_NAMES: Record<string, string> = {
   ticketAuditLogs: "ticket_audit_logs",
   bpsSnapshots: "bps_snapshots",
   auditEvents: "audit_events",
+  rbacPolicies: "rbac_policies",
+  rbacPolicyVersions: "rbac_policy_versions",
+  ticketEvidence: "ticket_evidence",
+  ticketVotes: "ticket_votes",
+  kycRoster: "kyc_roster",
+  kycApprovals: "kyc_approvals",
+  cmsContents: "cms_contents",
+  cmsContentVersions: "cms_content_versions",
+  cmsRiskReviews: "cms_risk_reviews",
+  cmsAuditLogs: "cms_audit_logs",
 };
 
 function getTableName(table: unknown): string | undefined {
@@ -164,6 +303,20 @@ describe("foundation database schema", () => {
       "rejected",
       "closed",
     ]);
+  });
+
+  it("module-specific enums contain expected values", () => {
+    expect(kycStatusEnum.enumValues).toEqual([
+      "pending",
+      "partially_approved",
+      "verified",
+      "rejected",
+      "expired",
+    ]);
+    expect(kycApprovalDecisionEnum.enumValues).toEqual(["approved", "rejected"]);
+    expect(cmsContentStatusEnum.enumValues).toEqual(["draft", "in_review", "published", "archived"]);
+    expect(cmsRiskLevelEnum.enumValues).toEqual(["low", "medium", "high"]);
+    expect(cmsRiskDecisionEnum.enumValues).toEqual(["approved", "rejected"]);
   });
 
   it("user status enum contains expected lifecycle values", () => {
