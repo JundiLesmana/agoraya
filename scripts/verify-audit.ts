@@ -1,7 +1,7 @@
 import { asc } from 'drizzle-orm';
 
 import { db } from '../src/lib/db/index.js';
-import { auditEvents } from '../src/lib/db/schema.js';
+import { auditEvents } from '../src/lib/db/schema/index.js';
 import { verifyAuditTrail } from '../src/modules/audit/verify.js';
 import type { AuditEntry } from '../src/modules/audit/types.js';
 

@@ -4,7 +4,7 @@ import {
   userStatusEnum,
   ticketStatusEnum,
   bpsSourceEnum,
-} from "../../../src/lib/db/schema.js";
+} from "../../../src/lib/db/schema/index.js";
 
 // Drizzle pgTable exposes columns as own properties and the DB table name
 // behind an internal symbol, so we cast to a loose record for introspection.
