@@ -9,17 +9,18 @@ import { auditEvents, bpsSnapshots, permissions, rolePermissions, roles, tickets
 const outputArg = process.argv[2] ?? 'snapshots/agoraya-snapshot.json';
 
 async function main(): Promise<void> {
+  const database = db();
   const payload = {
     exportedAt: new Date().toISOString(),
-    tenantCount: await db.$count(tenants),
-    users: await db.select().from(users).orderBy(asc(users.email)),
-    roles: await db.select().from(roles).orderBy(asc(roles.key)),
-    permissions: await db.select().from(permissions).orderBy(asc(permissions.key)),
-    rolePermissions: await db.select().from(rolePermissions),
-    userRoles: await db.select().from(userRoles),
-    tickets: await db.select().from(tickets).orderBy(asc(tickets.createdAt)),
-    auditEvents: await db.select().from(auditEvents).orderBy(asc(auditEvents.createdAt)),
-    bpsSnapshots: await db.select().from(bpsSnapshots).orderBy(asc(bpsSnapshots.dataset)),
+    tenantCount: await database.$count(tenants),
+    users: await database.select().from(users).orderBy(asc(users.email)),
+    roles: await database.select().from(roles).orderBy(asc(roles.key)),
+    permissions: await database.select().from(permissions).orderBy(asc(permissions.key)),
+    rolePermissions: await database.select().from(rolePermissions),
+    userRoles: await database.select().from(userRoles),
+    tickets: await database.select().from(tickets).orderBy(asc(tickets.createdAt)),
+    auditEvents: await database.select().from(auditEvents).orderBy(asc(auditEvents.createdAt)),
+    bpsSnapshots: await database.select().from(bpsSnapshots).orderBy(asc(bpsSnapshots.dataset)),
   };
 
   const outputPath = path.resolve(process.cwd(), outputArg);
