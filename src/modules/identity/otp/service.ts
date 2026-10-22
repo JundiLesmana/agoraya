@@ -44,7 +44,7 @@ export async function generateOtp(identifier: string): Promise<{ success: boolea
     identifierHash,
     codeHash,
     expiresAt,
-    attempts: 0,
+    attempts: 0 as number,
   });
 
   logger.info('otp.generated', { identifierHash: identifierHash.substring(0, 8) });
@@ -73,12 +73,12 @@ export async function verifyOtp(identifier: string, code: string): Promise<{ val
     return { valid: false, message: 'Invalid or expired OTP' };
   }
 
-  if (new Date() > otpRecord.expiresAt) {
+  if (new Date() > new Date(otpRecord.expiresAt as Date)) {
     logger.warn('otp.expired', { identifierHash: identifierHash.substring(0, 8) });
     return { valid: false, message: 'Invalid or expired OTP' };
   }
 
-  if (otpRecord.attempts >= MAX_ATTEMPTS) {
+  if ((otpRecord.attempts as number) >= MAX_ATTEMPTS) {
     logger.warn('otp.max_attempts', { identifierHash: identifierHash.substring(0, 8) });
     return { valid: false, message: 'Too many attempts' };
   }
@@ -86,7 +86,7 @@ export async function verifyOtp(identifier: string, code: string): Promise<{ val
   if (otpRecord.codeHash !== codeHash) {
     await db
       .update(otpCodes)
-      .set({ attempts: otpRecord.attempts + 1 })
+      .set({ attempts: (otpRecord.attempts as number) + 1 })
       .where(eq(otpCodes.id, otpRecord.id));
     logger.warn('otp.invalid_code', { identifierHash: identifierHash.substring(0, 8) });
     return { valid: false, message: 'Invalid or expired OTP' };
