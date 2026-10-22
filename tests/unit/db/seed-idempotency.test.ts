@@ -3,7 +3,7 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { BPS_SNAPSHOT_SEEDS } from "../../../db/seed/bps-snapshot.js";
 import { seedBpsSnapshots } from "../../../db/seed/bps-snapshot.js";
 import { USER_SEEDS, TICKET_SEEDS } from "../../../db/seed/demo-scenario.js";
-import type * as schema from "../../../src/lib/db/schema.js";
+import type * as schema from "../../../src/lib/db/schema/index.js";
 
 // ---------------------------------------------------------------------------
 // Fake Drizzle client: records insert/upsert calls without touching a DB.

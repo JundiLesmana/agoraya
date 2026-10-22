@@ -11,8 +11,8 @@
 
 import { randomUUID } from "crypto";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import type * as schema from "../../src/lib/db/schema.js";
-import { bpsSnapshots } from "../../src/lib/db/schema.js";
+import type * as schema from "../../src/lib/db/schema/index.js";
+import { bpsSnapshots } from "../../src/lib/db/schema/index.js";
 
 export const BPS_SNAPSHOT_SEEDS = [
   {

@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";
 
-import * as schema from "../src/lib/db/schema.js";
+import * as schema from "../src/lib/db/schema/index.js";
 
 const MIGRATIONS_DIR = path.resolve(process.cwd(), "db/migrations");
 

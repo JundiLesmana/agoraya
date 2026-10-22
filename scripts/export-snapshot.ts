@@ -4,7 +4,7 @@ import path from 'node:path';
 import { asc } from 'drizzle-orm';
 
 import { db } from '../src/lib/db/index.js';
-import { auditEvents, bpsSnapshots, permissions, rolePermissions, roles, tickets, tenants, userRoles, users } from '../src/lib/db/schema.js';
+import { auditEvents, bpsSnapshots, permissions, rolePermissions, roles, tickets, tenants, userRoles, users } from '../src/lib/db/schema/index.js';
 
 const outputArg = process.argv[2] ?? 'snapshots/agoraya-snapshot.json';
 
