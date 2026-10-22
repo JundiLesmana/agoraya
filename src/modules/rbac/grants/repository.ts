@@ -8,13 +8,13 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-import type * as dbSchema from "@/lib/db/schema";
 import {
   permissions,
   rolePermissions,
   roles,
   userRoles,
-} from "@/lib/db/schema";
+} from "../db";
+import type * as dbSchema from "@/lib/db/schema";
 
 import type {
   PermissionGrant,
