@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type * as dbSchema from "@/lib/db/schema";
-import { auditEvents } from "@/lib/db/schema";
+import { auditEvents } from "../audit/db";
 
 /** An audit record produced by the RBAC module. */
 export interface AuditEvent {

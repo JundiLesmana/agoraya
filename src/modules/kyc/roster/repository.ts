@@ -9,8 +9,8 @@ import { randomUUID } from "node:crypto";
 import { eq, and, count } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
+import { kycApprovals, kycRoster } from "../db";
 import type * as dbSchema from "@/lib/db/schema";
-import { kycRoster, kycApprovals } from "@/lib/db/schema";
 import type {
   KycApproval,
   KycApprovalDecision,
