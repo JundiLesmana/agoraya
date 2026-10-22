@@ -7,7 +7,7 @@ import {
   cmsContentVersions,
   cmsContents,
   cmsRiskReviews,
-} from "@/lib/db/schema";
+} from "./db";
 import type {
   CmsContent,
   ContentPage,

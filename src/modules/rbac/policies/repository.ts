@@ -12,8 +12,8 @@ import { eq, and, asc, desc, or, isNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { z } from "zod";
 
+import { rbacPolicies, rbacPolicyVersions } from "../db";
 import type * as dbSchema from "@/lib/db/schema";
-import { rbacPolicies, rbacPolicyVersions } from "@/lib/db/schema";
 import { ValidationError } from "@/lib/errors";
 
 import { uuidOrNull } from "../audit";
