@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { ticketEvidence, tickets, ticketVotes } from "@/lib/db/schema";
+import { ticketEvidence, tickets, ticketVotes } from "./db";
 import type * as dbSchema from "@/lib/db/schema";
 import type {
   QcEvidence,

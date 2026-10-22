@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { db } from '@/lib/db';
-import { otpCodes } from '@/lib/db/schema';
+import { otpCodes } from '@/modules/identity/db';
 import { eq, and, gt, desc } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
