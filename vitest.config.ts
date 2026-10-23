@@ -2,6 +2,11 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { defineConfig } from 'vitest/config';
 
+type TransformPlugin = {
+  name: string;
+  transform?: (code: string, id: string) => { code: string; map: unknown } | null;
+};
+
 const _require = createRequire(import.meta.url);
 
 function reactJsxPlugin() {
@@ -20,7 +25,7 @@ function reactJsxPlugin() {
       });
       return { code: result.code, map: result.map };
     },
-  } satisfies Plugin;
+  } satisfies TransformPlugin;
 }
 
 export default defineConfig({
