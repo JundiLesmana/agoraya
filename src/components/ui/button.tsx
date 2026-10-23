@@ -36,6 +36,7 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   /** Render accessibility attributes for a loading/pending state. */
   loading?: boolean;
+  asChild?: boolean;
 }
 
 /**
@@ -43,19 +44,29 @@ export interface ButtonProps
  * not accidentally submit; use `type="submit"` explicitly when needed.
  */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, type = 'button', loading = false, disabled, children, ...props }, ref) => (
-    <button
-      ref={ref}
-      type={type}
-      aria-busy={loading || undefined}
-      aria-disabled={loading || disabled || undefined}
-      disabled={disabled || loading}
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    >
-      {children}
-    </button>
-  ),
+  ({ className, variant, size, type = 'button', loading = false, disabled, children, asChild = false, ...props }, ref) => {
+    if (asChild && React.isValidElement(children)) {
+      return React.cloneElement(children, {
+        ...props,
+        ref,
+        className: cn(buttonVariants({ variant, size }), className, children.props.className),
+      });
+    }
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        aria-busy={loading || undefined}
+        aria-disabled={loading || disabled || undefined}
+        disabled={disabled || loading}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
 );
 Button.displayName = 'Button';
 
