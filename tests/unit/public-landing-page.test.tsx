@@ -36,6 +36,18 @@ describe('PublicLandingPage', () => {
     expect(screen.getByRole('link', { name: /jelajahi insight/i }).getAttribute('href')).toBe('/insights');
   });
 
+  it('renders the CTA banner with the expected label, copy, quote, and registration button', () => {
+    render(<PublicLandingPage />);
+
+    expect(screen.getByText(/partisipasi anda berarti/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /data transparan, layanan lebih baik, masa depan lebih cerah/i })).toBeTruthy();
+    expect(screen.getByText(/jadilah bagian dari masyarakat yang aktif, kritis, dan peduli/i)).toBeTruthy();
+    expect(screen.getByText(/bersama kita bisa membuat perubahan/i)).toBeTruthy();
+
+    const cta = screen.getByRole('link', { name: /mulai sekarang/i });
+    expect(cta.getAttribute('href')).toBe('/register');
+  });
+
   it('exposes the section as a responsive card grid container', () => {
     render(<PublicLandingPage />);
 
@@ -46,5 +58,14 @@ describe('PublicLandingPage', () => {
 
     expect(grid?.className).toContain('md:grid-cols-2');
     expect(grid?.className).toContain('xl:grid-cols-4');
+  });
+
+  it('keeps the CTA banner readable and mobile-friendly', () => {
+    render(<PublicLandingPage />);
+
+    const ctaSection = screen.getByRole('heading', { name: /data transparan, layanan lebih baik, masa depan lebih cerah/i }).closest('section');
+    expect(ctaSection?.className).toContain('bg-slate-950');
+    expect(ctaSection?.className).toContain('text-white');
+    expect(screen.getByRole('link', { name: /mulai sekarang/i }).className).toContain('w-full');
   });
 });
