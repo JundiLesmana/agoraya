@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 const _require = createRequire(import.meta.url);
 
 function reactJsxPlugin() {
-  const { transformSync } = _require('esbuild') as typeof import('esbuild');
+  const { transformSync } = _require('esbuild') as { transformSync: (code: string, options: Record<string, unknown>) => { code: string; map: unknown } };
   return {
     name: 'vitest-react-jsx',
     transform(code: string, id: string) {
@@ -20,7 +20,7 @@ function reactJsxPlugin() {
       });
       return { code: result.code, map: result.map };
     },
-  };
+  } satisfies Plugin;
 }
 
 export default defineConfig({
