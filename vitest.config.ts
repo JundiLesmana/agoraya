@@ -1,7 +1,35 @@
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { defineConfig } from 'vitest/config';
 
+type TransformPlugin = {
+  name: string;
+  transform?: (code: string, id: string) => { code: string; map: unknown } | null;
+};
+
+const _require = createRequire(import.meta.url);
+
+function reactJsxPlugin() {
+  const { transformSync } = _require('esbuild') as { transformSync: (code: string, options: Record<string, unknown>) => { code: string; map: unknown } };
+  return {
+    name: 'vitest-react-jsx',
+    transform(code: string, id: string) {
+      if (!id.match(/\.[jt]sx$/)) return null;
+      const result = transformSync(code, {
+        format: 'esm',
+        loader: id.endsWith('.tsx') ? 'tsx' : 'jsx',
+        jsx: 'automatic',
+        target: 'es2022',
+        sourcemap: true,
+        sourcefile: id,
+      });
+      return { code: result.code, map: result.map };
+    },
+  } satisfies TransformPlugin;
+}
+
 export default defineConfig({
+  plugins: [reactJsxPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -10,9 +38,17 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['tests/unit/**/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/security/**/*.test.ts', 'tests/load/**/*.test.ts'],
+    include: [
+      'tests/unit/**/*.test.ts',
+      'tests/unit/**/*.test.tsx',
+      'tests/integration/**/*.test.ts',
+      'tests/security/**/*.test.ts',
+      'tests/security/**/*.test.tsx',
+      'tests/load/**/*.test.ts',
+    ],
     exclude: ['node_modules/**', '.next/**', 'out/**', 'dist/**', 'coverage/**', 'test-results/**', 'playwright-report/**'],
-    environment: 'node',
+    setupFiles: ['tests/helpers/setup-react.ts'],
+    environment: 'jsdom',
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
