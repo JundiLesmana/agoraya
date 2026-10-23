@@ -297,7 +297,7 @@ src/modules/<feature>/
 
 ### 3.3 Module 3: Analytics & Landing Page (`src/modules/analytics/`)
 
-#### Public Dashboard (SatuData.id)
+#### Public Dashboard
 
 **Prinsip Privacy-First:**
 - Hanya menampilkan **data agregat & teranonimisasi**
@@ -787,8 +787,8 @@ export async function authorize(request: Request, config: {
 
 | Halaman | Variasi | Dark/Light |
 |---------|---------|------------|
-| SatuData.id (Landing) | Desktop, Tablet, Mobile | ✅ / ✅ |
-| Tentang SatuData.id | Desktop, Tablet, Mobile | ✅ / ✅ |
+| (Landing) | Desktop, Tablet, Mobile | ✅ / ✅ |
+| Tentang   | Desktop, Tablet, Mobile | ✅ / ✅ |
 | Masuk (Login) | Responsive | ✅ |
 | Daftar (Register) | 5 step flow | ✅ |
 | Civic Reporting | Desktop, Tablet, Mobile | ✅ / ✅ |
