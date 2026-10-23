@@ -5,11 +5,6 @@ import { Database, FlaskConical, ShieldCheck, Users, BarChart3, type LucideIcon 
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-/**
- * Data-source labels used across Agoraya. The distinction between real
- * government data (BPS_API) and simulated/unverified data is required
- * by the platform's provenance rules.
- */
 export type DataSourceLabel =
   | 'BPS_API'
   | 'SIMULATED'
@@ -24,7 +19,6 @@ interface SourceBadgeMeta {
   className: string;
 }
 
-/** Central registry so badges stay consistent everywhere sources are shown. */
 export const SOURCE_BADGE_META: Record<DataSourceLabel, SourceBadgeMeta> = {
   BPS_API: {
     defaultLabel: 'BPS API',
@@ -35,10 +29,10 @@ export const SOURCE_BADGE_META: Record<DataSourceLabel, SourceBadgeMeta> = {
   },
   SIMULATED: {
     defaultLabel: 'Data Simulasi',
-    description: 'Data simulasi/demonstrasi — bukan data operasional.',
+    description: 'Data simulasi yang digunakan untuk pratinjau dashboard publik.',
     icon: FlaskConical,
     className:
-      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300',
+      'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300',
   },
   CITIZEN_UNVERIFIED: {
     defaultLabel: 'Laporan Warga',
@@ -71,11 +65,6 @@ export interface SourceBadgeProps extends Omit<BadgeProps, 'variant'> {
   withIcon?: boolean;
 }
 
-/**
- * Badge for data-source attribution. Colors and labels come from the
- * central registry so real vs simulated data is always visually
- * distinguishable.
- */
 export function SourceBadge({
   source,
   label,

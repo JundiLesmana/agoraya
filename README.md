@@ -51,7 +51,7 @@ Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui t
 ## Fitur Utama
 
 ### Public Dashboard & Open Data
-- **SatuData.id Landing Page** — Visualisasi data agregat publik (BPS API)
+- **Landing Page** — Visualisasi data agregat publik (BPS API)
 - **Statistik Daerah** — Peta & grafik kemiskinan, anggaran, infrastruktur per wilayah
 - **Open Government Data** — Dataset terbuka dengan filter, search, dan download
 - **Leaderboard Instansi** — Peringkat kinerja penanganan laporan dengan tingkat kesulitan

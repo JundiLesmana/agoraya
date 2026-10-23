@@ -1,9 +1,10 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 
 vi.mock('next/image', () => ({
-  default: (props: { alt: string }) => <div data-testid="next-image" aria-label={props.alt} />,
+  default: (props: { alt: string; src: string }) => <img alt={props.alt} src={props.src} />,
 }));
 
 vi.mock('next/link', () => ({
@@ -25,15 +26,14 @@ describe('PublicDataPage', () => {
     expect(screen.getByText('+10.000')).toBeTruthy();
     expect(screen.getByText('34')).toBeTruthy();
     expect(screen.getByText('514')).toBeTruthy();
-    expect(screen.getByText('100%')).toBeTruthy();
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0);
   });
 
-  it('renders a dashboard mockup image with descriptive alt text', () => {
+  it('renders the dashboard mockup preview without relying on a missing image asset', () => {
     render(<PublicDataPage />);
 
-    expect(
-      screen.getByAltText(/mockup dashboard publik menampilkan total anggaran dan realisasi/i),
-    ).toBeTruthy();
+    expect(screen.getByRole('img', { name: /pratinjau dashboard publik menampilkan total anggaran dan realisasi/i })).toBeTruthy();
+    expect(document.querySelector('img[src="/dashboard-public-preview.png"]')).toBeNull();
   });
 
   it('keeps the image layout responsive and legible on mobile', () => {
@@ -41,6 +41,14 @@ describe('PublicDataPage', () => {
 
     const section = screen.getByRole('heading', { name: /akses data, pahami kondisi, lihat bukti nyata/i }).closest('section');
     expect(section?.querySelector('.grid')?.className).toContain('lg:grid-cols-[');
-    expect(screen.getByAltText(/mockup dashboard publik menampilkan total anggaran dan realisasi/i)).toBeTruthy();
+    expect(screen.getByRole('img', { name: /pratinjau dashboard publik menampilkan total anggaran dan realisasi/i })).toBeTruthy();
+  });
+
+  it('uses compact source badges on small screens and restores readable sizing at larger breakpoints', () => {
+    render(<PublicDataPage />);
+
+    const statBadge = document.querySelector('[data-source="SIMULATED"].shrink-0');
+    expect(statBadge?.className).toContain('text-[10px]');
+    expect(statBadge?.className).toContain('sm:text-xs');
   });
 });
