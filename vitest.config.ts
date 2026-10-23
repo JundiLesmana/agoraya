@@ -48,7 +48,7 @@ export default defineConfig({
     ],
     exclude: ['node_modules/**', '.next/**', 'out/**', 'dist/**', 'coverage/**', 'test-results/**', 'playwright-report/**'],
     setupFiles: ['tests/helpers/setup-react.ts'],
-    environment: 'node',
+    environment: 'jsdom',
     coverage: {
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
