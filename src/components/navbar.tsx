@@ -1,12 +1,13 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, MoonStar, Search, SunMedium, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
 
 function Navbar() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -46,18 +48,14 @@ function Navbar() {
           href="/"
           className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <img
-            src="/logo-agoraya.svg"
+          <Image
+            src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'}
             alt="Agoraya"
-            width={40}
-            height={40}
-            fetchPriority="high"
-            className="size-10 shrink-0"
+            width={180}
+            height={48}
+            priority
+            className="h-10 w-auto shrink-0 object-contain"
           />
-          <span className="flex flex-col leading-tight">
-            <span className="text-lg font-semibold text-foreground">Agoraya</span>
-            <span className="text-xs text-muted-foreground">SatuData.id</span>
-          </span>
         </Link>
 
         <nav aria-label="Navigasi utama" className="hidden flex-1 items-center justify-center gap-1 lg:flex">
@@ -83,14 +81,28 @@ function Navbar() {
             <button
               type="button"
               aria-label="Tema terang"
-              className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary"
+              aria-pressed={theme === 'light'}
+              onClick={toggleTheme}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                theme === 'light'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
             >
               <SunMedium className="size-4" /> Terang
             </button>
             <button
               type="button"
               aria-label="Tema gelap"
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-muted-foreground"
+              aria-pressed={theme === 'dark'}
+              onClick={toggleTheme}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                theme === 'dark'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
             >
               <MoonStar className="size-4" /> Gelap
             </button>
@@ -131,10 +143,28 @@ function Navbar() {
               <p className="text-xs text-muted-foreground">SatuData.id</p>
             </div>
             <div className="inline-flex rounded-full border border-border p-1">
-              <button type="button" aria-label="Tema terang" className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+              <button
+                type="button"
+                aria-label="Tema terang"
+                aria-pressed={theme === 'light'}
+                onClick={toggleTheme}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                  theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
+                )}
+              >
                 Terang
               </button>
-              <button type="button" aria-label="Tema gelap" className="rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <button
+                type="button"
+                aria-label="Tema gelap"
+                aria-pressed={theme === 'dark'}
+                onClick={toggleTheme}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                  theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
+                )}
+              >
                 Gelap
               </button>
             </div>
