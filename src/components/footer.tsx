@@ -1,6 +1,10 @@
+'use client';
+
+import Image from 'next/image';
 import Link from 'next/link';
 import { Facebook, Instagram, Youtube } from './social-icons';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 
 const SECONDARY_NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
@@ -18,6 +22,8 @@ const SOCIAL_LINKS = [
 ] as const;
 
 function Footer() {
+  const { theme } = useTheme();
+
   return (
     <footer className="border-t border-border/60 bg-background">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
@@ -27,14 +33,15 @@ function Footer() {
               href="/"
               className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <img src="/logo-agoraya.svg" alt="Agoraya" width={40} height={40} className="size-10 shrink-0" />
-              <span className="flex flex-col leading-tight">
-                <span className="text-lg font-semibold text-foreground">Agoraya</span>
-                <span className="text-xs text-muted-foreground">SatuData.id</span>
-              </span>
+              <Image
+                src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'}
+                alt="Agoraya"
+                width={180}
+                height={48}
+                className="h-10 w-auto shrink-0 object-contain"
+              />
             </Link>
-            <p className="max-w-sm text-sm leading-6 text-muted-foreground">Data Publik, Untuk Semua</p>
-            <p className="text-xs text-muted-foreground">© 2025 SatuData.id. Semua hak dilindungi.</p>
+            <p className="text-xs text-muted-foreground">© 2025 Agoraya. Semua hak dilindungi.</p>
           </section>
 
           <nav aria-label="Navigasi sekunder" className="grid gap-3 text-sm sm:grid-cols-2 md:gap-2 lg:grid-cols-1">

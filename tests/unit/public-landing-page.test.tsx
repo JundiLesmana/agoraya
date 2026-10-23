@@ -1,9 +1,11 @@
+/** @vitest-environment jsdom */
+
 import { describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 
 vi.mock('next/image', () => ({
-  default: (props: { alt: string }) => <img alt={props.alt} />,
+  default: (props: { alt: string; src: string }) => createElement('img', props),
 }));
 
 vi.mock('next/link', () => ({
@@ -14,11 +16,24 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@/components/navbar', () => ({
+  Navbar: () => <header data-testid="navbar" />,
+}));
+
+vi.mock('@/components/footer', () => ({
+  Footer: () => <footer data-testid="footer" />,
+}));
+
 vi.mock('@/app/(public)/_components/public-hero-search', () => ({
   PublicHeroSearch: () => <div data-testid="hero-search" />,
 }));
 
+vi.mock('@/app/(public)/_components/dashboard-preview', () => ({
+  DashboardPreview: () => <section aria-labelledby="dashboard-preview-title" data-testid="dashboard-preview" />,
+}));
+
 import PublicLandingPage from '@/app/(public)/page';
+import PublicLayout from '@/app/(public)/layout';
 
 describe('PublicLandingPage', () => {
   it('renders the four ecosystem service cards and their CTAs', () => {
@@ -67,5 +82,71 @@ describe('PublicLandingPage', () => {
     expect(ctaSection?.className).toContain('bg-slate-950');
     expect(ctaSection?.className).toContain('text-white');
     expect(screen.getByRole('link', { name: /mulai sekarang/i }).className).toContain('w-full');
+  });
+
+  it('mounts the DashboardPreview section within the page', () => {
+    render(<PublicLandingPage />);
+
+    expect(screen.getByTestId('dashboard-preview')).toBeTruthy();
+  });
+
+  it('renders the hero heading with the platform tagline', () => {
+    render(<PublicLandingPage />);
+
+    expect(screen.getByRole('heading', { name: /transparan, terbuka, untuk indonesia yang lebih baik/i })).toBeTruthy();
+    expect(screen.getByTestId('hero-search')).toBeTruthy();
+  });
+
+  it('uses dark-theme surfaces and readable text across homepage sections', () => {
+    const { container } = render(<PublicLandingPage />);
+
+    expect(container.firstElementChild?.className).toContain('bg-background');
+
+    const hero = screen.getByRole('heading', { name: /transparan, terbuka, untuk indonesia yang lebih baik/i }).closest('section');
+    expect(hero?.querySelector('div')?.className).toContain('dark:bg-[linear-gradient');
+    expect(hero?.querySelector('h1')?.className).toContain('text-foreground');
+    expect(
+      Array.from(hero?.querySelectorAll('[aria-hidden="true"]') ?? []).some((element) =>
+        element.className.includes('dark:bg-[linear-gradient(90deg'),
+      ),
+    ).toBe(true);
+
+    const ecosystem = screen.getByRole('heading', { name: /solusi lengkap untuk transparansi dan partisipasi publik/i }).closest('section');
+    expect(ecosystem?.querySelector('article')?.className).toContain('bg-card');
+    expect(ecosystem?.querySelector('article h3')?.className).toContain('text-foreground');
+    expect(ecosystem?.querySelector('article p')?.className).toContain('text-muted-foreground');
+  });
+
+  it('uses the provided landing images in the hero and CTA banner', () => {
+    render(<PublicLandingPage />);
+
+    const images = Array.from(document.querySelectorAll('img'));
+    expect(images.map((image) => image.getAttribute('src'))).toEqual(
+      expect.arrayContaining(['/landing/hero-desktop.png', '/landing/footer-desktop.png']),
+    );
+
+    const responsiveSources = Array.from(document.querySelectorAll('picture source'));
+    expect(
+      responsiveSources.map((source) => ({
+        media: source.getAttribute('media'),
+        srcSet: source.getAttribute('srcset'),
+      })),
+    ).toEqual(
+      expect.arrayContaining([
+        { media: '(max-width: 1023px)', srcSet: '/landing/hero-mobile.png' },
+        { media: '(max-width: 1023px)', srcSet: '/landing/footer-mobile.png' },
+      ]),
+    );
+  });
+
+  it('renders the shared navbar and footer once around the landing page', () => {
+    render(
+      <PublicLayout>
+        <PublicLandingPage />
+      </PublicLayout>,
+    );
+
+    expect(screen.getAllByTestId('navbar')).toHaveLength(1);
+    expect(screen.getAllByTestId('footer')).toHaveLength(1);
   });
 });
