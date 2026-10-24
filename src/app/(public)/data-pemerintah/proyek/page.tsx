@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { DownloadButton } from './_components/download-button';
+import { ProyekData } from './_components/proyek-data';
 
 export const metadata: Metadata = {
   title: 'Pantau proyek daerah | Agoraya',
@@ -64,6 +65,8 @@ export default function ProyekPage() {
           </div>
         </div>
       </section>
+
+      <ProyekData />
     </div>
   );
 }
