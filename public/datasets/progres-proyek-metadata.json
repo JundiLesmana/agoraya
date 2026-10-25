@@ -1,0 +1,56 @@
+{
+  "title": "Progres proyek daerah",
+  "description": "Dataset ilustratif progres proyek pembangunan daerah.",
+  "source": "simulasi pelaksanaan pembangunan",
+  "as_of": "2025-09-30",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "description": "Identitas unik proyek."
+    },
+    {
+      "name": "nama_proyek",
+      "type": "string",
+      "description": "Nama pekerjaan pembangunan."
+    },
+    {
+      "name": "instansi",
+      "type": "string",
+      "description": "Instansi pelaksana proyek."
+    },
+    {
+      "name": "lokasi",
+      "type": "string",
+      "description": "Kabupaten/kota lokasi proyek."
+    },
+    {
+      "name": "sektor",
+      "type": "string",
+      "description": "Kelompok sektor proyek."
+    },
+    {
+      "name": "anggaran",
+      "type": "number",
+      "unit": "IDR",
+      "description": "Nilai anggaran dalam rupiah."
+    },
+    {
+      "name": "progres_fisik",
+      "type": "number",
+      "unit": "percent",
+      "description": "Persentase progres pekerjaan fisik."
+    },
+    {
+      "name": "target_selesai",
+      "type": "string",
+      "description": "Tanggal target, bukan tanggal aktual."
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "enum": ["Selesai", "Berjalan", "Tertunda"],
+      "description": "Status pelaksanaan proyek."
+    }
+  ]
+}
