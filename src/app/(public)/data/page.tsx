@@ -8,7 +8,7 @@ import { LineChart } from '@/components/charts/line-chart';
 import { DashboardMockup } from '../_components/dashboard-preview';
 import { SummaryKpiCards, type SummaryKpiData } from './_components/summary-kpi-cards';
 import { ProjectRegionalStats } from './_components/project-regional-stats';
-import { ProjectDataTable } from './_components/project-data-table';
+import { DatasetCatalog } from './_components/dataset-catalog';
 
 // TODO: Replace with the read-only public-data aggregate endpoint when available.
 const SUMMARY_KPI_DATA: SummaryKpiData = {
@@ -205,7 +205,7 @@ export default function PublicDataPage() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20">
-                <Link href="/data/catalog">
+                <Link href="#katalog-data">
                   Jelajahi Semua Data
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
@@ -352,104 +352,12 @@ export default function PublicDataPage() {
                   </Card>
                 ))}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-            <div className="order-last lg:order-none">
-              <DashboardMockup />
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="data-visualizations"
-          aria-labelledby="visualizations-title"
-          className="space-y-6"
-        >
-          <h2
-            id="visualizations-title"
-            className="text-card-foreground text-2xl font-semibold tracking-tight"
-          >
-            Visualisasi Data Pemerintah
-          </h2>
-          <p className="text-muted-foreground">
-            Ringkasan alokasi dan tren realisasi anggaran pemerintah untuk{" "}
-            {activeFilterSummary}.
-          </p>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="border-border bg-card shadow-sm">
-              <CardHeader className="px-4 pt-4 pb-3">
-                <CardTitle className="text-card-foreground text-base font-semibold">
-                  Realisasi Anggaran per Sektor
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Komposisi alokasi anggaran dalam diagram donat.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="h-[260px]">
-                  <PieChart
-                    data={filteredSectorData}
-                    height={240}
-                    width="100%"
-                    showLegend={true}
-                    showTooltip={true}
-                    innerRadius="60%"
-                    outerRadius="85%"
-                    ariaLabel="Grafik realisasi anggaran per sektor"
-                  />
-                </div>
-                <div className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-                  <SourceBadge
-                    source="SIMULATED"
-                    label="SIMULATED"
-                    withIcon={false}
-                    className="px-1.5 text-[10px] sm:px-2 sm:text-xs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border bg-card shadow-sm">
-              <CardHeader className="px-4 pt-4 pb-3">
-                <CardTitle className="text-card-foreground text-base font-semibold">
-                  Tren Realisasi Anggaran
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Perbandingan anggaran dan realisasi bulanan.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="h-[260px]">
-                  <LineChart
-                    data={filteredTrendData}
-                    xKey="bulan"
-                    series={[
-                      { key: "anggaran", name: "Anggaran" },
-                      { key: "realisasi", name: "Realisasi" },
-                    ]}
-                    height={240}
-                    width="100%"
-                    showGrid={true}
-                    showLegend={true}
-                    showTooltip={true}
-                    showDots={false}
-                    ariaLabel="Grafik tren realisasi anggaran bulanan"
-                  />
-                </div>
-                <div className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-                  <SourceBadge
-                    source="SIMULATED"
-                    label="SIMULATED"
-                    withIcon={false}
-                    className="px-1.5 text-[10px] sm:px-2 sm:text-xs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      </div>
+      <DatasetCatalog />
     </main>
   );
 }
