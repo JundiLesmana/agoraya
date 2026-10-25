@@ -1,167 +1,21 @@
-"use client";
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SourceBadge } from '@/components/source-badges/source-badge';
+import { PieChart } from '@/components/charts/pie-chart';
+import { LineChart } from '@/components/charts/line-chart';
+import { DashboardMockup } from '../_components/dashboard-preview';
+import { SummaryKpiCards, type SummaryKpiData } from './_components/summary-kpi-cards';
 
-import * as React from "react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarDays,
-  Clock3,
-  Download,
-  MapPin,
-  RotateCcw,
-  SlidersHorizontal,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { SourceBadge } from "@/components/source-badges/source-badge";
-import { PieChart } from "@/components/charts/pie-chart";
-import { LineChart } from "@/components/charts/line-chart";
-import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
-import { DashboardMockup } from "../_components/dashboard-preview";
-
-const DEFAULT_FILTER = {
-  wilayah: "jawa-barat",
-  tahun: "2025",
-  periode: "q3",
-} as const;
-
-type DashboardFilter = {
-  wilayah: string;
-  tahun: string;
-  periode: string;
+// TODO: Replace with the read-only public-data aggregate endpoint when available.
+const SUMMARY_KPI_DATA: SummaryKpiData = {
+  totalAnggaran: 80_000_000_000_000,
+  realisasi: 60_000_000_000_000,
+  proyekSelesai: 156,
+  totalProyek: 240,
+  cakupanWilayah: 27,
 };
-
-const REGION_OPTIONS = [
-  { value: "jawa-barat", label: "Provinsi Jawa Barat" },
-  { value: "dki-jakarta", label: "Provinsi DKI Jakarta" },
-  { value: "jawa-tengah", label: "Provinsi Jawa Tengah" },
-  { value: "jawa-timur", label: "Provinsi Jawa Timur" },
-  { value: "banten", label: "Provinsi Banten" },
-] as const;
-
-const YEAR_OPTIONS = ["2023", "2024", "2025", "2026"].map((year) => ({
-  value: year,
-  label: year,
-}));
-
-const PERIOD_OPTIONS = [
-  { value: "q1", label: "s.d. Triwulan I" },
-  { value: "q2", label: "s.d. Triwulan II" },
-  { value: "q3", label: "s.d. Triwulan III" },
-  { value: "q4", label: "s.d. Triwulan IV" },
-] as const;
-
-function readFilterFromUrl(): DashboardFilter {
-  const params = new URLSearchParams(window.location.search);
-  const wilayah = params.get("wilayah");
-  const tahun = params.get("tahun");
-  const periode = params.get("periode");
-  const getValidValue = (
-    options: readonly { value: string }[],
-    value: string | null,
-    fallback: string,
-  ) => options.find((option) => option.value === value)?.value ?? fallback;
-
-  return {
-    wilayah: getValidValue(REGION_OPTIONS, wilayah, DEFAULT_FILTER.wilayah),
-    tahun: getValidValue(YEAR_OPTIONS, tahun, DEFAULT_FILTER.tahun),
-    periode: getValidValue(PERIOD_OPTIONS, periode, DEFAULT_FILTER.periode),
-  };
-}
-
-function getFilterSummary(filter: DashboardFilter) {
-  const wilayah =
-    REGION_OPTIONS.find((option) => option.value === filter.wilayah)?.label ??
-    filter.wilayah;
-  const periode =
-    PERIOD_OPTIONS.find((option) => option.value === filter.periode)?.label ??
-    filter.periode;
-  return `${wilayah} · ${filter.tahun} · ${periode}`;
-}
-
-function FilterFields({
-  filter,
-  onChange,
-  idPrefix,
-}: {
-  filter: DashboardFilter;
-  onChange: (filter: DashboardFilter) => void;
-  idPrefix: string;
-}) {
-  const fields = [
-    {
-      key: "wilayah" as const,
-      label: "Wilayah",
-      icon: MapPin,
-      options: REGION_OPTIONS,
-    },
-    {
-      key: "tahun" as const,
-      label: "Tahun anggaran",
-      icon: CalendarDays,
-      options: YEAR_OPTIONS,
-    },
-    {
-      key: "periode" as const,
-      label: "Periode kumulatif",
-      icon: Clock3,
-      options: PERIOD_OPTIONS,
-    },
-  ];
-
-  return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {fields.map(({ key, label, icon: Icon, options }) => {
-        const id = `${idPrefix}-${key}`;
-        const value =
-          key === "wilayah"
-            ? filter.wilayah
-            : key === "tahun"
-              ? filter.tahun
-              : filter.periode;
-        return (
-          <div key={key} className="space-y-2">
-            <Label
-              htmlFor={id}
-              className="text-muted-foreground text-xs font-medium"
-            >
-              {label}
-            </Label>
-            <div className="relative">
-              <Icon
-                className="text-primary pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                aria-hidden="true"
-              />
-              <Select
-                id={id}
-                aria-label={label}
-                value={value}
-                options={options}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (key === "wilayah")
-                    onChange({ ...filter, wilayah: value });
-                  if (key === "tahun") onChange({ ...filter, tahun: value });
-                  if (key === "periode")
-                    onChange({ ...filter, periode: value });
-                }}
-                className="bg-background h-11 appearance-none pr-3 pl-10 text-sm"
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 const DASHBOARD_STATS = [
   {
@@ -330,37 +184,25 @@ export default function PublicDataPage() {
   const activeFilterSummary = getFilterSummary(appliedFilter);
 
   return (
-    <main className="space-y-8 pb-10">
-      <section className="bg-sky-50 dark:bg-sky-950/30">
-        <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-          <nav
-            aria-label="Breadcrumb"
-            className="text-muted-foreground mb-5 text-xs"
-          >
-            <Link href="/" className="hover:text-primary">
-              Beranda
-            </Link>
-            <span className="mx-2" aria-hidden="true">
-              ›
-            </span>
-            <span aria-current="page" className="text-primary font-medium">
-              Data Pemerintah
-            </span>
-          </nav>
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-foreground text-3xl font-semibold tracking-tight sm:text-4xl">
-                Data Pemerintah
-              </h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6 sm:text-base">
-                Pantau anggaran, proyek, dan jelajahi statistik daerah dalam
-                satu dashboard terbuka
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild className="h-10">
-                <Link href="#data-visualizations">
-                  Jelajahi data
+    <main className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <SummaryKpiCards data={SUMMARY_KPI_DATA} />
+
+      <section className="space-y-8">
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-12">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Data Pemerintah</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-card-foreground sm:text-5xl">
+              Akses Data, Pahami Kondisi, Lihat Bukti Nyata
+            </h1>
+            <p className="mt-5 text-base leading-8 text-muted-foreground sm:text-lg">
+              Jelajahi dataset pemerintah, pantau anggaran, dan baca kondisi publik melalui dashboard yang ringkas,
+              terbuka, dan mudah dipahami oleh ASN, eksekutif, dan peneliti.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20">
+                <Link href="/data/catalog">
+                  Jelajahi Semua Data
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
               </Button>
