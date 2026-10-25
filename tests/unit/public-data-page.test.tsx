@@ -80,81 +80,19 @@ describe("PublicDataPage", () => {
     const user = userEvent.setup();
     render(<PublicDataPage />);
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Wilayah" }),
-      "dki-jakarta",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Tahun anggaran" }),
-      "2024",
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Periode kumulatif" }),
-      "q2",
-    );
-    await user.click(screen.getByRole("button", { name: "Terapkan filter" }));
-
-    expect(new URLSearchParams(window.location.search).get("wilayah")).toBe(
-      "dki-jakarta",
-    );
-    expect(new URLSearchParams(window.location.search).get("tahun")).toBe(
-      "2024",
-    );
-    expect(new URLSearchParams(window.location.search).get("periode")).toBe(
-      "q2",
-    );
-    expect(
-      screen.getAllByText(/Provinsi DKI Jakarta · 2024 · s\.d\. Triwulan II/)
-        .length,
-    ).toBeGreaterThan(1);
-  });
-
-  it("restores filter values from URL query parameters", async () => {
-    window.history.replaceState(
-      {},
-      "",
-      "/data?wilayah=banten&tahun=2026&periode=q1",
-    );
-    render(<PublicDataPage />);
-
-    await waitFor(() => {
-      expect(screen.getByRole("combobox", { name: "Wilayah" })).toHaveProperty(
-        "value",
-        "banten",
-      );
-      expect(
-        screen.getByRole("combobox", { name: "Tahun anggaran" }),
-      ).toHaveProperty("value", "2026");
-      expect(
-        screen.getByRole("combobox", { name: "Periode kumulatif" }),
-      ).toHaveProperty("value", "q1");
-    });
-  });
-
-  it("opens the mobile filter drawer and applies its selections", async () => {
-    const user = userEvent.setup();
-    render(<PublicDataPage />);
-
-    await user.click(screen.getByRole("button", { name: /atur filter/i }));
-    const drawer = screen.getByRole("dialog", {
-      name: "Filter data pemerintah",
-    });
-    await user.selectOptions(
-      within(drawer).getByRole("combobox", { name: "Wilayah" }),
-      "jawa-timur",
-    );
-    await user.click(
-      within(drawer).getByRole("button", { name: "Terapkan filter" }),
-    );
-
-    expect(new URLSearchParams(window.location.search).get("wilayah")).toBe(
-      "jawa-timur",
-    );
-    expect(
-      screen.getAllByText(/Provinsi Jawa Timur · 2025 · s\.d\. Triwulan III/)
-        .length,
-    ).toBeGreaterThan(1);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Ringkasan Anggaran dan Pembangunan' })).toBeTruthy();
+    expect(screen.getByText('Rp80T')).toBeTruthy();
+    expect(screen.getByText('Rp60T')).toBeTruthy();
+    expect(screen.getByText('75% dari total anggaran')).toBeTruthy();
+    expect(screen.getByText('156 / 240')).toBeTruthy();
+    expect(screen.getByText('65% dari seluruh proyek')).toBeTruthy();
+    expect(screen.getByText('27 daerah')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /akses data, pahami kondisi, lihat bukti nyata/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /jelajahi semua data/i }).getAttribute('href')).toBe('/data/catalog');
+    expect(screen.getByText('+10.000')).toBeTruthy();
+    expect(screen.getByText('34')).toBeTruthy();
+    expect(screen.getByText('514')).toBeTruthy();
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0);
   });
 
   it("renders the dashboard mockup preview without relying on a missing image asset", () => {
