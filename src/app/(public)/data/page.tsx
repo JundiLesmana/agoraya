@@ -8,6 +8,7 @@ import { LineChart } from '@/components/charts/line-chart';
 import { DashboardMockup } from '../_components/dashboard-preview';
 import { SummaryKpiCards, type SummaryKpiData } from './_components/summary-kpi-cards';
 import { ProjectRegionalStats } from './_components/project-regional-stats';
+import { ProjectDataTable } from './_components/project-data-table';
 
 // TODO: Replace with the read-only public-data aggregate endpoint when available.
 const SUMMARY_KPI_DATA: SummaryKpiData = {
@@ -54,6 +55,7 @@ export default function PublicDataPage() {
     <main className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8">
       <SummaryKpiCards data={SUMMARY_KPI_DATA} />
       <ProjectRegionalStats />
+      <ProjectDataTable />
 
       <section className="space-y-8">
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-12">
