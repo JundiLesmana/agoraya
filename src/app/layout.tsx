@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
+import { FilterProvider } from '@/lib/filter-store';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="font-sans antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <FilterProvider>{children}</FilterProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
