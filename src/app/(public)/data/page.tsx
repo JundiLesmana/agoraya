@@ -8,6 +8,7 @@ import { LineChart } from '@/components/charts/line-chart';
 import { DashboardMockup } from '../_components/dashboard-preview';
 import { SummaryKpiCards, type SummaryKpiData } from './_components/summary-kpi-cards';
 import { ProjectRegionalStats } from './_components/project-regional-stats';
+import { DatasetCatalog } from './_components/dataset-catalog';
 
 // TODO: Replace with the read-only public-data aggregate endpoint when available.
 const SUMMARY_KPI_DATA: SummaryKpiData = {
@@ -69,7 +70,7 @@ export default function PublicDataPage() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20">
-                <Link href="/data/catalog">
+                <Link href="#katalog-data">
                   Jelajahi Semua Data
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
@@ -193,6 +194,8 @@ export default function PublicDataPage() {
           </Card>
         </div>
       </section>
+
+      <DatasetCatalog />
     </main>
   );
 }
