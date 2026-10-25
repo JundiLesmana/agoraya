@@ -31,7 +31,7 @@ describe('PublicDataPage', () => {
     expect(screen.getByRole('heading', { name: 'Progres proyek & Statistik daerah' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Jelajahi proyek' }).getAttribute('href')).toBe('#project-status-breakdown');
     expect(screen.getByRole('heading', { name: /akses data, pahami kondisi, lihat bukti nyata/i })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /jelajahi semua data/i }).getAttribute('href')).toBe('/data/catalog');
+    expect(screen.getByRole('link', { name: /jelajahi semua data/i }).getAttribute('href')).toBe('#katalog-data');
     expect(screen.getByText('+10.000')).toBeTruthy();
     expect(screen.getByText('34')).toBeTruthy();
     expect(screen.getByText('514')).toBeTruthy();
