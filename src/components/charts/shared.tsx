@@ -18,28 +18,30 @@ export function AccessibleChartTable({
   caption: string;
 } & HTMLAttributes<HTMLTableElement>) {
   return (
-    <table className="sr-only" {...rest}>
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{xKey}</th>
-          {series.map((s) => (
-            <th key={s.key} scope="col">
-              {s.name}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row, rowIndex) => (
-          <tr key={`${xKey}-${rowIndex}`}>
-            <th scope="row">{String(row[xKey] ?? '')}</th>
+    <div className="sr-only">
+      <table className="w-px table-fixed" {...rest}>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{xKey}</th>
             {series.map((s) => (
-              <td key={s.key}>{String(row[s.key] ?? '')}</td>
+              <th key={s.key} scope="col">
+                {s.name}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {data.map((row, rowIndex) => (
+            <tr key={`${xKey}-${rowIndex}`}>
+              <th scope="row">{String(row[xKey] ?? '')}</th>
+              {series.map((s) => (
+                <td key={s.key}>{String(row[s.key] ?? '')}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

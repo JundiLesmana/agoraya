@@ -23,6 +23,7 @@ export interface SummaryKpiData {
 
 interface SummaryKpiCardsProps {
   data: SummaryKpiData | null;
+  periodLabel?: string;
 }
 
 const KPI_PRESENTATION = [
@@ -82,7 +83,10 @@ function SummaryKpiSkeleton() {
   );
 }
 
-export function SummaryKpiCards({ data }: SummaryKpiCardsProps) {
+export function SummaryKpiCards({
+  data,
+  periodLabel = "Tahun anggaran 2025",
+}: SummaryKpiCardsProps) {
   if (data === null) {
     return <SummaryKpiSkeleton />;
   }
@@ -100,7 +104,7 @@ export function SummaryKpiCards({ data }: SummaryKpiCardsProps) {
     {
       label: "Total anggaran",
       value: formatRupiah(data.totalAnggaran),
-      description: "Pagu APBD tahun 2025",
+      description: "Pagu APBD sesuai filter aktif",
       ariaLabel: `Total anggaran ${formatRupiahForScreenReader(data.totalAnggaran)}`,
       Icon: Database,
       iconClass: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300",
@@ -153,7 +157,7 @@ export function SummaryKpiCards({ data }: SummaryKpiCardsProps) {
             Ikhtisar fiskal dan pelaksanaan proyek daerah.
           </CardDescription>
         </div>
-        <p className="text-muted-foreground text-xs">Tahun anggaran 2025</p>
+        <p className="text-muted-foreground text-xs">{periodLabel}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
