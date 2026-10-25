@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { DownloadButton } from './_components/download-button';
 import { ProyekData } from './_components/proyek-data';
+import { FeaturedProject } from './_components/featured-project';
 
 export const metadata: Metadata = {
   title: 'Pantau proyek daerah | Agoraya',
@@ -66,7 +68,16 @@ export default function ProyekPage() {
         </div>
       </section>
 
-      <ProyekData />
+      <FeaturedProject />
+      <Suspense
+        fallback={
+          <div role="status" className="py-12 text-center text-sm text-muted-foreground">
+            Memuat data proyek...
+          </div>
+        }
+      >
+        <ProyekData />
+      </Suspense>
     </div>
   );
 }
