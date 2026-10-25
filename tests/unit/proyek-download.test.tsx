@@ -1,35 +1,43 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { downloadData } from '@/app/(public)/data-pemerintah/proyek/_components/download-button';
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { DownloadButton } from "@/app/(public)/data-pemerintah/proyek/_components/download-button";
 
-describe('downloadData', () => {
-  it('memicu unduhan file CSV data proyek', () => {
+describe("downloadData", () => {
+  it("mengunduh CSV yang sesuai dengan pencarian dan filter aktif", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("nama_proyek\nRehabilitasi 12 sekolah\n", {
+        headers: { "Content-Type": "text/csv" },
+      }),
+    );
     const createObjectURLSpy = vi
-      .spyOn(URL, 'createObjectURL')
-      .mockReturnValue('mock-blob-url');
-    const appendChildSpy = vi.spyOn(document.body, 'appendChild');
-    const removeChildSpy = vi.spyOn(document.body, 'removeChild');
-    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("mock-blob-url");
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL");
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
 
-    downloadData();
+    render(
+      <DownloadButton
+        search="sekolah"
+        sort="anggaran_desc"
+        status="Berjalan"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Unduh daftar" }));
 
-    expect(createObjectURLSpy).toHaveBeenCalledTimes(1);
-    expect(appendChildSpy).toHaveBeenCalledTimes(1);
-
-    const anchor = appendChildSpy.mock.calls[0][0] as HTMLAnchorElement;
-    expect(anchor).toBeInstanceOf(HTMLAnchorElement);
-    expect(anchor.download).toBe('data-proyek.csv');
-    expect(anchor.getAttribute('href')).toBe('mock-blob-url');
-    expect(anchor.style.display).toBe('none');
-
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+    expect(fetchSpy.mock.calls[0][0]).toContain("search=sekolah");
+    expect(fetchSpy.mock.calls[0][0]).toContain("status=Berjalan");
+    await waitFor(() => expect(createObjectURLSpy).toHaveBeenCalledTimes(1));
     expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(removeChildSpy).toHaveBeenCalledWith(anchor);
-    expect(revokeSpy).toHaveBeenCalledWith('mock-blob-url');
-
+    await waitFor(
+      () => expect(revokeSpy).toHaveBeenCalledWith("mock-blob-url"),
+      { timeout: 1500 },
+    );
+    fetchSpy.mockRestore();
     createObjectURLSpy.mockRestore();
-    appendChildSpy.mockRestore();
-    removeChildSpy.mockRestore();
     revokeSpy.mockRestore();
     clickSpy.mockRestore();
   });
