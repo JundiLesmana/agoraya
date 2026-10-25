@@ -1,0 +1,4 @@
+id_proyek,nama_proyek,kabupaten_kota,sektor,progres_persen,status
+PRJ-001,Perbaikan jalan penghubung,Kota Contoh,Infrastruktur,72,Berjalan
+PRJ-002,Renovasi sekolah dasar,Kabupaten Contoh,Pendidikan,48,Berjalan
+PRJ-003,Peningkatan layanan puskesmas,Kota Ilustrasi,Kesehatan,100,Selesai
