@@ -8,9 +8,19 @@ interface DownloadButtonProps {
   search: string;
   sort: string;
   status: string;
+  wilayah: string;
+  periode: string;
+  sektor: string;
 }
 
-export function DownloadButton({ search, sort, status }: DownloadButtonProps) {
+export function DownloadButton({
+  search,
+  sort,
+  status,
+  wilayah,
+  periode,
+  sektor,
+}: DownloadButtonProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -19,8 +29,15 @@ export function DownloadButton({ search, sort, status }: DownloadButtonProps) {
     setHasError(false);
 
     try {
-      const params = new URLSearchParams({ search, sort, format: "csv" });
-      if (status) params.set("status", status);
+      const params = new URLSearchParams({
+        search,
+        sort,
+        format: "csv",
+        wilayah,
+        periode,
+        sektor,
+      });
+      if (status !== "Semua status") params.set("status", status);
 
       const response = await fetch(`/api/projects?${params.toString()}`);
       if (!response.ok) throw new Error("Project export failed.");

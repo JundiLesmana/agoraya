@@ -1,17 +1,80 @@
 import { NextResponse } from 'next/server';
-import type { ProjectSummary } from '@/lib/summary';
+import { z } from 'zod';
+import {
+  filterProjectDirectory,
+  PROJECT_DIRECTORY,
+} from '@/lib/project-directory';
+import type { ProjectDashboardSummary } from '@/lib/summary';
 
 export const dynamic = 'force-dynamic';
 
-// TODO(#43): replace with real aggregation from database
-const MOCK_SUMMARY: ProjectSummary = {
-  totalProyek: 240,
-  totalWilayah: 27,
-  selesai: 156,
-  berjalan: 72,
-  tertunda: 12,
-};
+const querySchema = z.object({
+  wilayah: z.string().trim().max(100).optional(),
+  periode: z.string().trim().max(50).optional(),
+  sektor: z
+    .enum([
+      'Infrastruktur',
+      'Pendidikan',
+      'Kesehatan',
+      'Sektor lainnya',
+      'Semua sektor',
+    ])
+    .optional(),
+  status: z.enum(['Selesai', 'Berjalan', 'Tertunda', 'Semua status']).optional(),
+});
 
-export async function GET() {
-  return NextResponse.json(MOCK_SUMMARY);
+const SECTORS = [
+  'Infrastruktur',
+  'Pendidikan',
+  'Kesehatan',
+  'Sektor lainnya',
+] as const;
+
+export async function GET(request: Request) {
+  const parsed = querySchema.safeParse(
+    Object.fromEntries(new URL(request.url).searchParams),
+  );
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Parameter ringkasan proyek tidak valid.' },
+      { status: 400 },
+    );
+  }
+
+  const filters = parsed.data;
+  const projects = filterProjectDirectory(PROJECT_DIRECTORY, {
+    wilayah: filters.wilayah,
+    periode: filters.periode,
+    sektor: filters.sektor,
+    status:
+      filters.status && filters.status !== 'Semua status'
+        ? filters.status
+        : undefined,
+  });
+  const countStatus = (status: 'Selesai' | 'Berjalan' | 'Tertunda') =>
+    projects.filter((project) => project.status === status).length;
+
+  const summary: ProjectDashboardSummary = {
+    totalProyek: projects.length,
+    totalWilayah:
+      filters.wilayah && filters.wilayah !== 'Provinsi Jawa Barat'
+        ? new Set(projects.map((project) => project.lokasi)).size
+        : new Set(PROJECT_DIRECTORY.map((project) => project.lokasi)).size,
+    selesai: countStatus('Selesai'),
+    berjalan: countStatus('Berjalan'),
+    tertunda: countStatus('Tertunda'),
+    sektor: SECTORS.map((nama) => {
+      const sectorProjects = projects.filter(
+        (project) => project.sektor === nama,
+      );
+      return {
+        nama,
+        selesai: sectorProjects.filter((project) => project.status === 'Selesai')
+          .length,
+        total: sectorProjects.length,
+      };
+    }),
+  };
+
+  return NextResponse.json(summary);
 }
