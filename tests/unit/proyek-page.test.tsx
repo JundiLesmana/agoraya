@@ -20,6 +20,10 @@ vi.mock('@/app/(public)/data-pemerintah/proyek/_components/download-button', () 
   ),
 }));
 
+vi.mock('@/app/(public)/data-pemerintah/proyek/_components/proyek-data', () => ({
+  ProyekData: () => null,
+}));
+
 import ProyekPage from '@/app/(public)/data-pemerintah/proyek/page';
 
 describe('ProyekPage — breadcrumb', () => {
