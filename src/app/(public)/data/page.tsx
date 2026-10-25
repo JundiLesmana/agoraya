@@ -6,6 +6,16 @@ import { SourceBadge } from '@/components/source-badges/source-badge';
 import { PieChart } from '@/components/charts/pie-chart';
 import { LineChart } from '@/components/charts/line-chart';
 import { DashboardMockup } from '../_components/dashboard-preview';
+import { SummaryKpiCards, type SummaryKpiData } from './_components/summary-kpi-cards';
+
+// TODO: Replace with the read-only public-data aggregate endpoint when available.
+const SUMMARY_KPI_DATA: SummaryKpiData = {
+  totalAnggaran: 80_000_000_000_000,
+  realisasi: 60_000_000_000_000,
+  proyekSelesai: 156,
+  totalProyek: 240,
+  cakupanWilayah: 27,
+};
 
 const DASHBOARD_STATS = [
   { value: '+10.000', label: 'Dataset', description: 'Dataset nasional dan sektoral', source: 'SIMULATED' as const },
@@ -41,6 +51,8 @@ const MOCK_TREND_DATA = [
 export default function PublicDataPage() {
   return (
     <main className="container mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+      <SummaryKpiCards data={SUMMARY_KPI_DATA} />
+
       <section className="space-y-8">
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-12">
           <div className="max-w-xl">
