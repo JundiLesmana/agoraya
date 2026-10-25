@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DatasetInformation } from "./_components/dataset-information";
 import { ProyekData } from "./_components/proyek-data";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ const BREADCRUMB_ITEMS = [
 
 export default function ProyekPage() {
   return (
-    <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+    <main className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <nav
         aria-label="Breadcrumb"
         className="text-muted-foreground mb-6 flex flex-wrap items-center gap-1 text-sm"
@@ -49,7 +50,8 @@ export default function ProyekPage() {
         </ol>
       </nav>
 
+      <DatasetInformation />
       <ProyekData />
-    </div>
+    </main>
   );
 }
