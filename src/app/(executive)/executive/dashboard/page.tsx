@@ -1,4 +1,5 @@
 import type { ProjectSummary } from '@/lib/summary';
+import { ProgressDistributionChart } from './_components/progress-distribution-chart';
 import { SummaryCards } from './_components/summary-cards';
 
 async function fetchSummary(): Promise<ProjectSummary | null> {
@@ -31,6 +32,7 @@ export default async function ExecutiveDashboardPage() {
         Ringkasan Proyek
       </h1>
       <SummaryCards summary={summary} />
+      <ProgressDistributionChart summary={summary} />
     </main>
   );
 }
