@@ -21,6 +21,13 @@ describe('PublicDataPage', () => {
   it('renders the preview section with the key statistics and CTA', () => {
     render(<PublicDataPage />);
 
+    expect(screen.getByRole('heading', { name: 'Ringkasan Anggaran dan Pembangunan' })).toBeTruthy();
+    expect(screen.getByText('Rp80T')).toBeTruthy();
+    expect(screen.getByText('Rp60T')).toBeTruthy();
+    expect(screen.getByText('75% dari total anggaran')).toBeTruthy();
+    expect(screen.getByText('156 / 240')).toBeTruthy();
+    expect(screen.getByText('65% dari seluruh proyek')).toBeTruthy();
+    expect(screen.getByText('27 daerah')).toBeTruthy();
     expect(screen.getByRole('heading', { name: /akses data, pahami kondisi, lihat bukti nyata/i })).toBeTruthy();
     expect(screen.getByRole('link', { name: /jelajahi semua data/i }).getAttribute('href')).toBe('/data/catalog');
     expect(screen.getByText('+10.000')).toBeTruthy();
