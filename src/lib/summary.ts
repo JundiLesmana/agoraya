@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export interface ProjectSummary {
   totalProyek: number;
   totalWilayah: number;
@@ -5,6 +7,29 @@ export interface ProjectSummary {
   berjalan: number;
   tertunda: number;
 }
+
+export interface ProjectDashboardSummary extends ProjectSummary {
+  sektor: Array<{
+    nama: string;
+    selesai: number;
+    total: number;
+  }>;
+}
+
+export const projectDashboardSummarySchema = z.object({
+  totalProyek: z.number().int().nonnegative(),
+  totalWilayah: z.number().int().nonnegative(),
+  selesai: z.number().int().nonnegative(),
+  berjalan: z.number().int().nonnegative(),
+  tertunda: z.number().int().nonnegative(),
+  sektor: z.array(
+    z.object({
+      nama: z.string(),
+      selesai: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative(),
+    }),
+  ),
+});
 
 /** Konversi rasio (0–1) ke string persen, misal 0.65 → "65%". */
 export function formatPersentase(ratio: number): string {

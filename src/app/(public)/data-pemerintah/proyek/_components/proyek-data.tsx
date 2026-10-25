@@ -17,17 +17,11 @@ import {
   type ProjectDirectoryItem,
 } from "@/lib/project-directory";
 import { DownloadButton } from "./download-button";
+import { DEFAULT_FILTERS, type FilterValues } from "./filter-controls";
 
 const SORT_OPTIONS: SelectOption[] = [
   { value: "anggaran_desc", label: "Anggaran terbesar" },
   { value: "anggaran_asc", label: "Anggaran terkecil" },
-];
-
-const STATUS_OPTIONS: SelectOption[] = [
-  { value: "", label: "Semua" },
-  { value: "Selesai", label: "Selesai" },
-  { value: "Berjalan", label: "Berjalan" },
-  { value: "Tertunda", label: "Tertunda" },
 ];
 
 function formatBudget(amount: number): string {
@@ -78,11 +72,14 @@ function ProjectDetails({ project }: { project: ProjectDirectoryItem }) {
   );
 }
 
-export function ProyekData() {
+export function ProyekData({
+  filters = DEFAULT_FILTERS,
+}: {
+  filters?: FilterValues;
+}) {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sort, setSort] = useState("anggaran_desc");
-  const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [retryCount, setRetryCount] = useState(0);
   const [projects, setProjects] = useState<ProjectDirectoryItem[]>([]);
@@ -108,7 +105,10 @@ export function ProyekData() {
       sort,
       page: String(page),
     });
-    if (status) params.set("status", status);
+    if (filters.wilayah) params.set("wilayah", filters.wilayah);
+    if (filters.periode) params.set("periode", filters.periode);
+    if (filters.sektor) params.set("sektor", filters.sektor);
+    if (filters.status !== "Semua status") params.set("status", filters.status);
 
     async function loadProjects() {
       setIsLoading(true);
@@ -138,7 +138,20 @@ export function ProyekData() {
     void loadProjects();
 
     return () => controller.abort();
-  }, [debouncedSearch, sort, status, page, retryCount]);
+  }, [
+    debouncedSearch,
+    sort,
+    filters.wilayah,
+    filters.periode,
+    filters.sektor,
+    filters.status,
+    page,
+    retryCount,
+  ]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
 
   const visiblePages = Math.max(totalPages, 1);
 
@@ -149,15 +162,15 @@ export function ProyekData() {
     >
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <h1
+          <h2
             id="project-directory-heading"
             className="text-foreground text-xl font-semibold tracking-tight"
           >
             Jelajahi seluruh proyek
-          </h1>
+          </h2>
           <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-xs">
             <p>
-              4 contoh dari 240 proyek · data ilustratif · M = miliar rupiah.
+              Direktori proyek terfilter · data ilustratif · M = miliar rupiah.
             </p>
             <SourceBadge source="SIMULATED" />
           </div>
@@ -165,7 +178,10 @@ export function ProyekData() {
         <DownloadButton
           search={searchInput.trim()}
           sort={sort}
-          status={status}
+          wilayah={filters.wilayah}
+          periode={filters.periode}
+          sektor={filters.sektor}
+          status={filters.status}
         />
       </header>
 
@@ -202,19 +218,6 @@ export function ProyekData() {
             }}
             options={SORT_OPTIONS}
             className="h-10 pl-9"
-          />
-        </label>
-        <label className="lg:w-36">
-          <span className="sr-only">Filter status</span>
-          <Select
-            aria-label="Filter status"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(1);
-            }}
-            options={STATUS_OPTIONS}
-            className="h-10"
           />
         </label>
       </div>

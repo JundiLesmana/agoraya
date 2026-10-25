@@ -18,6 +18,11 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock(
   "@/app/(public)/data-pemerintah/proyek/_components/proyek-data",
   () => ({
@@ -40,10 +45,10 @@ describe("ProyekPage — breadcrumb", () => {
     expect(getByRole("link", { name: /beranda/i }).getAttribute("href")).toBe(
       "/",
     );
-    // "Data Pemerintah" mengarah ke "/data-pemerintah"
+    // "Data Pemerintah" mengarah ke halaman data publik
     expect(
       getByRole("link", { name: /data pemerintah/i }).getAttribute("href"),
-    ).toBe("/data-pemerintah");
+    ).toBe("/data");
 
     // "Proyek" adalah halaman saat ini: tidak dapat diklik, aria-current="page"
     const currentPage = getByText("Proyek");

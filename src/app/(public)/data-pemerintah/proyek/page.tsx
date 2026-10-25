@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DatasetInformation } from "./_components/dataset-information";
-import { ProyekData } from "./_components/proyek-data";
+import { ProjectDashboard } from "./_components/project-dashboard";
 
 export const metadata: Metadata = {
   title: "Pantau proyek daerah | Agoraya",
@@ -11,13 +10,13 @@ export const metadata: Metadata = {
 
 const BREADCRUMB_ITEMS = [
   { label: "Beranda", href: "/", current: false },
-  { label: "Data Pemerintah", href: "/data-pemerintah", current: false },
+  { label: "Data Pemerintah", href: "/data", current: false },
   { label: "Proyek", href: undefined, current: true },
 ] as const;
 
 export default function ProyekPage() {
   return (
-    <main className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <nav
         aria-label="Breadcrumb"
         className="text-muted-foreground mb-6 flex flex-wrap items-center gap-1 text-sm"
@@ -50,8 +49,7 @@ export default function ProyekPage() {
         </ol>
       </nav>
 
-      <DatasetInformation />
-      <ProyekData />
-    </main>
+      <ProjectDashboard />
+    </div>
   );
 }

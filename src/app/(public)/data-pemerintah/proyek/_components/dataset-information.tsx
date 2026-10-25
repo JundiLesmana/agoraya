@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Database, Download, FileJson2, FileText, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SourceBadge } from "@/components/source-badges";
 
 const METADATA_FIELDS = [
   ["id", "Teks", "Identitas unik proyek."],
@@ -38,6 +39,7 @@ export function DatasetInformation() {
             >
               Progres proyek daerah
             </h2>
+            <SourceBadge source="SIMULATED" className="mt-2" />
             <p className="text-muted-foreground mt-1 text-sm">
               240 proyek · 27 kabupaten/kota · CSV/JSON
             </p>

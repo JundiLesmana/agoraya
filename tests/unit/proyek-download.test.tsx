@@ -23,6 +23,9 @@ describe("downloadData", () => {
         search="sekolah"
         sort="anggaran_desc"
         status="Berjalan"
+        wilayah="Kabupaten Bogor"
+        periode="2025 · s.d. TW III"
+        sektor="Pendidikan"
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Unduh daftar" }));
@@ -30,6 +33,8 @@ describe("downloadData", () => {
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
     expect(fetchSpy.mock.calls[0][0]).toContain("search=sekolah");
     expect(fetchSpy.mock.calls[0][0]).toContain("status=Berjalan");
+    expect(fetchSpy.mock.calls[0][0]).toContain("wilayah=Kabupaten");
+    expect(fetchSpy.mock.calls[0][0]).toContain("sektor=Pendidikan");
     await waitFor(() => expect(createObjectURLSpy).toHaveBeenCalledTimes(1));
     expect(clickSpy).toHaveBeenCalledTimes(1);
     await waitFor(
