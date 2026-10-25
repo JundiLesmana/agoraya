@@ -1,20 +1,17 @@
-import type { Metadata } from 'next';
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { DownloadButton } from './_components/download-button';
-import { ProyekData } from './_components/proyek-data';
-import { FeaturedProject } from './_components/featured-project';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ProyekData } from "./_components/proyek-data";
 
 export const metadata: Metadata = {
-  title: 'Pantau proyek daerah | Agoraya',
+  title: "Pantau proyek daerah | Agoraya",
   description:
-    'Pantau progres, anggaran, dan tahapan pembangunan proyek pemerintah di Jawa Barat secara transparan dan terukur.',
+    "Pantau progres, anggaran, dan tahapan pembangunan proyek pemerintah di Jawa Barat secara transparan dan terukur.",
 };
 
 const BREADCRUMB_ITEMS = [
-  { label: 'Beranda', href: '/', current: false },
-  { label: 'Data Pemerintah', href: '/data-pemerintah', current: false },
-  { label: 'Proyek', href: undefined, current: true },
+  { label: "Beranda", href: "/", current: false },
+  { label: "Data Pemerintah", href: "/data-pemerintah", current: false },
+  { label: "Proyek", href: undefined, current: true },
 ] as const;
 
 export default function ProyekPage() {
@@ -22,7 +19,7 @@ export default function ProyekPage() {
     <div className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
       <nav
         aria-label="Breadcrumb"
-        className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+        className="text-muted-foreground mb-6 flex flex-wrap items-center gap-1 text-sm"
       >
         <ol className="flex flex-wrap items-center gap-1">
           {BREADCRUMB_ITEMS.flatMap((item, index) => [
@@ -32,14 +29,14 @@ export default function ProyekPage() {
                 aria-hidden="true"
                 className="select-none"
               >
-                {'>'}
+                {">"}
               </li>
             ) : null,
             item.current ? (
               <li
                 key={`breadcrumb-item-${index}`}
                 aria-current="page"
-                className="font-medium text-foreground"
+                className="text-foreground font-medium"
               >
                 {item.label}
               </li>
@@ -52,32 +49,7 @@ export default function ProyekPage() {
         </ol>
       </nav>
 
-      <section>
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 lg:gap-8">
-          <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-              Pantau proyek daerah
-            </h1>
-            <p className="text-base leading-7 text-muted-foreground max-w-lg">
-              Telusuri progres, anggaran, dan tahapan pembangunan di Jawa Barat.
-            </p>
-          </div>
-          <div className="flex items-end lg:items-start">
-            <DownloadButton />
-          </div>
-        </div>
-      </section>
-
-      <FeaturedProject />
-      <Suspense
-        fallback={
-          <div role="status" className="py-12 text-center text-sm text-muted-foreground">
-            Memuat data proyek...
-          </div>
-        }
-      >
-        <ProyekData />
-      </Suspense>
+      <ProyekData />
     </div>
   );
 }

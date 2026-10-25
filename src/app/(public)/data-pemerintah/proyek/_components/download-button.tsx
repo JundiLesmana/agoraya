@@ -1,39 +1,64 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
-const CSV_HEADERS = 'id,nama_proyek,anggaran,realisasi,status';
-const CSV_ROWS = [
-  '1,Jalan Raya Barat,500000000,320000000,70%',
-  '2,Jembatan Siliwangi,350000000,175000000,50%',
-  '3,TPST Ciparay,120000000,48000000,40%',
-].join('\n');
-
-/**
- * Unduh data proyek sebagai CSV (dummy/iterasi saat ini).
- * Membuat Blob dari data simulasi dan memicu unduhan melalui anchor buatan.
- */
-export function downloadData(): void {
-  const csv = `${CSV_HEADERS}\n${CSV_ROWS}\n`;
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = 'data-proyek.csv';
-  anchor.style.display = 'none';
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
+interface DownloadButtonProps {
+  search: string;
+  sort: string;
+  status: string;
 }
 
-export function DownloadButton() {
+export function DownloadButton({ search, sort, status }: DownloadButtonProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  async function downloadData() {
+    setIsDownloading(true);
+    setHasError(false);
+
+    try {
+      const params = new URLSearchParams({ search, sort, format: "csv" });
+      if (status) params.set("status", status);
+
+      const response = await fetch(`/api/projects?${params.toString()}`);
+      if (!response.ok) throw new Error("Project export failed.");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "daftar-proyek.csv";
+      document.body.appendChild(anchor);
+      try {
+        anchor.click();
+      } finally {
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch {
+      setHasError(true);
+    } finally {
+      setIsDownloading(false);
+    }
+  }
+
   return (
-    <Button variant="outline" onClick={downloadData}>
-      <Download className="size-4" aria-hidden="true" />
-      Unduh data proyek
-    </Button>
+    <div className="flex flex-col items-start gap-1 sm:items-end">
+      <Button
+        variant="outline"
+        onClick={() => void downloadData()}
+        disabled={isDownloading}
+      >
+        <Download className="size-4" aria-hidden="true" />
+        {isDownloading ? "Menyiapkan unduhan..." : "Unduh daftar"}
+      </Button>
+      {hasError ? (
+        <p role="alert" className="text-destructive text-xs">
+          Daftar proyek gagal diunduh.
+        </p>
+      ) : null}
+    </div>
   );
 }
