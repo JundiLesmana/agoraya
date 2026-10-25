@@ -83,6 +83,21 @@ const LOCATIONS = [
   "Kota Bandung",
   "Kota Bekasi",
   "Kab. Sumedang",
+  "Kab. Bandung Barat",
+  "Kab. Bekasi",
+  "Kab. Ciamis",
+  "Kab. Indramayu",
+  "Kab. Kuningan",
+  "Kab. Majalengka",
+  "Kab. Pangandaran",
+  "Kab. Purwakarta",
+  "Kota Banjar",
+  "Kota Bogor",
+  "Kota Cimahi",
+  "Kota Cirebon",
+  "Kota Depok",
+  "Kota Sukabumi",
+  "Kota Tasikmalaya",
 ] as const;
 
 const PROJECT_TEMPLATES = [
