@@ -20,7 +20,10 @@ function getStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'light';
   const stored = localStorage.getItem('agoraya-theme') as Theme | null;
   if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  if (typeof window.matchMedia === 'function') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
 }
 
 function applyTheme(theme: Theme) {
