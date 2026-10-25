@@ -75,6 +75,10 @@ const SAMPLE_PROJECTS: ProjectDirectoryItem[] = [
 ];
 
 const LOCATIONS = [
+  "Kab. Bogor",
+  "Kab. Bandung",
+  "Kab. Garut",
+  "Kab. Cianjur",
   "Kab. Sukabumi",
   "Kab. Cirebon",
   "Kab. Tasikmalaya",
@@ -137,14 +141,88 @@ const PROJECT_TEMPLATES = [
     sector: "Kesehatan",
   },
   {
+    name: "Penataan ruang terbuka hijau",
+    agency: "Dinas Lingkungan Hidup",
+    sector: "Sektor lainnya",
+  },
+  {
+    name: "Pengembangan layanan publik",
+    agency: "Dinas Komunikasi dan Informatika",
+    sector: "Sektor lainnya",
+  },
+  {
     name: "Pembangunan jembatan penghubung",
     agency: "Dinas Bina Marga",
     sector: "Infrastruktur",
   },
 ] as const;
 
-const STATUSES = ["Berjalan", "Selesai", "Tertunda"] as const;
 const TARGET_DATES = ["30 Sep 2025", "30 Nov 2025", "31 Des 2025"] as const;
+const SECTOR_QUOTAS = [
+  { sector: "Infrastruktur", count: 78 },
+  { sector: "Pendidikan", count: 59 },
+  { sector: "Kesehatan", count: 59 },
+  { sector: "Sektor lainnya", count: 40 },
+] as const;
+
+function sectorForAdditionalProject(index: number): string {
+  let cumulative = 0;
+  for (const quota of SECTOR_QUOTAS) {
+    cumulative += quota.count;
+    if (index < cumulative) return quota.sector;
+  }
+  throw new Error("Illustrative project sector quotas must cover all projects.");
+}
+
+function additionalIndexInSector(index: number, sector: string): number {
+  let start = 0;
+  for (const quota of SECTOR_QUOTAS) {
+    if (quota.sector === sector) return index - start;
+    start += quota.count;
+  }
+  throw new Error("Illustrative project sector is not configured.");
+}
+
+function statusForAdditionalProject(
+  index: number,
+  sector: string,
+): ProjectDirectoryItem["status"] {
+  const position = additionalIndexInSector(index, sector);
+  let completedCount = 0;
+  let delayedCount = 0;
+  switch (sector) {
+    case "Infrastruktur":
+      completedCount = 51;
+      break;
+    case "Pendidikan":
+      completedCount = 39;
+      delayedCount = 3;
+      break;
+    case "Kesehatan":
+      completedCount = 39;
+      delayedCount = 3;
+      break;
+    case "Sektor lainnya":
+      completedCount = 26;
+      delayedCount = 5;
+      break;
+    default:
+      throw new Error("Illustrative project sector is not configured.");
+  }
+
+  if (position < completedCount) return "Selesai";
+  if (position < completedCount + delayedCount) {
+    return "Tertunda";
+  }
+  return "Berjalan";
+}
+
+function templateForProject(sector: string, index: number) {
+  const templates = PROJECT_TEMPLATES.filter(
+    (template) => template.sector === sector,
+  );
+  return cycleValue(templates, index);
+}
 
 function cycleValue<T>(values: readonly T[], index: number): T {
   const value = values.at(index % values.length);
@@ -158,9 +236,11 @@ function createIllustrativeProjects(): ProjectDirectoryItem[] {
   const additionalProjects = Array.from(
     { length: PROJECT_DIRECTORY_TOTAL - SAMPLE_PROJECTS.length },
     (_, index) => {
-      const template = cycleValue(PROJECT_TEMPLATES, index);
+      const sector = sectorForAdditionalProject(index);
+      const template = templateForProject(sector, index);
       const location = cycleValue(LOCATIONS, index);
       const sequence = index + SAMPLE_PROJECTS.length + 1;
+      const status = statusForAdditionalProject(index, sector);
 
       return {
         id: `project-${String(sequence).padStart(3, "0")}`,
@@ -171,7 +251,7 @@ function createIllustrativeProjects(): ProjectDirectoryItem[] {
         anggaran: (5 + (index % 35)) * 1_000_000_000,
         progres_fisik: (index * 17) % 101,
         target_selesai: cycleValue(TARGET_DATES, index),
-        status: cycleValue(STATUSES, index),
+        status,
       };
     },
   );
@@ -186,13 +266,31 @@ export type ProjectDirectoryFilters = {
   search?: string;
   status?: ProjectDirectoryItem["status"];
   sort?: "anggaran_desc" | "anggaran_asc";
+  wilayah?: string;
+  periode?: string;
+  sektor?: string;
 };
+
+function normalizeLocation(value: string): string {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  const kabupaten = normalized.replace(
+    /^(?:kabupaten\s+|kab\.\s*|kab\s+)/i,
+    "Kabupaten ",
+  );
+  return kabupaten.toLocaleLowerCase("id-ID");
+}
 
 export function filterProjectDirectory(
   projects: readonly ProjectDirectoryItem[],
-  filters: Pick<ProjectDirectoryFilters, "search" | "status">,
+  filters: Pick<
+    ProjectDirectoryFilters,
+    "search" | "status" | "wilayah" | "periode" | "sektor"
+  >,
 ): ProjectDirectoryItem[] {
   const search = filters.search?.trim().toLocaleLowerCase("id-ID");
+  const normalizedWilayah = filters.wilayah
+    ? normalizeLocation(filters.wilayah)
+    : undefined;
 
   return projects.filter((project) => {
     const matchesSearch =
@@ -200,8 +298,25 @@ export function filterProjectDirectory(
       project.nama_proyek.toLocaleLowerCase("id-ID").includes(search) ||
       project.instansi.toLocaleLowerCase("id-ID").includes(search);
     const matchesStatus = !filters.status || project.status === filters.status;
+    const normalizedLokasi = normalizeLocation(project.lokasi);
+    const matchesWilayah =
+      !normalizedWilayah ||
+      filters.wilayah === "Provinsi Jawa Barat" ||
+      normalizedLokasi === normalizedWilayah;
+    const matchesSektor =
+      !filters.sektor ||
+      filters.sektor === "Semua sektor" ||
+      project.sektor === filters.sektor;
+    const matchesPeriode =
+      !filters.periode || filters.periode === "2025 · s.d. TW III";
 
-    return matchesSearch && matchesStatus;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesWilayah &&
+      matchesSektor &&
+      matchesPeriode
+    );
   });
 }
 

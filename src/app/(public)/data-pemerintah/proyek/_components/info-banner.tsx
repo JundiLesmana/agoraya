@@ -14,12 +14,14 @@ export function InfoBanner({ wilayah, tahun, periode, updatedAt }: InfoBannerPro
     <div
       role="status"
       aria-live="polite"
-      className="mx-auto max-w-7xl flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 shadow-sm"
+      className="flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 shadow-sm dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100"
     >
-      <span className="font-semibold">{wilayah}</span>
-      <span className="font-semibold">{tahun}</span>
-      <span className="font-semibold">{periode}</span>
-      <span className="text-blue-700">· Pembaruan: {updatedAt}</span>
+      <span className="font-semibold">
+        {wilayah} · {tahun} · {periode}
+      </span>
+      <span className="text-blue-700 dark:text-blue-300">
+        · Pembaruan: {updatedAt}
+      </span>
     </div>
   );
 }
@@ -33,7 +35,7 @@ export function formatInfoBanner(
   return {
     wilayah: wilayah.replace('Provinsi ', ''),
     tahun: tahun ?? '-',
-    periode: triwulan ?? '-',
+    periode: triwulan?.replace(/^s\.d\.\s*/, '') ?? '-',
     updatedAt,
   };
 }

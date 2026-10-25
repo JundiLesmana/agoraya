@@ -18,6 +18,17 @@ const querySchema = z.object({
     .optional()
     .default("anggaran_desc"),
   status: z.enum(["Selesai", "Berjalan", "Tertunda"]).optional(),
+  wilayah: z.string().trim().max(100).optional(),
+  periode: z.string().trim().max(50).optional(),
+  sektor: z
+    .enum([
+      "Infrastruktur",
+      "Pendidikan",
+      "Kesehatan",
+      "Sektor lainnya",
+      "Semua sektor",
+    ])
+    .optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   format: z.enum(["json", "csv"]).optional().default("json"),
   download: z.literal("true").optional(),
@@ -95,10 +106,23 @@ export async function GET(request: Request) {
     );
   }
 
-  const { search, sort, status, page, format, download } = parsed.data;
+  const {
+    search,
+    sort,
+    status,
+    wilayah,
+    periode,
+    sektor,
+    page,
+    format,
+    download,
+  } = parsed.data;
   const directoryFiltered = filterProjectDirectory(PROJECT_DIRECTORY, {
     search,
     status,
+    wilayah,
+    periode,
+    sektor,
   });
   const sorted = sortProjectDirectory(directoryFiltered, sort);
   const totalPages = Math.ceil(sorted.length / PROJECT_PAGE_SIZE);
@@ -136,7 +160,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ...result,
     data,
-    filters: { search, sort, status },
+    filters: { search, sort, status, wilayah, periode, sektor },
   } satisfies {
     data: typeof data;
     total: number;
