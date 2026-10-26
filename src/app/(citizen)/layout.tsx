@@ -1,4 +1,6 @@
 import { requireAuth } from '@/lib/auth/guards';
+import { Footer } from '@/components/footer';
+import { Navbar } from '@/components/navbar';
 
 export default async function CitizenLayout({
   children,
@@ -8,8 +10,9 @@ export default async function CitizenLayout({
   await requireAuth({ roles: ['citizen'] });
   return (
     <div className="min-h-screen">
-      <nav className="border-b p-4">Citizen Portal</nav>
-      <main className="container mx-auto px-4 py-8">{children}</main>
+      <Navbar />
+      <main>{children}</main>
+      <Footer />
     </div>
   );
 }
