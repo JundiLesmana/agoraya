@@ -103,7 +103,8 @@ function ReportingCta() {
           Pahami progres laporan Anda dari awal hingga akhir
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
-          Tidak, jika Anda ingin “Rahasiakan agar laporan tetap anonim”.
+          Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan
+          privasi akan dijelaskan saat mengisi formulir.
         </p>
         <Button asChild size="lg" className="mt-6" aria-label="Buat laporan baru">
           <Link href="/citizen/reporting">

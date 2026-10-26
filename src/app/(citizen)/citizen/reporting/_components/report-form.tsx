@@ -288,7 +288,7 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
     event.preventDefault();
     if (!validateStep(3, values)) return;
     setSubmitError(
-      "Pengiriman laporan belum tersedia. Tidak ada data atau file yang dikirim maupun disimpan.",
+      "Pengiriman laporan belum tersedia. Tidak ada data atau file yang dikirim maupun disimpan. Jangan masukkan informasi pribadi yang sebenarnya sampai layanan aktif.",
     );
   }
 
@@ -394,8 +394,9 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
         </div>
 
         <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-          Formulir ini belum terhubung ke penyimpanan laporan. Lampiran hanya
-          dipreview di perangkat Anda dan tidak diunggah.
+          Pratinjau formulir: pengiriman belum aktif. Jangan masukkan data
+          pribadi yang sebenarnya; isian hanya berada di perangkat ini dan
+          lampiran tidak diunggah.
         </div>
 
         <form onSubmit={handleSubmit} noValidate>

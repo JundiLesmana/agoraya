@@ -72,7 +72,10 @@ describe("ReportTrackingSection", () => {
     expect(nodeClasses[3]).toContain("border-border");
 
     expect(
-      screen.getByRole("link", { name: "Lihat detail laporan" }).getAttribute("href"),
-    ).toBe("/tracking?report=LP-2026-007064-01");
+      screen.getByRole("link", { name: "Lihat contoh laporan" }).getAttribute("href"),
+    ).toBe("/reports/LP-2026-007064-01");
+    expect(
+      screen.getByRole("link", { name: "Buat laporan baru" }).getAttribute("href"),
+    ).toBe("/citizen/reporting");
   });
 });

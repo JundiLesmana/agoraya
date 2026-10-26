@@ -78,6 +78,7 @@ export function RecentReportsSection() {
 
   return (
     <section
+      id="recent-reports"
       aria-labelledby="recent-reports-title"
       className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
     >
@@ -224,6 +225,15 @@ export function RecentReportsSection() {
         Data contoh untuk pratinjau, bukan laporan aktual. Nama pelapor dan
         informasi pribadi tidak ditampilkan.
       </p>
+      <div className="mt-5">
+        <Link
+          href="/citizen/reporting"
+          className="text-primary focus-visible:ring-ring inline-flex min-h-10 items-center gap-2 rounded-md px-2 text-sm font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          Buat laporan baru
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
     </section>
   );
 }
