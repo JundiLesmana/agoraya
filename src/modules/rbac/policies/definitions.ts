@@ -1,26 +1,11 @@
-// Agoraya — modules/rbac policies definitions
-// The built-in policy set. Policies are authored in code for the MVP (no
-// dynamic policy API) and can be persisted through the policy service so they
-// are stored, versioned, and evaluated like any other policy.
-//
-// Role and permission keys refer to the tenant-defined rows in `roles.key` and
-// `permissions.key`. The keys below match the demo scenario seed
-// (`superadmin`, `maker`, `checker`, `citizen`).
-//
-// Every policy carries a tenant condition: a policy never applies to a resource
-// owned by a different tenant. The citizen read policy additionally requires
-// resource ownership, which is the attribute-based half of the hybrid.
-
 import type { PolicyDefinition } from "../types";
 
-/** Condition: the resource must belong to the subject's tenant. */
 const SAME_TENANT = {
   attribute: "resource.tenantId",
   operator: "eq",
   value: "$subject.tenantId",
 } as const;
 
-/** Condition: the resource must be owned by the subject. */
 const OWNED_BY_SUBJECT = {
   attribute: "resource.ownerId",
   operator: "eq",

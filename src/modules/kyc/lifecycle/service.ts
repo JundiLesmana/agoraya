@@ -1,11 +1,3 @@
-// Agoraya — modules/kyc/lifecycle service
-// Use-case orchestration for KYC status lifecycle operations.
-//
-// Responsibilities:
-//   - Enforce lifecycle transition rules from the domain layer.
-//   - Mark verified entries as expired when their TTL has elapsed.
-//   - Record audit events for all lifecycle mutations.
-
 import { logger } from "@/lib/logger";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import type { AuditSink } from "@/modules/rbac/audit";
@@ -34,12 +26,6 @@ export class LifecycleService {
     this.#clock = options.clock ?? (() => new Date());
   }
 
-  /**
-   * Mark a verified KYC entry as expired.
-   *
-   * Only `verified` entries can be expired. The domain layer enforces
-   * the valid transition (`verified → expired`).
-   */
   async expireKyc(command: ExpireKycCommand): Promise<KycRosterEntry> {
     const parsed = expireKycCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -92,14 +78,6 @@ export class LifecycleService {
     return result;
   }
 
-  /**
-   * Check and expire all verified entries whose `expiresAt` has passed.
-   *
-   * Intended to be called periodically by a background job. Operates on
-   * entries scoped to a single tenant to bound the query size.
-   *
-   * Returns the list of entries that were transitioned to `expired`.
-   */
   async checkAndExpireStale(tenantId: string): Promise<KycRosterEntry[]> {
     const now = this.#clock();
     const page = await this.#repository.list({

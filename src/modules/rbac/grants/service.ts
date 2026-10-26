@@ -1,10 +1,3 @@
-// Agoraya — modules/rbac grants service
-// User -> role assignments and role -> permission grants.
-//
-// Every change is recorded in the audit trail and published to change
-// listeners so the policy decision point can invalidate cached decisions that
-// were made under the previous grant set.
-
 import { logger } from "@/lib/logger";
 import {
   AppError,
@@ -38,13 +31,6 @@ export interface EffectiveAccessProvider {
   ): Promise<EffectiveAccess>;
 }
 
-/**
- * Emitted after a grant change.
- *
- * `user` invalidates the decisions of one user. `role` invalidates the
- * decisions of every user that holds the role, because the effective
- * permissions of all of them changed.
- */
 export type GrantChangeEvent =
   | { readonly kind: "user"; readonly userId: string }
   | {
@@ -83,7 +69,6 @@ export class GrantService implements EffectiveAccessProvider {
     this.#clock = options.clock ?? (() => new Date());
   }
 
-  /** Register a listener notified after every grant change. Returns an unsubscribe function. */
   onChange(listener: (event: GrantChangeEvent) => void): () => void {
     this.#listeners.add(listener);
     return () => {
@@ -91,13 +76,6 @@ export class GrantService implements EffectiveAccessProvider {
     };
   }
 
-  /**
-   * Roles and permissions currently held by a user.
-   *
-   * Revoked and expired grants are ignored. When a tenant is given, grants that
-   * belong to another tenant are ignored as well, so a cross-tenant grant can
-   * never widen the effective access of a user.
-   */
   async getEffectiveAccess(
     userId: string,
     options: { tenantId?: string } = {},
@@ -141,7 +119,6 @@ export class GrantService implements EffectiveAccessProvider {
     return { userId, roles, permissions };
   }
 
-  /** Assign a role to a user. Re-assigning an existing role refreshes the grant. */
   async assignRole(command: AssignRoleCommand): Promise<RoleGrant> {
     const parsed = assignRoleCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -188,7 +165,6 @@ export class GrantService implements EffectiveAccessProvider {
     return grant;
   }
 
-  /** Revoke a role assignment. The grant is kept for auditing. */
   async revokeRole(command: RevokeRoleCommand): Promise<boolean> {
     const parsed = revokeRoleCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -230,7 +206,6 @@ export class GrantService implements EffectiveAccessProvider {
     return true;
   }
 
-  /** Grant a permission to a role. */
   async assignPermission(
     command: AssignPermissionCommand,
   ): Promise<PermissionGrant> {

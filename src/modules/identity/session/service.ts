@@ -68,8 +68,6 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     return { valid: false };
   }
 
-  // The tenant is part of the session context: authorization decisions are
-  // scoped to it (see the RBAC module's policy decision point).
   return { valid: true, userId: session.userId, sessionId: session.id, tenantId: user.tenantId };
 }
 
@@ -88,9 +86,7 @@ export async function refreshSession(token: string): Promise<{ valid: boolean; n
     return { valid: false };
   }
 
-  // Generate new session
   const result = await createSession(validation.userId);
-  // Destroy old session
   await destroySession(token);
   return { valid: true, newToken: result.token, expiresAt: result.expiresAt };
 }

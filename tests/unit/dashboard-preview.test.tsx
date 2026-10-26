@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
@@ -34,7 +33,6 @@ describe('DashboardPreview', () => {
     render(<DashboardPreview />);
 
     expect(screen.getByRole('heading', { name: /akses data, pahami kondisi, lihat perkembangannya/i })).toBeTruthy();
-    // "DATA PEMERINTAH" overline label — use getAllByText since it can appear multiple times
     expect(screen.getAllByText(/data pemerintah/i).length).toBeGreaterThan(0);
 
     const cta = screen.getByRole('link', { name: /jelajahi semua data/i });

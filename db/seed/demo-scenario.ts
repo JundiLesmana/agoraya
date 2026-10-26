@@ -37,10 +37,6 @@ import { builtinPolicyDefinitions } from "../../src/modules/rbac/policies/defini
 type UserStatus = (typeof userStatusEnum.enumValues)[number];
 type TicketStatus = (typeof ticketStatusEnum.enumValues)[number];
 
-// ---------------------------------------------------------------------------
-// Fixed (deterministic) UUIDs so the seed is idempotent across runs.
-// ---------------------------------------------------------------------------
-
 const TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 const ROLE_SUPERADMIN = "00000000-0000-0000-0000-000000000010";
@@ -65,10 +61,6 @@ const TICKET_2 = "00000000-0000-0000-0000-000000001002";
 const TICKET_3 = "00000000-0000-0000-0000-000000001003";
 
 const now = new Date();
-
-// ---------------------------------------------------------------------------
-// Seed data
-// ---------------------------------------------------------------------------
 
 export const TENANT_SEED = {
   id: TENANT_ID,
@@ -142,7 +134,7 @@ export const USER_SEEDS: Array<{
     tenantId: TENANT_ID,
     email: "admin@kota-contoh.demo",
     name: "Admin Kota Contoh",
-    nik: "3171000000000001", // SIMULATED — never a real NIK
+    nik: "3171000000000001", 
     roleKey: "superadmin",
     status: "active",
   },
@@ -151,7 +143,7 @@ export const USER_SEEDS: Array<{
     tenantId: TENANT_ID,
     email: "maker@kota-contoh.demo",
     name: "Maker Contoh",
-    nik: "3171000000000002", // SIMULATED
+    nik: "3171000000000002", 
     roleKey: "maker",
     status: "active",
   },
@@ -160,7 +152,7 @@ export const USER_SEEDS: Array<{
     tenantId: TENANT_ID,
     email: "checker@kota-contoh.demo",
     name: "Checker Contoh",
-    nik: "3171000000000003", // SIMULATED
+    nik: "3171000000000003", 
     roleKey: "checker",
     status: "active",
   },
@@ -169,7 +161,7 @@ export const USER_SEEDS: Array<{
     tenantId: TENANT_ID,
     email: "warga@kota-contoh.demo",
     name: "Warga Contoh",
-    nik: "3171000000000004", // SIMULATED
+    nik: "3171000000000004", 
     roleKey: "citizen",
     status: "active",
   },
@@ -253,13 +245,12 @@ export async function seedDemoScenario(
   auditEvents: number;
   policies: number;
 }> {
-  // 1. Tenant (upsert on slug)
+
   await dbx
     .insert(tenants)
     .values(TENANT_SEED)
     .onConflictDoUpdate({ target: tenants.slug, set: TENANT_SEED });
 
-  // 2. Roles (upsert on tenant_id + key)
   for (const r of ROLE_SEEDS) {
     await dbx
       .insert(roles)
@@ -270,7 +261,6 @@ export async function seedDemoScenario(
       });
   }
 
-  // 3. Permissions (upsert on key)
   for (const p of PERMISSION_SEEDS) {
     await dbx
       .insert(permissions)
@@ -278,7 +268,6 @@ export async function seedDemoScenario(
       .onConflictDoUpdate({ target: permissions.key, set: p });
   }
 
-  // 4. Users (upsert on email)
   for (const u of USER_SEEDS) {
     await dbx
       .insert(users)
@@ -302,7 +291,6 @@ export async function seedDemoScenario(
       });
   }
 
-  // 5. User-role assignments (idempotent via composite PK)
   for (const u of USER_SEEDS) {
     const roleId = roleByKey.get(u.roleKey);
     if (!roleId) continue;
@@ -312,7 +300,6 @@ export async function seedDemoScenario(
       .onConflictDoNothing();
   }
 
-  // 6. Role-permission grants (idempotent via composite PK)
   for (const g of ROLE_PERMISSION_SEEDS) {
     const permissionId = permissionByKey.get(g.permissionKey);
     if (!permissionId) continue;
@@ -322,13 +309,11 @@ export async function seedDemoScenario(
       .onConflictDoNothing();
   }
 
-  // 7. Tickets: replace demo tickets (delete then insert) — idempotent
   await dbx.delete(tickets).where(eq(tickets.tenantId, TENANT_ID));
   for (const t of TICKET_SEEDS) {
     await dbx.insert(tickets).values(t);
   }
 
-  // 8. Audit seed events (append-only)
   await dbx.insert(auditEvents).values([
     {
       id: randomUUID(),
@@ -356,9 +341,6 @@ export async function seedDemoScenario(
     },
   ]);
 
-  // 9. Built-in RBAC policies (global). Idempotent upsert on the policy key.
-  //    `status` and `version` are preserved so a locally edited policy is not
-  //    reset by re-running the seed.
   const policyDefinitions = builtinPolicyDefinitions();
   for (const definition of policyDefinitions) {
     await dbx

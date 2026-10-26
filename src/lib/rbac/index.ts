@@ -1,10 +1,3 @@
-// Agoraya — lib/rbac
-// Legacy role helpers used by the route layouts.
-//
-// The authorization decisions themselves live in the RBAC module
-// (`src/modules/rbac`): use its policy decision point for access checks and
-// keep these helpers only for coarse role checks in the UI layer.
-
 export const ROLES = {
   CITIZEN: 'citizen',
   ASN: 'asn',

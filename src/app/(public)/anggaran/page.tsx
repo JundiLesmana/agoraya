@@ -26,7 +26,6 @@ export default function AnggaranPage() {
   const handleApply = React.useCallback(() => {
     setRefreshing(true);
     setLastUpdated(null);
-    // Simulasi pembaruan data berdasarkan filter yang dikunci.
     setTimeout(() => {
       setRefreshing(false);
       setLastUpdated(new Date().toLocaleString('id-ID', {

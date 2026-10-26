@@ -1,6 +1,3 @@
-// Agoraya — lib/idempotency
-// Idempotency key generation, validation, and duplicate-request handling.
-
 import { ValidationError } from '../errors';
 import type { IdempotencyKey, IdempotencyRecord, IdempotencyStore } from './store';
 
@@ -9,12 +6,10 @@ export type { IdempotencyKey, IdempotencyRecord, IdempotencyStore };
 const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-/** Generate a new idempotency key (UUID v4). */
 export function generateIdempotencyKey(): IdempotencyKey {
   return crypto.randomUUID() as IdempotencyKey;
 }
 
-/** Validate an idempotency key format. Throws ValidationError when invalid. */
 export function validateIdempotencyKey(key: unknown): IdempotencyKey {
   if (typeof key !== 'string' || !UUID_V4_REGEX.test(key)) {
     throw new ValidationError('Invalid idempotency key: expected a UUID v4 string', {

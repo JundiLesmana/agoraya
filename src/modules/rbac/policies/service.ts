@@ -1,12 +1,3 @@
-// Agoraya — modules/rbac policies service
-// Policy management: load, create, update, version, and archive policies.
-//
-// Policies are the source of truth for authorization decisions. Every change is
-// versioned (the previous definition is kept as an immutable snapshot) and
-// recorded in the audit trail. Change listeners are notified so the policy
-// decision point can drop cached decisions that were made under the old
-// policy version.
-
 import { randomUUID } from "node:crypto";
 
 import { logger } from "@/lib/logger";
@@ -44,12 +35,6 @@ function isStringArray(
   return Array.isArray(value);
 }
 
-/**
- * Loads and mutates policies.
- *
- * The service implements `PolicyProvider`, which is the read interface used by
- * the policy decision point.
- */
 export class PolicyService implements PolicyProvider {
   readonly #repository: PolicyRepository;
   readonly #audit: AuditSink | undefined;
@@ -73,7 +58,6 @@ export class PolicyService implements PolicyProvider {
     };
   }
 
-  /** Active policies for a tenant. Global policies are included. */
   async listActivePolicies(tenantId: string): Promise<StoredPolicy[]> {
     const now = this.#clock().getTime();
     const cached = this.#cache.get(tenantId);
@@ -86,24 +70,15 @@ export class PolicyService implements PolicyProvider {
     return policies;
   }
 
-  /** A single policy by key, regardless of status. */
   async getPolicyByKey(key: string): Promise<StoredPolicy | null> {
     return this.#repository.findByKey(key);
   }
 
-  /** Version history of a policy, oldest first. */
   async listVersions(key: string): Promise<PolicyVersionSnapshot[]> {
     const snapshots = await this.#repository.listVersions(key);
     return [...snapshots].sort((left, right) => left.version - right.version);
   }
 
-  /**
-   * Create or update a policy.
-   *
-   * The definition is validated before it is stored. Updating an existing
-   * policy increments its version and keeps the previous definition as an
-   * immutable snapshot.
-   */
   async savePolicy(command: SavePolicyCommand): Promise<StoredPolicy> {
     const parsed = savePolicyCommandSchema.safeParse(command);
     if (!parsed.success) {

@@ -1,5 +1,3 @@
-// Agoraya — lib/idempotency store interfaces
-
 export interface IdempotencyRecord {
   readonly key: string;
   readonly statusCode: number;

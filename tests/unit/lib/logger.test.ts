@@ -10,7 +10,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// Capturing transport that records every written entry in memory.
 class CapturingTransport implements LogTransport {
   entries: LogEntry[] = [];
   async write(entry: LogEntry): Promise<void> {

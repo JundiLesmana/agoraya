@@ -1,30 +1,3 @@
-// Agoraya — modules/rbac
-// Public entry point of the RBAC module.
-//
-// The module has three parts:
-// - `policies`: policy definitions (RBAC + ABAC hybrid), versioning, and storage.
-// - `grants`: user -> role assignments and role -> permission grants.
-// - `pdp`: the policy decision point that evaluates access requests.
-//
-// Typical wiring:
-//
-//   const rbac = createRbacModule({
-//     policyRepository: createDrizzlePolicyRepository(db),
-//     grantRepository: createDrizzleGrantRepository(db),
-//     audit: createAuditEventSink(db),
-//   });
-//   const decision = await rbac.pdp.evaluate(request);
-//
-// An authenticated identity session becomes an access request through the
-// identity bridge (the validator is `validateSession` from the identity
-// module):
-//
-//   const subject = await subjectFromSession(token, validateSession);
-//   if (!subject) return unauthorized();
-//   const decision = await rbac.pdp.evaluate(
-//     buildAccessRequest(subject, resource, "read"),
-//   );
-
 export type {
   AccessDecision,
   AccessRequest,
@@ -142,13 +115,6 @@ export interface RbacModule {
   readonly pdp: PolicyDecisionPoint;
 }
 
-/**
- * Wire the RBAC module.
- *
- * The wiring connects the services to the policy decision point so that a
- * policy change invalidates every cached decision and a grant change
- * invalidates the decisions of the affected users.
- */
 export function createRbacModule(options: RbacModuleOptions): RbacModule {
   const policyService = new PolicyService({
     repository: options.policyRepository,

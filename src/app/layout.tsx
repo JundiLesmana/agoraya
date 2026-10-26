@@ -12,8 +12,6 @@ export const metadata: Metadata = {
     'Agoraya — platform transparansi, pelaporan publik, dan tata kelola pemerintahan digital untuk Indonesia.',
 };
 
-// Root layout: wires the global design system (tokens in
-// src/styles/globals.css) into the app router shell.
 export default function RootLayout({
   children,
 }: Readonly<{

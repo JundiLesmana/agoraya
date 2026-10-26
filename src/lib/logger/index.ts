@@ -11,6 +11,5 @@ export function createLogger(options?: LoggerOptions): Logger {
 
 export { logger } from './logger';
 
-// Default server logger (import once at application startup).
 export const serverLogger = createLogger({ service: DEFAULT_SERVICE });
 export type { LogEntry, LogLevel, LogTransport, LoggerOptions } from './types';
