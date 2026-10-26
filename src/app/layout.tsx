@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
+import { FilterProvider } from '@/lib/filter-store';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -11,8 +12,6 @@ export const metadata: Metadata = {
     'Agoraya — platform transparansi, pelaporan publik, dan tata kelola pemerintahan digital untuk Indonesia.',
 };
 
-// Root layout: wires the global design system (tokens in
-// src/styles/globals.css) into the app router shell.
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="font-sans antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <FilterProvider>{children}</FilterProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

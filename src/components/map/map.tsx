@@ -72,10 +72,6 @@ function useLatest<T>(value: T): React.MutableRefObject<T> {
   return ref;
 }
 
-/**
- * Interactive map built on MapLibre GL JS. The WebGL map is created on
- * the client only; the container renders an empty region on the server.
- */
 export function Map({
   style = 'https://demotiles.maplibre.org/style.json',
   center = DEFAULT_MAP_CENTER,
@@ -95,8 +91,6 @@ export function Map({
   const [loaded, setLoaded] = React.useState(false);
   const latest = useLatest({ style, center, zoom, onLoad, markerColor });
 
-  // Create the map once on mount. Prop changes that need re-configuration
-  // read `latest.current` so we never recreate the WebGL context.
   React.useEffect(() => {
     let disposed = false;
     let map: MapLibreMap | null = null;
@@ -133,10 +127,8 @@ export function Map({
       mapRef.current = null;
       maplibreRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // (Re)render markers once the map has loaded or the marker set changes.
   React.useEffect(() => {
     const map = mapRef.current;
     const maplibregl = maplibreRef.current;

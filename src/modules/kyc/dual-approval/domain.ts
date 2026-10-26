@@ -1,20 +1,6 @@
-// Agoraya — modules/kyc/dual-approval domain
-// Pure rules for the two-person approval workflow.
-//
-// This file is intentionally free of I/O and framework imports.
-// The only job of this domain layer is to enforce:
-//
-//   1. The same person cannot fill both approval slots (self-approval prevention).
-//   2. Only one decision is allowed per slot.
-//   3. The first free slot is always assigned; slot-2 is only available after
-//      slot-1 is filled with an `approved` decision.
-
 import type { KycApproval, KycApprovalDecision, KycStatus } from "../types";
 
-// ---------------------------------------------------------------------------
 // Domain errors
-// ---------------------------------------------------------------------------
-
 export class SelfApprovalError extends Error {
   constructor(public readonly approverId: string) {
     super(
@@ -40,33 +26,16 @@ export class ApprovalNotAllowedError extends Error {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Pure domain functions
-// ---------------------------------------------------------------------------
-
-/** Statuses that accept new approvals. */
 const APPROVABLE_STATUSES: ReadonlySet<KycStatus> = new Set([
   "pending",
   "partially_approved",
 ]);
 
-/**
- * Returns `true` when the roster entry can still receive approvals in its
- * current status.
- */
 export function canReceiveApproval(status: KycStatus): boolean {
   return APPROVABLE_STATUSES.has(status);
 }
 
-/**
- * Compute which approval slot the new approval should occupy.
- *
- * - If no approvals exist, the next slot is 1.
- * - If slot 1 is filled with `approved`, the next slot is 2.
- * - Otherwise the workflow cannot accept a new approval.
- *
- * Returns `null` when no slot is available (workflow completed or rejected).
- */
 export function nextApprovalSlot(
   existingApprovals: readonly KycApproval[],
 ): 1 | 2 | null {
@@ -75,10 +44,8 @@ export function nextApprovalSlot(
   const slot1 = existingApprovals.find((a) => a.approvalSlot === 1);
   if (!slot1) return 1;
 
-  // Slot 1 is rejected: the workflow is over, no more slots.
   if (slot1.decision === "rejected") return null;
 
-  // Slot 1 is approved: slot 2 is available if not yet filled.
   const slot2 = existingApprovals.find((a) => a.approvalSlot === 2);
   if (slot2) return null; // both slots are filled
 
@@ -129,13 +96,6 @@ export function validateAndGetSlot(
   return slot;
 }
 
-/**
- * Summarise approval outcomes from a list of approval records.
- *
- * Returns the count of approvals, whether all are approved, and whether any
- * are rejected. These values feed directly into
- * `deriveStatusFromApprovals` in the lifecycle domain.
- */
 export function summariseApprovals(approvals: readonly KycApproval[]): {
   readonly approvalCount: number;
   readonly allApproved: boolean;

@@ -1,5 +1,3 @@
-// Agoraya — lib/logger types
-
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 export interface LoggerOptions {

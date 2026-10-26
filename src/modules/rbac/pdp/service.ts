@@ -1,17 +1,3 @@
-// Agoraya — modules/rbac pdp service
-// Policy Decision Point: the single place where access requests are evaluated.
-//
-// Responsibilities:
-// - Validate the request and resolve the subject from the grants source.
-// - Evaluate the request against the active policy set (RBAC + ABAC hybrid).
-// - Cache decisions so repeated evaluations stay fast, and invalidate them
-//   when policies or grants change.
-// - Record every decision in the audit trail and raise a security event for
-//   denied access.
-//
-// Deny by default: anything that cannot be evaluated (invalid request,
-// unavailable context, failed audit write) results in a denied decision.
-
 import { createHash } from "node:crypto";
 
 import { logger } from "@/lib/logger";
@@ -29,14 +15,11 @@ import { InMemoryDecisionCache } from "./cache";
 const DEFAULT_CACHE_TTL_MS = 30_000;
 
 export interface PolicyDecisionPointOptions {
-  /** Source of the active policy set. */
   readonly policyProvider: PolicyProvider;
-  /** Source of the subject's roles and permissions. */
   readonly effectiveAccess: EffectiveAccessProvider;
   readonly cache?: DecisionCache;
   readonly audit?: AuditSink;
   readonly clock?: () => Date;
-  /** How long a decision (and the resolved subject) stays cached. */
   readonly cacheTtlMs?: number;
 }
 
@@ -47,7 +30,6 @@ interface SubjectCacheEntry {
   readonly expiresAt: number;
 }
 
-/** Flattened request data used for audit records and security events. */
 interface AuditContext {
   readonly userId: string | null;
   readonly tenantId: string | null;
@@ -177,10 +159,6 @@ export class PolicyDecisionPoint {
     return this.#finalize(decision, toAuditContext(input), false);
   }
 
-  /**
-   * Evaluate several requests. The resolved subject is cached per user, so
-   * checking many resources of the same user stays cheap.
-   */
   async evaluateBatch(
     requests: readonly AccessRequest[],
   ): Promise<AccessDecision[]> {
@@ -191,21 +169,18 @@ export class PolicyDecisionPoint {
     return decisions;
   }
 
-  /** Drop the cached decisions of a user, for example after a grant change. */
   invalidateUser(userId: string): void {
     this.#grantEpochs.set(userId, this.#grantEpoch(userId) + 1);
     this.#subjectCache.delete(userId);
     this.#cache.invalidateUser(userId);
   }
 
-  /** Drop the cached decisions of several users. */
   invalidateUsers(userIds: readonly string[]): void {
     for (const userId of userIds) {
       this.invalidateUser(userId);
     }
   }
 
-  /** Drop every cached decision, for example after a policy change. */
   invalidatePolicies(): void {
     this.#policyEpoch += 1;
     this.#subjectCache.clear();

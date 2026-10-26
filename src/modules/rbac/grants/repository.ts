@@ -1,10 +1,3 @@
-// Agoraya — modules/rbac grants repository
-// Persistence port for role assignments (user -> role) and permission grants
-// (role -> permission), plus an in-memory adapter for tests and local use.
-//
-// Grants are soft-revoked: a revoked grant keeps its row so the change stays
-// auditable. An expired grant is ignored by the grants service.
-
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
@@ -23,7 +16,6 @@ import type {
   RoleRef,
 } from "../types";
 
-/** Input for creating or refreshing a role assignment. */
 export interface UpsertRoleGrantInput {
   readonly userId: string;
   readonly roleId: string;
@@ -44,13 +36,9 @@ export interface UpsertPermissionGrantInput {
   readonly grantedAt: Date;
 }
 
-/** Persistence port for grants. */
 export interface GrantRepository {
-  /** All role assignments of a user, including revoked and expired ones. */
   listRoleGrants(userId: string): Promise<RoleGrant[]>;
-  /** All permission grants of the given roles, including revoked ones. */
   listPermissionGrants(roleIds: readonly string[]): Promise<PermissionGrant[]>;
-  /** Users that currently hold a role. */
   listUserIdsByRole(roleId: string): Promise<string[]>;
   findRoleByKey(tenantId: string, roleKey: string): Promise<RoleRef | null>;
   findPermissionByKey(permissionKey: string): Promise<PermissionRef | null>;
@@ -74,19 +62,16 @@ function permissionGrantKey(roleId: string, permissionId: string): string {
   return `${roleId}:${permissionId}`;
 }
 
-/** In-memory grant repository. */
 export class InMemoryGrantRepository implements GrantRepository {
   readonly #roleGrants = new Map<string, RoleGrant>();
   readonly #permissionGrants = new Map<string, PermissionGrant>();
   readonly #roles = new Map<string, RoleRef>();
   readonly #permissions = new Map<string, PermissionRef>();
 
-  /** Register a role so it can be granted. */
   registerRole(role: RoleRef): void {
     this.#roles.set(`${role.tenantId}:${role.key}`, role);
   }
 
-  /** Register a permission so it can be granted. */
   registerPermission(permission: PermissionRef): void {
     this.#permissions.set(permission.key, permission);
   }

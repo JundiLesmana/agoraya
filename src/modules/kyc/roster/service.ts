@@ -1,13 +1,3 @@
-// Agoraya — modules/kyc/roster service
-// Use-case orchestration for the KYC citizen roster.
-//
-// Responsibilities:
-//   - Validate commands with Zod before touching any state.
-//   - Hash the simulated NIK before storage; raw NIK is never persisted.
-//   - Prevent duplicate roster entries for the same user/tenant pair.
-//   - Delegate all persistence to the KycRepository port.
-//   - Record an audit event for every mutation.
-
 import { createHash } from "node:crypto";
 import { randomUUID } from "node:crypto";
 
@@ -40,11 +30,6 @@ export interface RosterServiceOptions {
   readonly clock?: () => Date;
 }
 
-/**
- * Hash the simulated NIK so the raw value is never stored.
- * We use a short prefix so logs can identify the field without leaking the
- * full value.
- */
 function hashNik(nik: string): string {
   return createHash("sha256").update(nik).digest("hex");
 }
@@ -60,12 +45,6 @@ export class RosterService {
     this.#clock = options.clock ?? (() => new Date());
   }
 
-  /**
-   * Add a citizen to the KYC roster.
-   *
-   * The raw NIK is hashed immediately; only the hash is stored. Initial
-   * status is always `pending`.
-   */
   async addToRoster(command: AddToRosterCommand): Promise<KycRosterEntry> {
     const parsed = addToRosterCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -110,7 +89,6 @@ export class RosterService {
     return entry;
   }
 
-  /** Get a single roster entry by id, scoped to the tenant. */
   async getRosterEntry(command: GetRosterEntryCommand): Promise<KycRosterEntry> {
     const parsed = getRosterEntryCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -173,7 +151,6 @@ export class RosterService {
         action: event.action,
         error: error instanceof Error ? error.message : "unknown error",
       });
-      // Audit failures propagate so callers know the record was not written.
       throw error;
     }
   }

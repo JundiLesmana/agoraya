@@ -11,8 +11,6 @@ import {
   bpsSourceEnum,
 } from "../../../src/lib/db/schema/index.js";
 
-// Drizzle pgTable exposes columns as own properties and the DB table name
-// behind an internal symbol, so we cast to a loose record for introspection.
 const TABLES = tables as unknown as Record<string, Record<string, unknown>>;
 
 const EXPECTED_TABLES = [

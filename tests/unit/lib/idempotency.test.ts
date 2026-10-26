@@ -96,7 +96,6 @@ describe('lib/idempotency', () => {
       expect(result.data).toEqual({ value: 42 });
       expect(calls).toEqual([1]);
 
-      // Duplicate request returns cached result without re-executing
       const result2 = await withIdempotency(key, async () => {
         calls.push(2);
         return { value: 99 };
@@ -117,7 +116,6 @@ describe('lib/idempotency', () => {
       ).rejects.toThrow('transient');
       expect(attempts).toBe(1);
 
-      // Retry after failure should attempt again (failure not cached)
       await expect(
         withIdempotency(key, async () => {
           attempts += 1;

@@ -1,8 +1,3 @@
-// Agoraya — modules/rbac schema
-// Canonical Zod contracts for the RBAC module. Server-side validation is the
-// only trusted boundary: request payloads are parsed here before they reach
-// the policy engine, and stored policies are parsed before they are evaluated.
-
 import { z } from "zod";
 
 import type { PolicyDefinition } from "./types";

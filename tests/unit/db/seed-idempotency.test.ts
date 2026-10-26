@@ -5,10 +5,7 @@ import { seedBpsSnapshots } from "../../../db/seed/bps-snapshot.js";
 import { USER_SEEDS, TICKET_SEEDS } from "../../../db/seed/demo-scenario.js";
 import type * as schema from "../../../src/lib/db/schema/index.js";
 
-// ---------------------------------------------------------------------------
 // Fake Drizzle client: records insert/upsert calls without touching a DB.
-// ---------------------------------------------------------------------------
-
 type RecordedCall = { table: string; values: unknown; onConflict: boolean };
 
 const makeFakeDb = () => {
@@ -74,11 +71,9 @@ describe("seed idempotency and data validity", () => {
   });
 
   it("no placeholder/demo data leaks real-looking identity", () => {
-    // All seed emails use a clearly simulated domain.
     for (const u of USER_SEEDS) {
       expect(u.email).toMatch(/@kota-contoh\.demo$/);
     }
-    // All seed NIKs are obviously simulated (padded zeros) — not real NIKs.
     for (const u of USER_SEEDS) {
       expect(u.nik).toMatch(/^317100000000000[0-9]$/);
     }

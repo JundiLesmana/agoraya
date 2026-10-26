@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -15,8 +14,6 @@ describe('Navbar', () => {
     render(<Navbar />);
 
     expect(screen.getByRole('img', { name: 'Agoraya' }).getAttribute('src')).toBe('/logo/logo-light.svg');
-    // The navbar renders desktop + mobile nav; use getAllByRole for links
-    // that appear in both. At least one "Beranda" link must be present.
     expect(screen.getAllByRole('link', { name: /beranda/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /masuk \/ daftar/i }).length).toBeGreaterThan(0);
   });

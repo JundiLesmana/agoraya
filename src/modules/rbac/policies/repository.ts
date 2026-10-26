@@ -1,11 +1,3 @@
-// Agoraya — modules/rbac policies repository
-// Persistence port for policies plus two adapters:
-// - `InMemoryPolicyRepository` — code-defined policy set (MVP) and tests.
-// - `createDrizzlePolicyRepository` — PostgreSQL persistence through lib/db.
-//
-// The port keeps the policy service independent from the database client, so
-// the module can be unit-tested without a live PostgreSQL instance.
-
 import { randomUUID } from "node:crypto";
 
 import { eq, and, asc, desc, or, isNull } from "drizzle-orm";
@@ -24,20 +16,12 @@ import type {
   StoredPolicy,
 } from "../types";
 
-/** Read side used by the policy decision point. */
 export interface PolicyProvider {
-  /** Active policies that apply to a tenant (global policies included). */
   listActivePolicies(tenantId: string): Promise<StoredPolicy[]>;
 }
 
-/** Persistence port for policy definitions and their version history. */
 export interface PolicyRepository extends PolicyProvider {
   findByKey(key: string): Promise<StoredPolicy | null>;
-  /**
-   * Store a policy together with its version snapshot. The two writes belong
-   * to the same unit of work: a policy without a version snapshot could not
-   * be reviewed.
-   */
   save(
     policy: StoredPolicy,
     snapshot: PolicyVersionSnapshot,
@@ -112,10 +96,6 @@ function toPolicyValues(
   };
 }
 
-/**
- * In-memory policy repository. Holds the code-defined policy set and any
- * policy saved through the policy service.
- */
 export class InMemoryPolicyRepository implements PolicyRepository {
   readonly #policies = new Map<string, StoredPolicy>();
   readonly #versions = new Map<string, PolicyVersionSnapshot[]>();
@@ -124,7 +104,6 @@ export class InMemoryPolicyRepository implements PolicyRepository {
     this.seed(initial);
   }
 
-  /** Insert or replace a policy definition, keeping the existing version. */
   seed(definitions: readonly PolicyDefinition[]): void {
     const now = new Date();
     for (const definition of definitions) {

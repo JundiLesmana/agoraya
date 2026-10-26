@@ -1,7 +1,3 @@
-// Agoraya — lib/logger transport
-// Console output for structured logs. JSON in production/test, human-readable in development.
-// Sensitive fields are redacted before output.
-
 import type { LogEntry, LogTransport } from './types';
 
 const SENSITIVE_KEY = /^(password|secret|token|otp|nik|api.?key|authorization|cookie|session|access.?token|refresh.?token|private.?key)$/i;
@@ -62,7 +58,6 @@ export class ConsoleTransport implements LogTransport {
   }
 
   async flush(): Promise<void> {
-    // Console output is synchronous; nothing to drain.
     return Promise.resolve();
   }
 }

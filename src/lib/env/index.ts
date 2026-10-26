@@ -1,14 +1,9 @@
-// Agoraya — lib/env
-// Environment variables validation and typing. Loads and validates all required
-// environment variables at application startup; never prints secret values.
-
 import type { Env } from './schema';
 import { EnvSchema } from './schema';
 import { AppError, ErrorCode } from '../errors';
 
 let cachedEnv: Env | null = null;
 
-/** Validate and load environment variables. Idempotent; safe to call repeatedly. */
 export function loadEnv(): Env {
   if (cachedEnv) return cachedEnv;
 
