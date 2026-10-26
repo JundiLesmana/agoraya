@@ -1,6 +1,6 @@
-import { requireAuth } from "@/lib/auth/guards";
-import { Footer } from "@/components/footer";
-import { Navbar } from "@/components/navbar";
+import { requireAuth } from '@/lib/auth/guards';
+import { Footer } from '@/components/footer';
+import { Navbar } from '@/components/navbar';
 
 export default async function CitizenLayout({
   children,

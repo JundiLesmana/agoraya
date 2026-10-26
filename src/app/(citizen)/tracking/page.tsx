@@ -1,7 +1,5 @@
-import { ReportTrackingSection } from '@/app/(public)/_components/report-tracking-section';
+import { redirect } from 'next/navigation';
 
 export default function CitizenTrackingPage() {
-  return (
-    <ReportTrackingSection />
-  );
+  redirect('/citizen/reporting');
 }
