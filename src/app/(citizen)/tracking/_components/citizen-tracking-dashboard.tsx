@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   ArrowDownWideNarrow,
@@ -741,7 +742,14 @@ export function CitizenTrackingDashboard() {
                 Pantau pengaduan, perizinan, dan bantuan sosial. Setiap langkahnya lebih jelas.
               </p>
             </div>
-            <SourceBadge source="SIMULATED" label="Contoh data warga" />
+            <div className="flex flex-wrap items-center gap-3">
+              <SourceBadge source="SIMULATED" label="Contoh data warga" />
+              <Button asChild>
+                <Link href="/citizen/apply">
+                  Ajukan layanan <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
           </div>
           <ServiceSpaceNavigation activeSpace="citizen" />
         </div>
