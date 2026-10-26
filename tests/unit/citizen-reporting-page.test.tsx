@@ -26,12 +26,14 @@ describe("CitizenDashboardPage", () => {
     expect(screen.getByText("Suara Anda, langkah awal perubahan")).toBeTruthy();
     expect(
       screen.getByText(
-        "Laporkan masalah infrastruktur, dugaan korupsi, atau layanan publik. Setiap laporan akan melalui verifikasi dan tindak lanjut yang dapat Anda pantau.",
+        "Laporkan masalah infrastruktur, dugaan korupsi, atau layanan publik. Setiap laporan akan melalui verifikasi dan tindak lanjut yang dapat Anda pantau. Saat ini halaman ini masih berupa pratinjau dan pengiriman laporan belum aktif.",
       ),
     ).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "Buat laporan" }).getAttribute("href"),
-    ).toBe("/citizen/reporting");
+      screen
+        .getAllByRole("link", { name: "Buat laporan" })
+        .every((link) => link.getAttribute("href") === "/citizen/reporting"),
+    ).toBe(true);
   });
 
   it("renders the four accessible category links with an icon and description", () => {
@@ -57,5 +59,29 @@ describe("CitizenDashboardPage", () => {
     expect(
       container.querySelector(".grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4"),
     ).toBeTruthy();
+  });
+
+  it("explains the reporting flow and links to examples and recent reports", () => {
+    render(<CitizenDashboardPage />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Dari laporan hingga penyelesaian",
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("Kirim laporan")).toBeTruthy();
+    expect(screen.getByText("Verifikasi")).toBeTruthy();
+    expect(screen.getByText("Tindak lanjut")).toBeTruthy();
+    expect(screen.getByText("Konfirmasi hasil")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "Lihat contoh pelacakan" })
+        .getAttribute("href"),
+    ).toBe("/tracking");
+    expect(
+      screen
+        .getByRole("link", { name: "Lihat laporan terbaru" })
+        .getAttribute("href"),
+    ).toBe("/#recent-reports");
   });
 });

@@ -19,6 +19,7 @@ const activeNode = determineActiveTrackingNode("in_progress");
 export function ReportTrackingSection() {
   return (
     <section
+      id="report-tracking"
       aria-labelledby="report-tracking-title"
       className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
     >
@@ -79,16 +80,16 @@ export function ReportTrackingSection() {
             </dl>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3">
               <Link
-                href="/tracking?report=LP-2026-007064-01"
+                href="/reports/LP-2026-007064-01"
                 className="inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                Lihat detail laporan
+                Lihat contoh laporan
               </Link>
               <Link
-                href="/citizen/dashboard"
+                href="/citizen/reporting"
                 className="inline-flex min-h-10 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                Hubungi instansi
+                Buat laporan baru
               </Link>
             </div>
           </div>
