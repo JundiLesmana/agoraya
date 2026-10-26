@@ -288,7 +288,7 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
     event.preventDefault();
     if (!validateStep(3, values)) return;
     setSubmitError(
-      "Pengiriman laporan belum tersedia. Tidak ada data atau file yang dikirim maupun disimpan.",
+      "Pengiriman laporan belum tersedia. Tidak ada data atau file yang dikirim maupun disimpan. Jangan masukkan informasi pribadi yang sebenarnya sampai layanan aktif.",
     );
   }
 
@@ -393,9 +393,10 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
           </ol>
         </div>
 
-        <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-          Formulir ini belum terhubung ke penyimpanan laporan. Lampiran hanya
-          dipreview di perangkat Anda dan tidak diunggah.
+        <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
+          Pratinjau formulir: pengiriman belum aktif. Jangan masukkan data
+          pribadi yang sebenarnya; isian hanya berada di perangkat ini dan
+          lampiran tidak diunggah.
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -684,7 +685,7 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
                   })}
                 </ul>
               ) : null}
-              <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                 <AlertTriangle
                   aria-hidden="true"
                   className="mt-0.5 size-4 shrink-0"
@@ -818,7 +819,7 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
                   placeholder="081234567890"
                 />
               </FormField>
-              <p className="flex items-start gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-900">
+              <p className="flex items-start gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
                 <ShieldCheck
                   aria-hidden="true"
                   className="mt-0.5 size-4 shrink-0"
@@ -902,7 +903,7 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
               <li key={title} className="flex gap-2">
                 <Check
                   aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0 text-emerald-700"
+                  className="mt-0.5 size-4 shrink-0 text-emerald-700 dark:text-emerald-400"
                 />
                 <span>
                   <strong className="block">{title}</strong>
@@ -912,17 +913,17 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
             ))}
           </ul>
         </section>
-        <section className="rounded-xl bg-blue-50 p-5 text-sm text-blue-950">
+        <section className="rounded-xl bg-blue-50 p-5 text-sm text-blue-950 dark:bg-blue-950/50 dark:text-blue-100">
           <h2 className="flex items-center gap-2 font-semibold">
             <ShieldCheck aria-hidden="true" className="size-5" />
             Anda memilih apa yang dibagikan
           </h2>
-          <p className="mt-2 text-blue-900">
+          <p className="mt-2 text-blue-900 dark:text-blue-200">
             Saat ini formulir hanya menyimpan isian di perangkat selama halaman
             terbuka. Pengiriman dan penyimpanan belum diaktifkan.
           </p>
         </section>
-        <section className="rounded-xl bg-amber-50 p-5 text-sm text-amber-950">
+        <section className="rounded-xl bg-amber-50 p-5 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
           <h2 className="flex items-center gap-2 font-semibold">
             <AlertTriangle aria-hidden="true" className="size-5" />
             Bukan untuk keadaan darurat
