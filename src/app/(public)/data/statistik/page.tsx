@@ -1,5 +1,5 @@
-import { PublicDataDashboard } from "../_components/public-data-dashboard";
+import { StatisticsRoom } from "./_components/statistics-room";
 
 export default function PublicRegionalStatisticsPage() {
-  return <PublicDataDashboard view="statistics" />;
+  return <StatisticsRoom />;
 }
