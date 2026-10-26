@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import {
   CircleAlert,
   Construction,
@@ -9,11 +9,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 const REPORT_CATEGORIES = [
   {
@@ -57,23 +52,13 @@ const REPORT_CATEGORIES = [
   iconClassName: string;
 }[];
 
-type ReportCategory = (typeof REPORT_CATEGORIES)[number]["label"];
-
-function isReportCategory(value: string): value is ReportCategory {
-  return REPORT_CATEGORIES.some((category) => category.label === value);
+function reportHref(category?: string) {
+  return category
+    ? `/citizen/reporting?category=${encodeURIComponent(category)}`
+    : "/citizen/reporting";
 }
 
 export function ReportQuickActions() {
-  const [formOpen, setFormOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<ReportCategory | "">(
-    "",
-  );
-
-  function openReportForm(category?: ReportCategory) {
-    setSelectedCategory(category ?? "");
-    setFormOpen(true);
-  }
-
   return (
     <div className="-mx-4 -my-8">
       <section
@@ -99,12 +84,10 @@ export function ReportQuickActions() {
             Anda pantau.
           </p>
           <div className="mt-6">
-            <Button
-              className="h-12 px-6 text-base"
-              onClick={() => openReportForm()}
-              aria-label="Buat laporan"
-            >
-              Buat laporan
+            <Button asChild className="h-12 px-6 text-base">
+              <Link href={reportHref()} aria-label="Buat laporan">
+                Buat laporan
+              </Link>
             </Button>
           </div>
         </div>
@@ -131,11 +114,10 @@ export function ReportQuickActions() {
           {REPORT_CATEGORIES.map((category) => {
             const Icon = category.icon;
             return (
-              <button
+              <Link
                 key={category.label}
-                type="button"
+                href={reportHref(category.label)}
                 aria-label={`Buat laporan kategori ${category.label}`}
-                onClick={() => openReportForm(category.label)}
                 className={`group focus-visible:ring-primary min-h-40 rounded-xl border p-5 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${category.cardClassName}`}
               >
                 <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-white">
@@ -150,65 +132,10 @@ export function ReportQuickActions() {
                 <span className="mt-1 block text-sm leading-5 text-slate-600">
                   {category.description}
                 </span>
-              </button>
+              </Link>
             );
           })}
         </div>
-
-        <Modal
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          title="Buat laporan"
-          description="Isi informasi awal laporan Anda. Laporan akan melalui proses verifikasi dan tindak lanjut."
-          contentClassName="max-h-[90vh] overflow-y-auto"
-          footer={
-            <Button variant="outline" onClick={() => setFormOpen(false)}>
-              Tutup
-            </Button>
-          }
-        >
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="report-category">Kategori laporan</Label>
-              <Select
-                id="report-category"
-                aria-label="Kategori laporan"
-                value={selectedCategory}
-                onChange={(event) => {
-                  if (isReportCategory(event.target.value)) {
-                    setSelectedCategory(event.target.value);
-                  } else if (event.target.value === "") {
-                    setSelectedCategory("");
-                  }
-                }}
-                options={REPORT_CATEGORIES.map(({ label }) => ({
-                  value: label,
-                  label,
-                }))}
-                placeholder="Pilih kategori laporan"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="report-title">Judul laporan</Label>
-              <Input
-                id="report-title"
-                name="title"
-                placeholder="Contoh: Jalan berlubang di Jalan Melati"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="report-description">
-                Ceritakan masalah yang Anda temui
-              </Label>
-              <Textarea
-                id="report-description"
-                name="description"
-                placeholder="Jelaskan masalah, lokasi, dan informasi lain yang membantu proses verifikasi."
-                rows={4}
-              />
-            </div>
-          </div>
-        </Modal>
       </section>
     </div>
   );
