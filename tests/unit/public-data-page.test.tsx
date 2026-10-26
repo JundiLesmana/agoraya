@@ -9,9 +9,39 @@ describe("PublicDataPage", () => {
   it("renders the public dashboard, charts, catalog, and disclaimer", () => {
     render(<PublicDataPage />);
 
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(
+      within(breadcrumb)
+        .getByRole("link", { name: "Beranda" })
+        .getAttribute("href"),
+    ).toBe("/");
+    expect(
+      within(breadcrumb)
+        .getByRole("link", { name: "Data Pemerintah" })
+        .getAttribute("href"),
+    ).toBe("/data");
+    expect(
+      within(breadcrumb).getByText("Ringkasan").getAttribute("aria-current"),
+    ).toBe("page");
+    const summaryTitle = screen.getByRole("heading", {
+      name: "Data Pemerintah",
+    });
+    expect(
+      breadcrumb.compareDocumentPosition(summaryTitle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
     const categoryNavigation = screen.getByRole("navigation", {
       name: "Kategori data pemerintah",
     });
+    const summaryFilter = screen
+      .getByRole("heading", { name: "Jelajahi data" })
+      .closest('[data-slot="card"]');
+    if (!summaryFilter) throw new Error("Ringkasan filter card was not found");
+    expect(
+      categoryNavigation.compareDocumentPosition(summaryFilter) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       within(categoryNavigation)
         .getByRole("link", { name: "Ringkasan" })
@@ -74,9 +104,35 @@ describe("PublicDataPage", () => {
   it("renders the dedicated budget page with searchable sector details", () => {
     render(<PublicBudgetPage />);
 
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(
+      within(breadcrumb)
+        .getByRole("link", { name: "Data Pemerintah" })
+        .getAttribute("href"),
+    ).toBe("/data");
+    expect(
+      within(breadcrumb).getByText("Anggaran").getAttribute("aria-current"),
+    ).toBe("page");
+    const budgetTitle = screen.getByRole("heading", {
+      level: 1,
+      name: "Anggaran & realisasi APBD",
+    });
+    expect(
+      breadcrumb.compareDocumentPosition(budgetTitle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
     const categoryNavigation = screen.getByRole("navigation", {
       name: "Kategori data pemerintah",
     });
+    const budgetFilter = screen
+      .getByRole("heading", { name: "Jelajahi anggaran" })
+      .closest('[data-slot="card"]');
+    if (!budgetFilter) throw new Error("Anggaran filter card was not found");
+    expect(
+      categoryNavigation.compareDocumentPosition(budgetFilter) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       within(categoryNavigation)
         .getByRole("link", { name: "Anggaran" })
