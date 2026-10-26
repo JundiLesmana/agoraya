@@ -1,7 +1,3 @@
-// Agoraya — lib/errors
-// Custom error classes, consistent error formatting, and stable error codes.
-// Client-facing output never leaks stack traces, SQL errors, secrets, or internal details.
-
 export const ErrorCode = {
   ENV_VALIDATION_FAILED: 'ENV_VALIDATION_FAILED',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
@@ -88,15 +84,12 @@ export function formatError(
     return formatted;
   }
 
-  // Unknown / unexpected errors: never leak internals to clients.
   return {
     code: ErrorCode.INTERNAL_SERVER_ERROR,
     statusCode: 500,
     message: 'Internal server error',
   };
 }
-
-// --- Subclasses with stable defaults ---
 
 export class ValidationError extends AppError {
   constructor(message: string, options: AppErrorOptions = {}) {

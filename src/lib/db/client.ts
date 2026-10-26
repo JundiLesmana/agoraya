@@ -1,8 +1,3 @@
-// Agoraya — lib/db client
-// Pooled PostgreSQL client built on the `postgres` driver (Neon-compatible).
-// Connection pooling is provided by the driver (default max 10 connections).
-// All queries are parameterized; `text` must be a static SQL string.
-
 import postgres from 'postgres';
 import type { Database, Row } from './types';
 import { AppError, ErrorCode, DatabaseError } from '../errors';
@@ -34,7 +29,6 @@ export class PooledDatabase implements Database {
 
   async transaction<T>(fn: (tx: Database) => Promise<T>): Promise<T> {
     this.#ensureOpen();
-    // Transaction-scoped SQL surface is compatible with our read/query API.
     return (this.#client.begin(async (txSql) => {
       const tx = new PooledDatabase(txSql as unknown as SqlClient, false);
       return fn(tx);

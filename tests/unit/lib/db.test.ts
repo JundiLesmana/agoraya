@@ -24,7 +24,6 @@ function mockSqlClient(): MockedSqlClient {
 describe('lib/db', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    // Reset default database singleton so tests are isolated
     void closeDefaultDatabase();
   });
 
@@ -85,7 +84,6 @@ describe('lib/db', () => {
       await db.end();
       expect(endSpy).toHaveBeenCalledTimes(1);
 
-      // Non-owner: end is a no-op
       const nonOwner = new PooledDatabase(sql, false);
       await nonOwner.end();
       expect(endSpy).toHaveBeenCalledTimes(1); // unchanged

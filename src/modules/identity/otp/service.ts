@@ -23,7 +23,6 @@ export async function generateOtp(identifier: string): Promise<{ success: boolea
   const database = db();
   const identifierHash = hashValue(identifier.toLowerCase().trim());
 
-  // Rate limiting: count recent requests
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
   const recentRequests = await database
     .select()
@@ -50,7 +49,6 @@ export async function generateOtp(identifier: string): Promise<{ success: boolea
 
   logger.info('otp.generated', { identifierHash: identifierHash.substring(0, 8) });
 
-  // In production, send via email/SMS; for dev/testing, code would be logged in secure context
   if (process.env.NODE_ENV === 'development') {
     console.log(`[DEV] OTP for ${identifier}: ${code}`);
   }
@@ -94,7 +92,6 @@ export async function verifyOtp(identifier: string, code: string): Promise<{ val
     return { valid: false, message: 'Invalid or expired OTP' };
   }
 
-  // Mark as used by deleting or incrementing attempts to prevent reuse
   await database.delete(otpCodes).where(eq(otpCodes.id, otpRecord.id));
   logger.info('otp.verified', { identifierHash: identifierHash.substring(0, 8) });
 

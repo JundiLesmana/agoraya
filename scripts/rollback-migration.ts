@@ -23,8 +23,6 @@ async function main(): Promise<void> {
   try {
     let name = migrationName;
     if (!name) {
-      // Auto-detect the most recent applied migration from drizzle-kit's journal.
-      // drizzle-orm's execute() returns the rows directly (array-like).
       const journal = await adminDb.execute(
         sql`SELECT name FROM _journal ORDER BY id DESC LIMIT 1`,
       );
@@ -37,23 +35,17 @@ async function main(): Promise<void> {
     }
 
     const downFile = path.join(MIGRATIONS_DIR, `${name}.down.sql`);
-    // trusted source: CLI argument or the internal _journal table
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     if (!fs.existsSync(downFile)) {
       throw new Error(`Down migration not found: ${downFile}`);
     }
 
-    // trusted source: CLI argument or the internal _journal table
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const downSql = fs.readFileSync(downFile, "utf8");
     if (!downSql.trim()) {
       throw new Error(`Down migration is empty: ${downFile}`);
     }
 
-    // Execute the down SQL (multiple statements are supported in one call).
     await adminDb.execute(sql.raw(downSql));
 
-    // Remove from the journal so `pnpm db:migrate` re-applies it next time.
     await adminDb.execute(sql`DELETE FROM _journal WHERE name = ${name}`);
 
     console.log(`[rollback] rolled back ${name}`);

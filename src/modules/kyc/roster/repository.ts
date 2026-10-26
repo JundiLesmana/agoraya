@@ -1,10 +1,3 @@
-// Agoraya — modules/kyc/roster repository
-// Persistence port for KYC roster entries and approvals.
-// The port keeps the module independent from the persistence layer.
-// Two implementations are provided:
-//   - InMemoryKycRepository: for unit tests and local development
-//   - createDrizzleKycRepository: the production Drizzle/Postgres implementation
-
 import { randomUUID } from "node:crypto";
 import { eq, and, count } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -19,10 +12,7 @@ import type {
   KycStatus,
 } from "../types";
 
-// ---------------------------------------------------------------------------
 // Port interface
-// ---------------------------------------------------------------------------
-
 export interface UpsertRosterEntryInput {
   readonly id: string;
   readonly tenantId: string;
@@ -61,26 +51,16 @@ export interface ListRosterFilter {
 }
 
 export interface KycRepository {
-  /** Find a roster entry by its primary key, scoped to the tenant. */
   findById(id: string, tenantId: string): Promise<KycRosterEntry | null>;
-  /** Find a roster entry by userId within the tenant. */
   findByUserId(userId: string, tenantId: string): Promise<KycRosterEntry | null>;
-  /** Insert a new roster entry. */
   insert(input: UpsertRosterEntryInput): Promise<KycRosterEntry>;
-  /** Update the status (and optionally expiresAt) of a roster entry. */
   updateStatus(input: UpdateRosterStatusInput): Promise<KycRosterEntry | null>;
-  /** List roster entries for a tenant with optional status filter, paginated. */
   list(filter: ListRosterFilter): Promise<KycRosterPage>;
-  /** Insert an approval record. */
   insertApproval(input: InsertApprovalInput): Promise<KycApproval>;
-  /** List all approvals for a roster entry. */
   listApprovals(rosterId: string): Promise<KycApproval[]>;
 }
 
-// ---------------------------------------------------------------------------
 // In-memory implementation (tests / local development)
-// ---------------------------------------------------------------------------
-
 export class InMemoryKycRepository implements KycRepository {
   readonly #entries = new Map<string, KycRosterEntry>();
   readonly #approvals = new Map<string, KycApproval>();
@@ -177,10 +157,6 @@ export class InMemoryKycRepository implements KycRepository {
       .sort((a, b) => a.approvalSlot - b.approvalSlot);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Drizzle/Postgres implementation (production)
-// ---------------------------------------------------------------------------
 
 function rowToEntry(row: typeof kycRoster.$inferSelect): KycRosterEntry {
   return {

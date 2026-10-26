@@ -1,14 +1,3 @@
-// Agoraya — modules/kyc/dual-approval service
-// Use-case orchestration for the two-person KYC approval workflow.
-//
-// Responsibilities:
-//   - Validate commands with Zod.
-//   - Enforce dual-approval invariants via the domain layer.
-//   - Write the approval record and update the roster status atomically
-//     by calling both repository operations inside one transaction
-//     (delegated to the caller when a withTransaction helper is provided).
-//   - Record an audit event for every approval decision.
-
 import { randomUUID } from "node:crypto";
 
 import { logger } from "@/lib/logger";
@@ -39,11 +28,8 @@ export interface DualApprovalServiceOptions {
   readonly clock?: () => Date;
 }
 
-/** The outcome of submitting an approval. */
 export interface ApprovalOutcome {
-  /** The newly created approval record. */
   readonly approval: KycApproval;
-  /** The roster entry after the status update (may be unchanged if no transition occurred). */
   readonly entry: KycRosterEntry;
 }
 
@@ -58,16 +44,6 @@ export class DualApprovalService {
     this.#clock = options.clock ?? (() => new Date());
   }
 
-  /**
-   * Submit an approval decision for a roster entry.
-   *
-   * Enforces:
-   *   - The roster entry exists in the tenant.
-   *   - The current status allows approvals (`pending` or `partially_approved`).
-   *   - The approver has not already voted on this entry.
-   *   - After recording the approval, derives the new status and updates the
-   *     roster entry when a transition is warranted.
-   */
   async submitApproval(command: SubmitApprovalCommand): Promise<ApprovalOutcome> {
     const parsed = submitApprovalCommandSchema.safeParse(command);
     if (!parsed.success) {
@@ -89,7 +65,6 @@ export class DualApprovalService {
 
     const existingApprovals = await this.#repository.listApprovals(rosterId);
 
-    // Domain invariant checks — map domain errors to application errors.
     let slot: 1 | 2;
     try {
       slot = validateAndGetSlot(entry.status, existingApprovals, approverId);
@@ -119,7 +94,6 @@ export class DualApprovalService {
       updatedAt: now,
     });
 
-    // Recompute status from all approvals (including the one just inserted).
     const allApprovals = [...existingApprovals, approval];
     const { approvalCount, allApproved, anyRejected } =
       summariseApprovals(allApprovals);
@@ -138,8 +112,6 @@ export class DualApprovalService {
         assertTransitionAllowed(entry.status, nextStatus);
       } catch (err) {
         if (err instanceof InvalidKycTransitionError) {
-          // This should never happen if domain logic is correct, but we guard
-          // defensively rather than silently skipping the transition.
           logger.error("kyc.lifecycle.unexpected_invalid_transition", {
             from: entry.status,
             to: nextStatus,
@@ -189,7 +161,6 @@ export class DualApprovalService {
     return { approval, entry: updatedEntry };
   }
 
-  /** Get a summary of the current approvals for a roster entry. */
   async getApprovalSummary(
     rosterId: string,
     tenantId: string,
@@ -236,8 +207,4 @@ export class DualApprovalService {
   }
 }
 
-/**
- * Default KYC verification TTL: 365 days.
- * Configurable at the module wiring level if needed.
- */
 export const DEFAULT_VERIFIED_TTL_MS = 365 * 24 * 60 * 60 * 1000;

@@ -50,7 +50,6 @@ describe("modules/kyc roster service", () => {
         submittedBy: SUBMITTER_ID,
       });
 
-      // The hash must not equal the raw NIK.
       expect(entry.nikHash).not.toBe(NIK);
       expect(entry.nikHash).toHaveLength(64); // SHA-256 hex
     });

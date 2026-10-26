@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, within } from "@testing-library/react";
 
@@ -35,7 +34,6 @@ describe("BudgetSummary", () => {
     expect(c.getByText("Rp80 T")).toBeTruthy();
     expect(c.getByText("Rp60 T")).toBeTruthy();
     expect(c.getByText("Rp20 T")).toBeTruthy();
-    // "75%" muncul dua kali: sebagai nilai kartu dan sebagai label progress bar
     expect(c.getAllByText("75%")).toHaveLength(2);
   });
 
@@ -91,9 +89,7 @@ describe("BudgetSummary", () => {
     );
     const c = within(container);
 
-    // 4 nilai kartu + 1 label progress bar = 5 elemen "-"
     expect(c.getAllByText("-")).toHaveLength(5);
-    // Konteks kartu Sisa dan Tingkat Realisasi menunjukkan data belum tersedia
     expect(c.getAllByText("Data belum tersedia")).toHaveLength(2);
   });
 
@@ -103,7 +99,6 @@ describe("BudgetSummary", () => {
 
     const skeletons = container.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
-    // Nilai asli tidak boleh muncul saat loading
     expect(c.queryByText("Rp80 T")).toBeNull();
     expect(c.queryByText("75%")).toBeNull();
   });

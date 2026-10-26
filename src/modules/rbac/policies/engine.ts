@@ -1,16 +1,3 @@
-// Agoraya — modules/rbac policies engine
-// Pure, deterministic policy evaluation (the RBAC + ABAC hybrid).
-//
-// Rules:
-// - Deny by default: a request that matches no policy is denied.
-// - Deny overrides: a matching `deny` policy beats any matching `allow`.
-// - Tenant isolation: a resource whose tenant differs from the subject tenant
-//   is denied before any policy is considered.
-// - Fail closed: a condition whose attribute (or attribute reference) cannot be
-//   resolved never matches.
-//
-// The engine has no I/O, no clock, and no shared mutable state.
-
 import type {
   EffectiveSubject,
   MatchedPolicy,
@@ -20,10 +7,8 @@ import type {
   StoredPolicy,
 } from "../types";
 
-/** Prefix that marks a condition value as an attribute reference. */
 export const ATTRIBUTE_REFERENCE_PREFIX = "$";
 
-/** Input for a single policy evaluation. */
 export interface PolicyEvaluationInput {
   readonly policies: readonly StoredPolicy[];
   readonly subject: EffectiveSubject;
@@ -31,12 +16,6 @@ export interface PolicyEvaluationInput {
   readonly action: string;
 }
 
-/**
- * Match a value against a pattern.
- *
- * `*` matches everything, `prefix:*` matches any value starting with
- * `prefix:`, everything else must match exactly.
- */
 export function matchesPattern(pattern: string, value: string): boolean {
   if (pattern === "*") return true;
   if (pattern.endsWith(":*")) return value.startsWith(pattern.slice(0, -1));
@@ -52,14 +31,6 @@ function lookupAttribute(
   return typeof value === "string" ? value : undefined;
 }
 
-/**
- * Resolve a dotted attribute path against the request.
- *
- * Supported paths: `subject.id`, `subject.userId`, `subject.tenantId`,
- * `subject.roles`, `subject.permissions`, `subject.attributes.<name>`,
- * `resource.id`, `resource.type`, `resource.tenantId`, `resource.ownerId`,
- * `resource.status`, `resource.attributes.<name>`, `action`.
- */
 export function resolveAttribute(
   subject: EffectiveSubject,
   resource: ResourceContext,
@@ -176,7 +147,6 @@ function evaluateSetCondition(
   return condition.operator === "in" ? contained : !contained;
 }
 
-/** Evaluate one attribute condition. */
 export function evaluateCondition(
   condition: PolicyCondition,
   subject: EffectiveSubject,
@@ -189,7 +159,6 @@ export function evaluateCondition(
   return evaluateSetCondition(condition, subject, resource, action);
 }
 
-/** A policy applies to the subject when every configured subject constraint holds. */
 export function policyMatchesSubject(
   policy: StoredPolicy,
   subject: EffectiveSubject,
@@ -230,18 +199,11 @@ function toMatchedPolicy(policy: StoredPolicy): MatchedPolicy {
   };
 }
 
-/**
- * Evaluate an access request against a policy set.
- *
- * The returned result is the policy outcome only; cache and timing metadata is
- * added by the PDP.
- */
 export function evaluatePolicies(
   input: PolicyEvaluationInput,
 ): PolicyEvaluationResult {
   const { subject, resource, action, policies } = input;
 
-  // Tenant isolation: a resource owned by another tenant is never accessible.
   if (
     resource.tenantId !== undefined &&
     resource.tenantId !== subject.tenantId

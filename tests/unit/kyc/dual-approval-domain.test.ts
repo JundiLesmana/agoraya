@@ -119,9 +119,6 @@ describe("modules/kyc dual-approval domain", () => {
     it("throws ApprovalSlotConflictError when all slots are occupied", () => {
       const slot1: KycApproval = { ...BASE_APPROVAL, id: "a1", approverId: "approver-1", approvalSlot: 1 };
       const slot2: KycApproval = { ...BASE_APPROVAL, id: "a2", approverId: "approver-2", approvalSlot: 2 };
-      // The status `verified` would be caught by ApprovalNotAllowedError first,
-      // so we test slot conflict on `partially_approved` with both slots filled
-      // (which would happen in a race condition scenario).
       expect(() =>
         validateAndGetSlot("partially_approved", [slot1, slot2], "approver-3"),
       ).toThrow(ApprovalSlotConflictError);

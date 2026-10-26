@@ -1,35 +1,19 @@
-// Agoraya — modules/rbac pdp cache
-// Decision cache used by the policy decision point.
-//
-// The cache is bucketed per user so a grant change can drop every decision of
-// one user without touching the others. Entries expire after their TTL.
-//
-// Correctness does not depend on eviction: the PDP includes a policy epoch and
-// a per-user grant epoch in the cache key, so a decision made under an older
-// policy or grant set can never be served again.
-
 import type { AccessDecision } from "../types";
 
 export interface DecisionCache {
-  /** Cached decision for a user, or `undefined` when absent or expired. */
   get(userId: string, key: string): AccessDecision | undefined;
-  /** Store a decision for a user. */
   set(
     userId: string,
     key: string,
     decision: AccessDecision,
     ttlMs: number,
   ): void;
-  /** Drop every cached decision of a user. Returns the number of removed entries. */
   invalidateUser(userId: string): number;
-  /** Drop every cached decision. Returns the number of removed entries. */
   invalidateAll(): number;
-  /** Number of cached decisions currently held. */
   readonly size: number;
 }
 
 export interface InMemoryDecisionCacheOptions {
-  /** Maximum number of decisions kept before the oldest entries are evicted. */
   readonly maxEntries?: number;
 }
 
@@ -41,7 +25,6 @@ interface CacheEntry {
 
 const DEFAULT_MAX_ENTRIES = 10_000;
 
-/** In-memory decision cache with per-user buckets and TTL expiry. */
 export class InMemoryDecisionCache implements DecisionCache {
   readonly #buckets = new Map<string, Map<string, CacheEntry>>();
   readonly #maxEntries: number;

@@ -1,5 +1,3 @@
-// Agoraya — lib/db types
-
 export type Row = Record<string, unknown>;
 
 export interface Database {
