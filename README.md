@@ -1,479 +1,507 @@
-# Agoraya
+<div align="center">
+  <img src="public/logo/logo-dark.svg" alt="Logo Agoraya" width="220" />
 
-> **Platform Transparansi, Pelaporan Publik, dan Tata Kelola Pemerintahan Digital untuk Indonesia**
+  <h1>Agoraya</h1>
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-336791?logo=postgresql)](https://neon.tech/)
-[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/)
-[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+  <p><strong>Transparansi data publik. Partisipasi warga. Tata kelola digital.</strong></p>
 
----
+  <p>
+    <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js 15" />
+    <img src="https://img.shields.io/badge/React-19-149eca?logo=react" alt="React 19" />
+    <img src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript" alt="TypeScript 5" />
+    <img src="https://img.shields.io/badge/Database-PostgreSQL-4169e1?logo=postgresql" alt="PostgreSQL" />
+  </p>
+</div>
+
+Agoraya adalah gagasan platform digital untuk mempertemukan informasi pemerintahan, partisipasi warga, dan dukungan pengambilan keputusan dalam satu pengalaman yang mudah diakses. Platform ini dirancang agar data publik lebih mudah dipahami, aspirasi warga lebih mudah ditelusuri, dan pengelolaan informasi dapat mendukung tata kelola yang akuntabel.
+
+## Tim Pengembang
+
+Agoraya merupakan karya inovasi teknologi oleh **Gugu Gaga Team**.
+
+| Nama                            | Peran      | Institusi               | Program Studi       |
+| ------------------------------- | ---------- | ----------------------- | ------------------- |
+| **Jundulloh Rizki Ananda**      | Ketua Tim  | Universitas Pamulang    | Teknik Informatika  |
+| **Abdullah Jiddan Al Khairi**   | Anggota I  | Universitas Pamulang    | Sistem Informasi    |
+| **Muhammad Alif Miftah Faridh** | Anggota II | Bina Sarana Informatika | Teknologi Informasi |
+
+<p>
+  Cabang Kompetisi <strong>Web In Action (WIA) — Multimedia In Action (MIA) 2026</strong><br />
+  Diselenggarakan oleh <strong>KSM Multimedia UPN Veteran Jakarta</strong><br />
+  Tema Kompetisi: <em>Designing Digital Futures – Powering Public Transparency</em>
+</p>
 
 ## Daftar Isi
 
-- [Tentang Proyek](#-tentang-proyek)
-- [Fitur Utama](#-fitur-utama)
-- [Tech Stack](#-tech-stack)
-- [Arsitektur](#-arsitektur)
-- [Prasyarat](#-prasyarat)
-- [Instalasi & Setup](#-instalasi--setup)
-- [Environment Variables](#-environment-variables)
-- [Development](#-development)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Struktur Proyek](#-struktur-proyek)
-- [Contributing](#-contributing)
-- [Dokumentasi Lengkap](#-dokumentasi-lengkap)
-- [Tim](#-tim)
+- [Tim Pengembang](#tim-pengembang)
+- [Tujuan](#tujuan)
+- [Latar Belakang](#latar-belakang)
+- [Permasalahan](#permasalahan)
+- [Perbandingan Platform](#perbandingan-platform)
+- [Fitur Utama](#fitur-utama)
+- [Tech Stack](#tech-stack)
+- [Arsitektur](#arsitektur)
+- [Menjalankan Secara Lokal](#menjalankan-secara-lokal)
+- [Perintah Pengembangan dan Pengujian](#perintah-pengembangan-dan-pengujian)
+- [Struktur Proyek](#struktur-proyek)
+- [Kontribusi dan Dokumentasi](#kontribusi-dan-dokumentasi)
+- [Lisensi](#lisensi)
 
----
+## Tujuan
 
-## Tentang Proyek
+Agoraya bertujuan untuk:
 
-Agoraya adalah platform web yang dirancang untuk meningkatkan transparansi pemerintahan, memfasilitasi pelaporan warga, dan mengoptimalkan pengambilan keputusan berbasis data di sektor publik Indonesia.
+1. **Memperluas akses informasi publik** melalui penyajian data pemerintahan yang terstruktur, kontekstual, dan mudah dipahami masyarakat.
+2. **Mendorong partisipasi warga** dengan menyediakan alur untuk menyampaikan laporan serta mengikuti proses tindak lanjutnya.
+3. **Mendukung akuntabilitas layanan** melalui informasi status, target waktu, dan jejak proses yang dapat dipantau.
+4. **Membantu pengelola dan pengambil keputusan** membaca data, mengenali prioritas, dan mengevaluasi program secara lebih terarah.
+5. **Menghubungkan ekosistem informasi publik** tanpa menggantikan kewenangan, kanal resmi, atau sistem milik instansi pemerintah.
 
-### Visi
-Membangun ekosistem digital yang menghubungkan warga dengan pemerintah melalui transparansi data, pelaporan yang akuntabel, dan gamifikasi partisipasi sipil.
+## Latar Belakang
 
-### Target Pengguna
+Informasi pemerintahan, kanal pengaduan, layanan publik, dan data kinerja umumnya tersedia melalui sumber serta sistem yang berbeda. Masyarakat perlu berpindah kanal untuk mencari data, memahami konteks anggaran atau program, menyampaikan masalah, lalu mencari tahu apakah laporan tersebut telah ditangani.
 
-| Peran | Deskripsi |
-|-------|-----------|
-| **Warga (Citizen)** | Melapor masalah, tracking layanan publik, lihat data publik |
-| **Pegawai Junior (Maker)** | Input data real-time, buat draft laporan |
-| **Pegawai Mid-Level (Checker)** | Review & approve data, validasi anomali |
-| **Admin Instansi** | Kelola CMS, pantau command center |
-| **Superadmin** | Kelola tenant, audit, KYC |
+Di sisi pemerintah, data yang tersebar dapat menyulitkan penyusunan gambaran lintas layanan dan pemantauan tindak lanjut. Agoraya dirancang sebagai lapisan akses dan koordinasi yang menyajikan informasi publik secara lebih terpadu, sambil tetap merujuk pada sumber resmi dan mekanisme instansi terkait.
 
----
+## Permasalahan
+
+- **Informasi tersebar:** statistik, anggaran, proyek, dan layanan memiliki portal serta format penyajian yang berbeda-beda.
+- **Data sulit dipahami:** dokumen dan tabel publik tidak selalu disertai ringkasan, visualisasi, atau konteks yang membantu warga menafsirkan isinya.
+- **Keterputusan antara data dan partisipasi:** informasi program atau proyek tidak selalu mudah ditautkan dengan laporan dan kebutuhan warga.
+- **Transparansi tindak lanjut terbatas:** pelapor membutuhkan cara yang jelas untuk mengetahui status, proses, dan hasil penanganan.
+- **Pemantauan lintas layanan menantang:** pengelola memerlukan ringkasan dan analitik yang membantu membaca tren serta prioritas, dengan tetap memperhatikan kualitas dan perlindungan data.
+
+## Perbandingan Platform
+
+Agoraya diposisikan sebagai pelengkap yang menyatukan akses informasi, partisipasi, dan dukungan analitik—bukan pengganti platform resmi yang sudah memiliki mandat dan proses sendiri.
+
+| Platform / pendekatan                                                      | Fokus utama                                                                                           | Posisi Agoraya                                                                                                                                                                 |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [SP4N-LAPOR!](https://www.lapor.go.id/)                                    | Kanal pengaduan dan aspirasi masyarakat yang diteruskan kepada instansi berwenang.                    | Melengkapi ekosistem partisipasi dengan konteks data publik, program, dan analitik dalam satu pengalaman. Pengaduan resmi tetap mengikuti kanal dan prosedur instansi terkait. |
+| [Portal Satu Data Indonesia](https://data.go.id/) dan portal data sektoral | Publikasi dan penemuan dataset pemerintah dari berbagai produsen data.                                | Mengolah dan menyajikan informasi terpilih melalui dashboard serta menghubungkannya dengan pengalaman layanan dan partisipasi warga.                                           |
+| [Badan Pusat Statistik](https://www.bps.go.id/)                            | Penyediaan statistik resmi dan indikator sosial-ekonomi.                                              | Menjadi rujukan data statistik ketika sesuai; Agoraya berperan pada lapisan penyajian dan konteks, bukan sebagai produsen atau pengganti statistik resmi.                      |
+| Portal layanan dan pengaduan instansi                                      | Informasi, formulir, serta proses layanan sesuai mandat masing-masing instansi.                       | Mengarah pada pengalaman lintas area yang lebih konsisten, dengan tetap menghormati proses dan sumber resmi tiap instansi.                                                     |
+| **Agoraya**                                                                | Transparansi informasi publik, partisipasi warga, pemantauan tindak lanjut, dan insight pemerintahan. | Mengintegrasikan perspektif data, warga, pengelola, dan pengambil keputusan sebagai satu platform digital.                                                                     |
+
+Perbandingan ini menjelaskan perbedaan fokus, bukan penilaian kualitas atau kelengkapan layanan. Agoraya tetap perlu merujuk pada kanal dan data resmi yang berlaku untuk setiap layanan.
 
 ## Fitur Utama
 
+Fitur berikut menggambarkan cakupan kapabilitas yang dirancang untuk Agoraya.
+
 ### Public Dashboard & Open Data
-- **Landing Page** — Visualisasi data agregat publik (BPS API)
-- **Statistik Daerah** — Peta & grafik kemiskinan, anggaran, infrastruktur per wilayah
-- **Open Government Data** — Dataset terbuka dengan filter, search, dan download
-- **Leaderboard Instansi** — Peringkat kinerja penanganan laporan dengan tingkat kesulitan
+
+- **Landing Page** — Visualisasi data agregat publik, termasuk data statistik pemerintah.
+- **Statistik Daerah** — Peta dan grafik indikator sosial, anggaran, serta infrastruktur per wilayah.
+- **Open Government Data** — Dataset terbuka dengan filter, pencarian, dan unduhan.
+- **Leaderboard Instansi** — Gambaran kinerja penanganan laporan dengan mempertimbangkan tingkat kesulitan.
 
 ### Civic Reporting & Accountability
-- **Lapor Warga** — Pelaporan masalah dengan foto/dokumen, geotag, dan kategori
-- **Tracking Laporan** — Status real-time dengan ETA pasti
-- **Skor Urgensi Otomatis** — Gabungan vote warga + AI classification + proximity + dampak
-- **Eskalasi SLA** — Peer-to-peer → atasan → dashboard publik ("Terlambat Ditangani")
-- **Visualisasi Bencana** — Peta bencana (kebakaran, banjir) sesuai urgensi
+
+- **Lapor Warga** — Pelaporan masalah dengan foto atau dokumen, geotag, dan kategori.
+- **Tracking Laporan** — Pemantauan status laporan dan perkiraan waktu penanganan.
+- **Skor Urgensi Otomatis** — Penggabungan dukungan warga, klasifikasi AI, kedekatan lokasi, dan dampak.
+- **Eskalasi SLA** — Alur eskalasi dari penanganan hingga pemantauan keterlambatan secara publik.
+- **Visualisasi Bencana** — Peta kejadian seperti kebakaran dan banjir berdasarkan urgensi.
 
 ### CMS & Pendataan (Maker-Checker)
-- **CMS Civic Reporting** — Input & review laporan warga
-- **CMS Open Government Data** — Kelola dataset publik
-- **CMS Data-Driven Insight** — Analitik & insight
-- **CMS Public Service Tracking** — Tracking layanan publik
+
+- **CMS Civic Reporting** — Pengelolaan dan peninjauan laporan warga.
+- **CMS Open Government Data** — Pengelolaan dataset publik.
+- **CMS Data-Driven Insight** — Pengelolaan analitik dan insight.
+- **CMS Public Service Tracking** — Pengelolaan informasi pelacakan layanan publik.
 
 ### Data-Driven Insight
-- **Anggaran** — Visualisasi anggaran dengan peta & grafik
-- **Proyek** — Prioritisasi proyek pemerintah (Decision Engine)
-- **Insight Dashboard** — Analitik tren, anomali, dan rekomendasi AI
+
+- **Anggaran** — Visualisasi anggaran melalui peta dan grafik.
+- **Proyek** — Dukungan prioritisasi proyek pemerintah menggunakan Decision Engine.
+- **Insight Dashboard** — Analisis tren, anomali, dan rekomendasi berbasis data.
 
 ### Layanan Publik Digital
-- **Pengajuan & Perizinan Online** — Formulir daring dengan tracking status
-- **Download Surat** — Surat jadi bisa diunduh mandiri
-- **Public Service Tracking** — Warga & instansi bisa pantau progress
+
+- **Pengajuan & Perizinan Online** — Formulir daring dengan pemantauan status.
+- **Download Surat** — Akses mandiri terhadap surat yang telah selesai diproses.
+- **Public Service Tracking** — Pemantauan progres layanan oleh warga dan instansi.
 
 ### Gamification & Civic Rewards
-- **Poin Individu** — Reward untuk partisipasi warga
-- **Kredit Sipil RT/Kelurahan** — Poin kolektif untuk proyek komunitas (taman, dll.)
+
+- **Poin Individu** — Apresiasi atas partisipasi warga.
+- **Kredit Sipil RT/Kelurahan** — Poin kolektif untuk mendukung proyek komunitas.
 
 ### AI & Chatbot
-- **Chatbot Bantuan** — Jawab berdasarkan dataset, arahkan user
-- **Escalate ke Operator** — Tombol hubungi operator untuk kasus kompleks
-- **AI Classification** — Klasifikasi & ekstraksi otomatis untuk laporan
+
+- **Chatbot Bantuan** — Jawaban berbasis dataset dan arahan layanan.
+- **Escalate ke Operator** — Pengalihan pertanyaan kompleks kepada petugas.
+- **AI Classification** — Klasifikasi dan ekstraksi informasi dari laporan.
 
 ### Command Center
-- **Dashboard Monitoring** — Jumlah laporan aktif, rata-rata penyelesaian
-- **Indikator Status** — Merah/Kuning/Hijau berdasarkan SLA
-- **Prioritas Urgensi** — Laporan warga yang ter-upvote naik prioritas
+
+- **Dashboard Monitoring** — Ringkasan laporan aktif dan waktu penyelesaian.
+- **Indikator Status** — Visualisasi status layanan berdasarkan target SLA.
+- **Prioritas Urgensi** — Pemeringkatan laporan dengan mempertimbangkan dukungan warga dan tingkat urgensi.
 
 ### Identity & Auth
-- **NIK sebagai Username** — Login dengan NIK + OTP Email
-- **Manual KYC** — Verifikasi identitas manual untuk validitas data maksimal
-- **RBAC + ABAC** — Isolasi akses granular per instansi, jabatan, wilayah
 
----
+- **NIK sebagai Username** — Identitas untuk proses autentikasi warga dan verifikasi sesuai kebutuhan layanan.
+- **Manual KYC** — Verifikasi identitas manual untuk mendukung validitas data.
+- **RBAC + ABAC** — Pengaturan akses berdasarkan peran, instansi, jabatan, dan wilayah.
 
 ## Tech Stack
 
 ### Core
-| Teknologi | Fungsi |
-|-----------|--------|
-| **Next.js 15** (App Router) | Full-stack React framework |
-| **TypeScript** (strict) | Type safety |
-| **React 19** | UI library |
-| **Tailwind CSS 4** | Utility-first CSS |
-| **shadcn/ui + Radix** | Component library |
+
+| Teknologi                   | Fungsi                               |
+| --------------------------- | ------------------------------------ |
+| **Next.js 15** (App Router) | Framework aplikasi web full-stack    |
+| **TypeScript** (strict)     | Type safety                          |
+| **React 19**                | UI library                           |
+| **Tailwind CSS 4**          | Utility-first CSS                    |
+| **shadcn/ui + Radix**       | Pola dan primitif komponen antarmuka |
 
 ### Data & Backend
-| Teknologi | Fungsi |
-|-----------|--------|
-| **PostgreSQL** (Neon) | Primary database (OLTP) |
-| **Drizzle ORM** | Type-safe ORM + migrations |
-| **Zod** | Schema validation |
-| **BPS API** | Data statistik pemerintah |
+
+| Teknologi             | Fungsi                           |
+| --------------------- | -------------------------------- |
+| **PostgreSQL** (Neon) | Basis data relasional            |
+| **Drizzle ORM**       | ORM type-safe dan migrasi        |
+| **Zod**               | Validasi skema dan input         |
+| **BPS API**           | Sumber data statistik pemerintah |
 
 ### Infrastruktur
-| Teknologi | Fungsi |
-|-----------|--------|
-| **Vercel** | Hosting & deployment |
-| **Cloudinary** | CDN & media management |
-| **Brevo** | Transactional email (OTP, notifikasi) |
+
+| Teknologi      | Fungsi                                           |
+| -------------- | ------------------------------------------------ |
+| **Vercel**     | Platform deployment                              |
+| **Cloudinary** | Pengelolaan media dan CDN                        |
+| **Brevo**      | Email transaksional, termasuk OTP dan notifikasi |
 
 ### Visualisasi
-| Teknologi | Fungsi |
-|-----------|--------|
-| **Recharts** | Grafik & chart |
-| **MapLibre + GeoJSON** | Peta interaktif |
+
+| Teknologi                 | Fungsi                              |
+| ------------------------- | ----------------------------------- |
+| **Recharts**              | Grafik dan visualisasi data         |
+| **MapLibre GL + GeoJSON** | Peta interaktif dan data geospasial |
 
 ### Testing & CI
-| Teknologi | Fungsi |
-|-----------|--------|
-| **Vitest** | Unit & integration tests |
-| **Playwright** | E2E testing |
-| **k6** | Load testing |
-| **GitHub Actions** | CI pipeline |
 
----
+| Teknologi          | Fungsi                       |
+| ------------------ | ---------------------------- |
+| **Vitest**         | Pengujian unit dan integrasi |
+| **Playwright**     | Pengujian end-to-end         |
+| **k6**             | Pengujian beban dan performa |
+| **GitHub Actions** | Otomatisasi pemeriksaan CI   |
+
+Teknologi integrasi dan layanan eksternal memerlukan konfigurasi serta kredensial yang sesuai. Daftar ini menjelaskan stack yang digunakan atau direncanakan dalam rancangan Agoraya; penyebutan suatu teknologi tidak menyatakan bahwa setiap integrasi sudah terhubung ke seluruh alur produk.
 
 ## Arsitektur
 
-### Modular Monolith
+Agoraya menggunakan pendekatan modular monolith: antarmuka, API, dan modul domain berada dalam satu codebase dengan batas tanggung jawab per area fitur.
 
-```
-┌─────────────────────────────────────────────────┐
-│                  Next.js App                     │
-├────────────┬────────────┬───────────┬───────────┤
-│  Module 1  │  Module 2  │ Module 3  │ Module 4  │
-│  Identity  │  CMS &     │ Analytics │ Audit &   │
-│  & Auth    │  Pendataan │ & Landing │ KYC       │
-├────────────┴────────────┴───────────┴───────────┤
-│            Shared Infrastructure                 │
-│   (DB, Email, AI Router, File Storage, Audit)    │
-├─────────────────────────────────────────────────┤
-│              PostgreSQL (Neon)                    │
-│         + RLS + Audit Log (Append-only)          │
-└─────────────────────────────────────────────────┘
+```text
+Browser
+  └─ Next.js App Router (halaman per area pengguna dan API routes)
+       ├─ components/       UI bersama
+       ├─ lib/              konfigurasi, database, validasi, utilitas
+       └─ modules/          domain dan layanan per fitur
+            ├─ identity / kyc / rbac
+            ├─ reporting / cms
+            ├─ analytics / audit
+            ├─ integrations / notifications / jobs
+            └─ ai / decision-engine
+                  └─ PostgreSQL melalui Drizzle ORM
 ```
 
-### Dependency Direction
-```
-UI / Route Handler / Server Action
-        ↓
-Application Service / Use-case
-        ↓
-Domain Rules (pure, deterministic)
-        ↓
-Repository / Data Access
-        ↓
-Infrastructure Adapter (Brevo, BPS, AI, Cloudinary)
-```
+Lapisan aplikasi menggunakan pembagian domain, layanan, repository, dan adapter. Repository Drizzle menangani akses PostgreSQL, sementara implementasi in-memory mendukung pengujian terisolasi. Modul analitik menyediakan agregasi, cache, penyamaran sel kecil, materialized view, dan mekanisme refresh terproteksi `CRON_SECRET`. Modul audit menyediakan hash-chain dan verifikasi integritas.
 
-### Database Pattern (CQRS-Inspired)
-- **Write Path (OLTP)**: PostgreSQL untuk input data real-time
-- **Read Path**: Materialized views / pre-aggregated data untuk dashboard publik
-- **Audit Log**: Append-only, immutable, dengan hash-chain verification
+## Menjalankan Secara Lokal
 
-> Lihat [DOCUMENTATION.md](./DOCUMENTATION.md) untuk detail lengkap arsitektur.
+### Prasyarat
 
----
+- Node.js 22 atau lebih baru (`.nvmrc`)
+- pnpm 9 atau lebih baru
+- PostgreSQL lokal atau database PostgreSQL yang dapat diakses
 
-## Prasyarat
+### Instalasi
 
-- **Node.js** ≥ 22 (lihat `.nvmrc`)
-- **pnpm** ≥ 9 (package manager)
-- **PostgreSQL** 16+ (atau Neon account)
-- **Git** ≥ 2.40
-
-### Akun Layanan (untuk fitur penuh)
-- [Neon](https://neon.tech/) — Database PostgreSQL
-- [Vercel](https://vercel.com/) — Deployment
-- [Brevo](https://www.brevo.com/) — Transactional email
-- [Cloudinary](https://cloudinary.com/) — CDN & media
-- [BPS API](https://webapi.bps.go.id/) — Data statistik
-
----
-
-## Instalasi & Setup
-
-### 1. Clone Repository
 ```bash
-git clone https://github.com/<org>/agoraya.git
+git clone https://github.com/JundiLesmana/agoraya.git
 cd agoraya
-```
-
-### 2. Install Dependencies
-```bash
-nvm use          # otomatis pakai Node 22 dari .nvmrc
+nvm use
 pnpm install --frozen-lockfile
-```
-
-### 3. Setup Environment
-```bash
 cp .env.example .env.local
-# Edit .env.local dengan credentials Anda
 ```
 
-### 4. Setup Database
+Isi `DATABASE_URL` dan `AUTH_SECRET` di `.env.local` sebelum menjalankan aplikasi atau mengakses fungsi yang memerlukan konfigurasi tersebut. `AUTH_SECRET` harus memiliki setidaknya 32 karakter. Simpan kredensial hanya di environment lokal atau secret manager—jangan commit file `.env.local`.
+
+Untuk PostgreSQL lokal, siapkan database dengan `bash scripts/setup-local-db.sh`, lalu jalankan migrasi:
+
 ```bash
-pnpm db:generate   # Generate migration files
-pnpm db:migrate     # Jalankan migrations
-pnpm db:seed        # (Opsional) Seed data demo
-```
-
-### 5. Jalankan Development Server
-```bash
-pnpm dev
-```
-Buka [http://localhost:3000](http://localhost:3000).
-
----
-
-## Local Development
-
-### Prerequisites
-- Node.js ≥ 22, pnpm ≥ 9
-- PostgreSQL 16 CLI: `psql`, `createdb`
-  - macOS: `brew install postgresql@16`
-  - Ubuntu/Debian: `sudo apt install postgresql-16`
-  - Arch Linux: `sudo pacman -S postgresql`
-  - WSL2: `sudo apt install postgresql-client-16`
-
-### First-time setup
-```bash
-# 1. Copy dan isi env
-cp .env.example .env.local
-# Set minimal: AUTH_SECRET (min 32 chars), DATABASE_URL dan DATABASE_URL_UNPOOLED
-
-# 2. Setup local DB (run sekali)
-bash scripts/setup-local-db.sh
-
-# 3. Apply migrations
 pnpm db:migrate:local
+```
 
-# 4. Seed demo data
+Seed data demo jika diperlukan, lalu mulai server pengembangan:
+
+```bash
 pnpm db:seed
-
-# 5. Jalankan dev server
 pnpm dev
 ```
 
----
+Buka [http://localhost:3000](http://localhost:3000). Lihat [.env.example](./.env.example) untuk daftar konfigurasi, termasuk variabel opsional. Variabel berawalan `NEXT_PUBLIC_` dapat terekspos ke browser dan tidak boleh berisi secret.
 
-## Environment Variables
-
-Buat file `.env.local` dari `.env.example`. **Jangan pernah commit nilai secret.**
+## Perintah Pengembangan dan Pengujian
 
 ```bash
-# Database
-DATABASE_URL=              # Neon PostgreSQL connection string
-DATABASE_URL_UNPOOLED=     # Direct connection untuk migrations
-
-# Auth
-AUTH_SECRET=               # Random secret untuk session encryption
-OTP_EXPIRY_MINUTES=5       # Durasi OTP (default: 5 menit)
-OTP_MAX_ATTEMPTS=3         # Maksimal percobaan OTP
-
-# Brevo (Email)
-BREVO_API_KEY=             # API key dari Brevo dashboard
-BREVO_SENDER_EMAIL=        # Email pengirim terverifikasi
-BREVO_SENDER_NAME=         # Nama pengirim
-
-# Cloudinary (CDN)
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=   # Cloud name
-CLOUDINARY_API_KEY=                  # API key
-CLOUDINARY_API_SECRET=               # API secret
-
-# BPS API
-BPS_API_KEY=               # API key dari webapi.bps.go.id
-
-# AI Providers (opsional)
-AI_PROVIDER=               # gemini | cerebras | groq | openrouter
-AI_API_KEY=                # API key provider AI
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+pnpm dev                 # Server pengembangan
+pnpm build               # Build produksi
+pnpm start               # Menjalankan build produksi
+pnpm lint                # ESLint
+pnpm typecheck           # Pemeriksaan TypeScript
+pnpm test                # Seluruh tes Vitest
+pnpm test:unit           # Tes unit
+pnpm test:integration    # Tes integrasi
+pnpm test:security       # Tes keamanan
+pnpm test:load           # Tes beban
+pnpm test:all            # Unit, integrasi, keamanan, dan beban
+pnpm e2e                 # Tes Playwright
 ```
 
-> **Penting**: Variabel `NEXT_PUBLIC_*` akan terekspos ke client. Jangan taruh secret di sana.
+CI menjalankan lint, typecheck, `pnpm test:all`, tes keamanan, dan build. E2E dapat dijalankan secara terpisah dengan `pnpm e2e`.
 
----
-
-## Development
-
-### Scripts Utama
+Perintah database dan utilitas yang umum:
 
 ```bash
-pnpm dev            # Development server (hot reload)
-pnpm build          # Production build
-pnpm start          # Start production server
-pnpm lint           # ESLint check
-pnpm typecheck      # TypeScript type check
-pnpm format         # Prettier format
-pnpm test           # Unit tests (Vitest)
-pnpm test:integration  # Integration tests
-pnpm db:studio      # Drizzle Studio (DB GUI)
+pnpm db:migrate:local
+pnpm db:generate
+pnpm db:seed
+pnpm script:verify-audit
+pnpm script:export-snapshot -- out.json
 ```
 
-### Utility Scripts
-
-```bash
-pnpm script:seed                     # Populate demo data (idempotent)
-pnpm script:reset-demo               # Reset demo tables and reseed clean state
-pnpm script:verify-audit             # Verify audit trail integrity
-pnpm script:export-snapshot -- out.json  # Export a JSON snapshot
-```
-
-See the script source headers for operational notes and environment requirements.
-
-### Branch Model
-
-```
-main (protected)        ← production, deploy otomatis
-  └── development       ← integration branch
-       ├── feature/GH-42-lapor-warga
-       ├── bugfix/GH-55-otp-expiry
-       └── chore/GH-60-update-deps
-```
-
-### Commit Convention
-```
-<type>(<scope>): <description> (#issue)
-
-Contoh:
-feat(reporting): add photo upload to citizen report (#42)
-fix(auth): prevent OTP replay attack (#55)
-chore(deps): update drizzle-orm to 0.35 (#60)
-```
-
----
-
-## Testing
-
-### Test Pyramid
-
-```
-        ┌─────────┐
-        │   E2E   │  ← Playwright (critical journeys)
-       ┌┴─────────┴┐
-       │Integration │  ← DB + RLS + adapters
-      ┌┴───────────┴┐
-      │    Unit      │  ← Domain rules, validators, scoring
-     ┌┴─────────────┴┐
-     │Security Negative│ ← Cross-tenant, escalation, audit
-     └───────────────┘
-```
-
-```bash
-# Jalankan semua test
-pnpm test
-
-# Jalankan test spesifik
-pnpm test src/modules/reporting/
-
-# Watch mode
-pnpm test --watch
-
-# E2E
-pnpm exec playwright test
-
-# Coverage
-pnpm test:coverage
-
-# Load
-pnpm test:load
-```
-
-> Detail lengkap: lihat `docs/ai/TESTING_STRATEGY.md`
-
----
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Connect repository ke Vercel
-2. Set environment variables di Vercel dashboard (per environment)
-3. Branch `main` → Production
-4. PR branches → Preview deployments
-
-### Database Migrations (Production)
-
-```bash
-# Jangan jalankan migration di production secara langsung!
-# Gunakan CI/CD pipeline atau preview database untuk test dulu
-pnpm db:migrate
-```
-
-### Checklist Deploy
-
-- [ ] Environment variables tersetting di Vercel (Development/Preview/Production)
-- [ ] Database migrations sudah dijalankan
-- [ ] Brevo sender domain terverifikasi (SPF/DKIM)
-- [ ] Cloudinary cloud name dan credentials benar
-- [ ] BPS API key aktif
-- [ ] Branch protection di GitHub sudah aktif
-- [ ] CI checks pass
-
----
+Periksa konfigurasi dan environment yang diperlukan sebelum menjalankan perintah database atau skrip operasional.
 
 ## Struktur Proyek
 
-```
+```text
 agoraya/
-├── .github/                  # GitHub templates & workflows
-│   ├── ISSUE_TEMPLATE/       # Bug, feature, task templates
-│   ├── workflows/ci.yml      # CI pipeline
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.yml
+│   │   ├── feature_request.yml
+│   │   └── task.yml
+│   ├── workflows/
+│   │   └── ci.yml
 │   └── pull_request_template.md
+├── db/
+│   ├── migrations/
+│   │   ├── 0001_initial_schema.sql
+│   │   ├── 0001_initial_schema.down.sql
+│   │   ├── 0002_rbac_module.sql
+│   │   ├── 0002_rbac_module.down.sql
+│   │   ├── 0003_cms_module.sql
+│   │   ├── 0003_cms_module.down.sql
+│   │   ├── 0004_reporting_module.sql
+│   │   ├── 0004_reporting_module.down.sql
+│   │   ├── 0005_analytics_module.sql
+│   │   └── 0005_analytics_module.down.sql
+│   └── seed/
+│       ├── bps-snapshot.ts
+│       ├── demo-scenario.ts
+│       └── index.ts
+├── public/
+│   ├── data/
+│   │   ├── anggaran-realisasi-apbd.csv
+│   │   ├── indikator-statistik-daerah.csv
+│   │   └── progres-proyek-daerah.csv
+│   ├── datasets/
+│   │   └── progres-proyek-metadata.json
+│   ├── landing/
+│   │   ├── footer-desktop.png
+│   │   ├── footer-mobile.png
+│   │   ├── hero-desktop.png
+│   │   └── hero-mobile.png
+│   └── logo/
+│       ├── logo-dark.svg
+│       └── logo-light.svg
+├── scripts/
+│   ├── export-snapshot.ts
+│   ├── reset-demo.ts
+│   ├── rollback-migration.ts
+│   ├── seed.ts
+│   ├── setup-local-db.sh
+│   └── verify-audit.ts
 ├── src/
-│   ├── app/                  # Next.js App Router pages
-│   ├── components/           # Shared UI components
-│   ├── lib/                  # Shared infrastructure
-│   └── modules/              # Feature modules
-│       ├── auth/             # Identity & Auth (NIK, OTP, RBAC)
-│       ├── reporting/        # Civic Reporting & Accountability
-│       ├── cms/              # CMS & Pendataan (Maker-Checker)
-│       ├── analytics/        # Analytics & Landing Page
-│       ├── audit/            # Audit & KYC
-│       ├── services/         # Layanan Publik & Perizinan
-│       ├── gamification/     # Poin & Kredit Sipil
-│       ├── chatbot/          # AI Chatbot
-│       └── command-center/   # Command Center
-├── CONTRIBUTING.md           # Contributing guide
-├── DOCUMENTATION.md          # Dokumentasi lengkap
-├── README.md                
-└── package.json
+│   ├── app/                        # Next.js App Router
+│   │   ├── (admin)/
+│   │   │   ├── admin/page.tsx
+│   │   │   ├── system/page.tsx
+│   │   │   ├── users/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (asn)/
+│   │   │   ├── asn/dashboard/page.tsx
+│   │   │   ├── asn/reporting/page.tsx
+│   │   │   ├── data-management/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (auth)/
+│   │   │   ├── callback/page.tsx
+│   │   │   ├── forgot-password/page.tsx
+│   │   │   ├── login/page.tsx
+│   │   │   ├── register/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (citizen)/
+│   │   │   ├── citizen/dashboard/page.tsx
+│   │   │   ├── citizen/reporting/page.tsx
+│   │   │   ├── profile/page.tsx
+│   │   │   ├── tracking/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (executive)/
+│   │   │   ├── analytics/page.tsx
+│   │   │   ├── executive/dashboard/
+│   │   │   │   ├── _components/    # Kartu ringkasan dan grafik
+│   │   │   │   ├── error.tsx
+│   │   │   │   ├── loading.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── insights/page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (public)/
+│   │   │   ├── _components/        # Pencarian utama dan preview dashboard
+│   │   │   ├── anggaran/page.tsx
+│   │   │   ├── data/
+│   │   │   │   ├── _components/    # Katalog, ringkasan, dan tabel proyek
+│   │   │   │   ├── anggaran/page.tsx
+│   │   │   │   ├── project/page.tsx
+│   │   │   │   └── statistik/
+│   │   │   │       ├── _components/
+│   │   │   │       └── page.tsx
+│   │   │   ├── data-pemerintah/proyek/
+│   │   │   │   ├── _components/    # Filter, dashboard, informasi, unduhan
+│   │   │   │   ├── metodologi/page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── api/
+│   │   │   ├── audit/route.ts
+│   │   │   ├── auth/route.ts
+│   │   │   ├── cron/analytics/refresh/route.ts
+│   │   │   ├── health/route.ts
+│   │   │   ├── notifications/route.ts
+│   │   │   ├── projects/
+│   │   │   │   ├── route.ts
+│   │   │   │   └── summary/route.ts
+│   │   │   ├── rbac/route.ts
+│   │   │   └── reports/route.ts
+│   │   ├── forbidden/page.tsx
+│   │   └── layout.tsx
+│   ├── components/                 # Komponen UI lintas halaman
+│   │   ├── charts/                 # Grafik dan formatter
+│   │   ├── forms/                  # Field dan formulir bersama
+│   │   ├── map/
+│   │   ├── source-badges/
+│   │   ├── ui/                     # Komponen dasar
+│   │   └── *.tsx                   # Navigasi, footer, filter, ringkasan
+│   ├── lib/                        # Infrastruktur dan helper bersama
+│   │   ├── auth/
+│   │   ├── db/
+│   │   │   └── schema/             # Foundation, RBAC, CMS, KYC, reporting
+│   │   ├── env/
+│   │   ├── errors/
+│   │   ├── idempotency/
+│   │   ├── logger/
+│   │   ├── rbac/
+│   │   ├── result/
+│   │   └── *.ts                    # Currency, project data, summary, utilities
+│   └── modules/                    # Domain, schema, service, repository, dan adapter
+│       ├── ai/
+│       ├── analytics/
+│       │   ├── aggregates/
+│       │   ├── materialized-views/
+│       │   └── suppression/
+│       ├── audit/
+│       ├── cms/
+│       │   ├── risk-review/
+│       │   ├── state-machine/
+│       │   └── versioning/
+│       ├── decision-engine/
+│       ├── identity/
+│       │   ├── otp/
+│       │   ├── providers/
+│       │   │   ├── identity-provider/
+│       │   │   └── mock-dukcapil/
+│       │   └── session/
+│       ├── integrations/
+│       ├── jobs/
+│       ├── kyc/
+│       │   ├── dual-approval/
+│       │   ├── lifecycle/
+│       │   └── roster/
+│       ├── notifications/
+│       ├── rbac/
+│       │   ├── grants/
+│       │   ├── pdp/
+│       │   └── policies/
+│       └── reporting/
+│           ├── dedup/
+│           ├── qc-evidence/
+│           ├── sla/
+│           ├── state-machine/
+│           └── voting/
+├── tests/
+│   ├── e2e/
+│   │   ├── anggaran-filter.test.ts
+│   │   └── README.md
+│   ├── helpers/
+│   │   ├── setup-react.ts
+│   │   └── test-utils.ts
+│   ├── integration/
+│   │   ├── cms/
+│   │   ├── integrations/
+│   │   ├── kyc/
+│   │   ├── rbac/
+│   │   ├── reporting/
+│   │   └── *.test.ts(x)            # Tes integrasi pada root kategori
+│   ├── load/
+│   ├── security/
+│   │   ├── cms/
+│   │   ├── rbac/
+│   │   └── *.test.ts(x)
+│   └── unit/
+│       ├── analytics/
+│       ├── audit/
+│       ├── cms/
+│       ├── db/
+│       ├── integrations/
+│       ├── jobs/
+│       ├── kyc/
+│       ├── lib/
+│       ├── notifications/
+│       ├── rbac/
+│       ├── reporting/
+│       └── *.test.ts(x)            # Tes halaman, UI, domain, dan utilitas
+├── .env.example                    # Template konfigurasi tanpa secret
+├── .gitignore
+├── .nvmrc
+├── .prettierignore
+├── .prettierrc.json
+├── CONTRIBUTING.md
+├── DOCUMENTATION.md
+├── drizzle.config.ts
+├── drizzle.config.local.ts
+├── eslint.config.mjs
+├── next-env.d.ts
+├── package.json
+├── playwright.config.ts
+├── pnpm-lock.yaml
+├── postcss.config.mjs
+├── README.md
+├── tsconfig.json
+├── vercel.json
+└── vitest.config.ts
 ```
 
----
+Tree ini merangkum seluruh area utama dan subdirektori fitur yang ada. Berkas hasil build/cache, dependency terpasang, serta `.env` lokal tidak ditampilkan. Dokumentasi teknis utama berada di `DOCUMENTATION.md`.
 
-## Contributing
+## Kontribusi dan Dokumentasi
 
-Baca panduan lengkap di [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-### Quick Start
-
-1. Checkout dari `development`: `git checkout -b feature/GH-XX-deskripsi development`
-2. Implement dengan scope minimal — satu issue per branch
-3. Tambah tests (unit + negative security jika relevan)
-4. Jalankan quality gates: `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-5. Buka PR ke `development` dengan template yang sudah disediakan
-
----
-
-## Dokumentasi Lengkap
-
-| Dokumen | Deskripsi |
-|---------|-----------|
-| [DOCUMENTATION.md](./DOCUMENTATION.md) | **Dokumentasi teknis lengkap** |
-
----
+Sebelum mengirim perubahan, baca panduan [CONTRIBUTING.md](./CONTRIBUTING.md). Dokumentasi teknis proyek tersedia di [DOCUMENTATION.md](./DOCUMENTATION.md).
 
 ## Lisensi
 
