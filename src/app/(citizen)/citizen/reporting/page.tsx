@@ -1,7 +1,5 @@
+import { CitizenTrackingDashboard } from '../../tracking/_components/citizen-tracking-dashboard';
+
 export default function CitizenReportingPage() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Reporting</h1>
-    </div>
-  );
+  return <CitizenTrackingDashboard />;
 }
