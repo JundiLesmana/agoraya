@@ -3,7 +3,6 @@
 import * as React from 'react';
 import {
   Cell,
-  Legend,
   Pie,
   PieChart as RechartsPieChart,
   ResponsiveContainer,
@@ -11,11 +10,9 @@ import {
   type TooltipContentProps,
 } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import type { LegendPayload } from 'recharts/types/component/DefaultLegendContent';
 import type { ProjectSummary } from '@/lib/summary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SourceBadge } from '@/components/source-badges';
-import { cn } from '@/lib/utils';
 
 type DistributionDatum = {
   name: 'Selesai' | 'Berjalan' | 'Tertunda';
@@ -71,25 +68,6 @@ function DistributionTooltip({ active, payload }: TooltipContentProps<ValueType,
   );
 }
 
-function renderLegend({ payload }: { payload?: readonly LegendPayload[] }) {
-  if (!payload?.length) return null;
-
-  return (
-    <ul className="flex flex-col gap-3 text-sm text-muted-foreground">
-      {payload.map((entry) => (
-        <li key={entry.value} className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="size-2.5 rounded-full"
-            style={{ backgroundColor: entry.color ?? 'currentColor' }}
-          />
-          <span>{entry.value}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function ProgressDistributionChart({ summary }: { summary: ProjectSummary }) {
   const data = buildProgressDistributionData(summary);
 
@@ -132,30 +110,6 @@ export function ProgressDistributionChart({ summary }: { summary: ProjectSummary
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
                   <Tooltip content={DistributionTooltip} />
-                  <Legend
-                    content={({ payload }) => {
-                      if (!payload?.length) return null;
-                      return (
-                        <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:flex-col lg:items-start">
-                          {payload.map((entry) => (
-                            <li key={entry.value} className="flex items-center gap-2">
-                              <span
-                                aria-hidden="true"
-                                className="size-2.5 rounded-full"
-                                style={{ backgroundColor: entry.color ?? 'currentColor' }}
-                              />
-                              <span>
-                                {entry.value} · {data.find((item) => item.name === entry.value)?.percent}%
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    }}
-                    verticalAlign="middle"
-                    align="right"
-                    layout="vertical"
-                  />
                   <Pie
                     data={data}
                     dataKey="value"
@@ -179,6 +133,20 @@ export function ProgressDistributionChart({ summary }: { summary: ProjectSummary
                 </div>
               </div>
             </div>
+            <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:flex-col lg:items-start">
+              {data.map((entry) => (
+                <li key={entry.name} className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-2.5 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span>
+                    {entry.name} · {entry.percent}%
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
