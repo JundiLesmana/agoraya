@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, FileText, Megaphone, Sparkles } from 'lucide-rea
 import { PublicHeroSearch } from './_components/public-hero-search';
 import { DashboardPreview } from './_components/dashboard-preview';
 import { ReportTrackingSection } from './_components/report-tracking-section';
+import { RecentReportsSection } from './_components/recent-reports-section';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -245,6 +246,8 @@ export default function PublicLandingPage() {
       </section>
 
       <DashboardPreview />
+
+      <RecentReportsSection />
 
       <ReportTrackingSection />
 
