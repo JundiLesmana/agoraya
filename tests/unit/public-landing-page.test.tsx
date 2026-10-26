@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { createElement, type ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 vi.mock('next/image', () => ({
   default: (props: { alt: string; src: string }) => createElement('img', props),
@@ -54,11 +54,15 @@ describe('PublicLandingPage', () => {
   it('renders the reporting CTA with its message and a link to the report form', () => {
     render(<PublicLandingPage />);
 
-    expect(screen.getByRole('heading', { name: 'Melapor dengan lebih tenang' })).toBeTruthy();
-    expect(screen.getByText('Pahami progres laporan Anda dari awal hingga akhir')).toBeTruthy();
-    expect(screen.getByText('Tidak, jika Anda ingin “Rahasiakan agar laporan tetap anonim”.')).toBeTruthy();
+    const reportingCta = screen.getByRole('region', { name: 'Melapor dengan lebih tenang' });
+    expect(within(reportingCta).getByText('Pahami progres laporan Anda dari awal hingga akhir')).toBeTruthy();
+    expect(
+      within(reportingCta).getByText(
+        'Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan privasi akan dijelaskan saat mengisi formulir.',
+      ),
+    ).toBeTruthy();
 
-    const cta = screen.getByRole('link', { name: 'Buat laporan baru' });
+    const cta = within(reportingCta).getByRole('link', { name: 'Buat laporan baru' });
     expect(cta.getAttribute('href')).toBe('/citizen/reporting');
     expect(cta.closest('section')?.className).toContain('bg-gradient-to-br');
     expect(
@@ -87,7 +91,10 @@ describe('PublicLandingPage', () => {
   it('keeps the reporting CTA keyboard accessible', () => {
     render(<PublicLandingPage />);
 
-    expect(screen.getByRole('link', { name: 'Buat laporan baru' }).className).toContain('focus-visible:ring-2');
+    const reportingCta = screen.getByRole('region', { name: 'Melapor dengan lebih tenang' });
+    expect(within(reportingCta).getByRole('link', { name: 'Buat laporan baru' }).className).toContain(
+      'focus-visible:ring-2',
+    );
   });
 
   it('mounts the DashboardPreview section within the page', () => {
