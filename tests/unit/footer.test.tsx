@@ -37,6 +37,24 @@ describe('Footer', () => {
     expect(screen.getByRole('link', { name: /data pemerintah/i }).getAttribute('href')).toBe('/data');
   });
 
+  it('renders an accessible report CTA before the footer navigation', () => {
+    render(<Footer />);
+
+    expect(screen.getByRole('heading', { name: 'Perubahan dimulai dari kepedulian Anda' })).toBeTruthy();
+    expect(
+      screen.getByText('Buat laporan. Sampaikan laporan yang faktual. Bantu ciptakan lingkungan yang lebih baik.'),
+    ).toBeTruthy();
+
+    const cta = screen.getByRole('link', { name: 'Buat laporan' });
+    expect(cta.getAttribute('href')).toBe('/citizen/reporting');
+    expect(cta.getAttribute('aria-label')).toBe('Buat laporan');
+    expect(
+      cta.compareDocumentPosition(
+        screen.getByRole('navigation', { name: /navigasi sekunder/i }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('renders secure external social links', () => {
     render(<Footer />);
 
