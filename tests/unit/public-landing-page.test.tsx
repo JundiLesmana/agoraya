@@ -51,16 +51,25 @@ describe('PublicLandingPage', () => {
     expect(screen.getByRole('link', { name: /jelajahi insight/i }).getAttribute('href')).toBe('/insights');
   });
 
-  it('renders the CTA banner with the expected label, copy, quote, and registration button', () => {
+  it('renders the reporting CTA with its message and a link to the report form', () => {
     render(<PublicLandingPage />);
 
-    expect(screen.getByText(/partisipasi anda berarti/i)).toBeTruthy();
-    expect(screen.getByRole('heading', { name: /data transparan, layanan lebih baik, masa depan lebih cerah/i })).toBeTruthy();
-    expect(screen.getByText(/jadilah bagian dari masyarakat yang aktif, kritis, dan peduli/i)).toBeTruthy();
-    expect(screen.getByText(/bersama kita bisa membuat perubahan/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Melapor dengan lebih tenang' })).toBeTruthy();
+    expect(screen.getByText('Pahami progres laporan Anda dari awal hingga akhir')).toBeTruthy();
+    expect(screen.getByText('Tidak, jika Anda ingin “Rahasiakan agar laporan tetap anonim”.')).toBeTruthy();
 
-    const cta = screen.getByRole('link', { name: /mulai sekarang/i });
-    expect(cta.getAttribute('href')).toBe('/register');
+    const cta = screen.getByRole('link', { name: 'Buat laporan baru' });
+    expect(cta.getAttribute('href')).toBe('/citizen/reporting');
+    expect(cta.closest('section')?.className).toContain('bg-gradient-to-br');
+    expect(
+      screen.getByTestId('dashboard-preview').compareDocumentPosition(cta) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      cta.compareDocumentPosition(
+        screen.getByRole('heading', { name: /laporan terkirim, tindak lanjut terlihat/i }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('exposes the section as a responsive card grid container', () => {
@@ -75,13 +84,10 @@ describe('PublicLandingPage', () => {
     expect(grid?.className).toContain('xl:grid-cols-4');
   });
 
-  it('keeps the CTA banner readable and mobile-friendly', () => {
+  it('keeps the reporting CTA keyboard accessible', () => {
     render(<PublicLandingPage />);
 
-    const ctaSection = screen.getByRole('heading', { name: /data transparan, layanan lebih baik, masa depan lebih cerah/i }).closest('section');
-    expect(ctaSection?.className).toContain('bg-slate-950');
-    expect(ctaSection?.className).toContain('text-white');
-    expect(screen.getByRole('link', { name: /mulai sekarang/i }).className).toContain('w-full');
+    expect(screen.getByRole('link', { name: 'Buat laporan baru' }).className).toContain('focus-visible:ring-2');
   });
 
   it('mounts the DashboardPreview section within the page', () => {
@@ -117,13 +123,11 @@ describe('PublicLandingPage', () => {
     expect(ecosystem?.querySelector('article p')?.className).toContain('text-muted-foreground');
   });
 
-  it('uses the provided landing images in the hero and CTA banner', () => {
+  it('uses the provided landing image in the hero', () => {
     render(<PublicLandingPage />);
 
     const images = Array.from(document.querySelectorAll('img'));
-    expect(images.map((image) => image.getAttribute('src'))).toEqual(
-      expect.arrayContaining(['/landing/hero-desktop.png', '/landing/footer-desktop.png']),
-    );
+    expect(images.map((image) => image.getAttribute('src'))).toContain('/landing/hero-desktop.png');
 
     const responsiveSources = Array.from(document.querySelectorAll('picture source'));
     expect(
@@ -131,12 +135,7 @@ describe('PublicLandingPage', () => {
         media: source.getAttribute('media'),
         srcSet: source.getAttribute('srcset'),
       })),
-    ).toEqual(
-      expect.arrayContaining([
-        { media: '(max-width: 1023px)', srcSet: '/landing/hero-mobile.png' },
-        { media: '(max-width: 1023px)', srcSet: '/landing/footer-mobile.png' },
-      ]),
-    );
+    ).toContainEqual({ media: '(max-width: 1023px)', srcSet: '/landing/hero-mobile.png' });
   });
 
   it('renders the shared navbar and footer once around the landing page', () => {

@@ -2,9 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
 import { Facebook, Instagram, Youtube } from './social-icons';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
+import { Button } from '@/components/ui/button';
 
 const SECONDARY_NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
@@ -26,6 +28,29 @@ function Footer() {
 
   return (
     <footer className="border-t border-border/60 bg-background">
+      <section
+        aria-labelledby="footer-report-cta-title"
+        className="mx-auto mt-8 mb-10 flex max-w-7xl flex-col items-start justify-between gap-6 rounded-2xl bg-slate-900 px-4 py-8 text-white sm:mb-12 sm:px-6 sm:py-9 lg:flex-row lg:items-center lg:px-8"
+      >
+        <div>
+          <h2 id="footer-report-cta-title" className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Perubahan dimulai dari kepedulian Anda
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+            Buat laporan. Sampaikan laporan yang faktual. Bantu ciptakan lingkungan yang lebih baik.
+          </p>
+        </div>
+        <Button
+          asChild
+          className="h-12 shrink-0 bg-white px-5 text-primary hover:bg-slate-100 focus-visible:ring-white"
+          aria-label="Buat laporan"
+        >
+          <Link href="/citizen/reporting">
+            Buat laporan
+            <ArrowUpRight className="size-4" aria-hidden="true" />
+          </Link>
+        </Button>
+      </section>
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
         <div className="flex flex-col gap-10 md:gap-12 lg:grid lg:grid-cols-[1.2fr_1fr_0.9fr] lg:items-start">
           <section className="flex flex-col gap-4">
