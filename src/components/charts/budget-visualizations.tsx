@@ -13,8 +13,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type LegendProps,
-  type TooltipProps,
+  type LegendPayload,
+  type TooltipContentProps,
 } from 'recharts';
 import { Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +50,9 @@ export function transformSectorAllocationData(data: readonly SectorAllocationDat
   }));
 }
 
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+type TrendSeriesKey = 'target' | 'realisasi';
+
+function CustomTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md border bg-popover px-3 py-2 text-sm shadow-md">
@@ -66,7 +68,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   );
 }
 
-function PieTooltip({ active, payload }: TooltipProps<number, string>) {
+function PieTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   const entry = payload[0];
   return (
@@ -77,7 +79,7 @@ function PieTooltip({ active, payload }: TooltipProps<number, string>) {
   );
 }
 
-function LegendContent({ payload }: LegendProps) {
+function LegendContent({ payload }: { payload?: readonly LegendPayload[] }) {
   if (!payload?.length) return null;
   return (
     <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
@@ -119,14 +121,17 @@ export function BudgetVisualizations() {
     [],
   );
 
-  const [hiddenSeries, setHiddenSeries] = React.useState<{ target: boolean; realisasi: boolean }>({
+  const [hiddenSeries, setHiddenSeries] = React.useState<Record<TrendSeriesKey, boolean>>({
     target: false,
     realisasi: false,
   });
 
-  const toggleSeries = React.useCallback((key: string) => {
-    if (key !== 'target' && key !== 'realisasi') return;
-    setHiddenSeries((current) => ({ ...current, [key]: !current[key] }));
+  const toggleSeries = React.useCallback((key: TrendSeriesKey) => {
+    setHiddenSeries((current) =>
+      key === 'target'
+        ? { ...current, target: !current.target }
+        : { ...current, realisasi: !current.realisasi },
+    );
   }, []);
 
   return (
@@ -139,10 +144,10 @@ export function BudgetVisualizations() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex gap-4">
-              {[
+              {([
                 { key: 'target', name: 'Target realisasi' },
                 { key: 'realisasi', name: 'Realisasi' },
-              ].map((series, index) => (
+              ] satisfies { key: TrendSeriesKey; name: string }[]).map((series, index) => (
                 <button
                   key={series.key}
                   type="button"
@@ -162,7 +167,7 @@ export function BudgetVisualizations() {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} className="fill-muted-foreground text-xs" />
                 <YAxis tickFormatter={(value) => formatChartValue(Number(value)).replace('Rp', '').replace(' T', '')} tickLine={false} axisLine={false} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={CustomTooltip} />
                 <Legend content={<LegendContent />} />
                 {!hiddenSeries.target && <Line type="monotone" dataKey="target" name="Target realisasi" stroke="#2563eb" strokeWidth={2} dot={false} />}
                 {!hiddenSeries.realisasi && <Line type="monotone" dataKey="realisasi" name="Realisasi" stroke="#059669" strokeWidth={2} dot={false} />}
@@ -205,7 +210,7 @@ export function BudgetVisualizations() {
                     <Cell key={entry.sector} fill={DEFAULT_CHART_PALETTE[index % DEFAULT_CHART_PALETTE.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<PieTooltip />} />
+                <Tooltip content={PieTooltip} />
                 <Legend content={<LegendContent />} />
               </RechartsPieChart>
             </ResponsiveContainer>
