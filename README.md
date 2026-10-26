@@ -1,8 +1,6 @@
 <div align="center">
   <img src="public/logo/logo-dark.svg" alt="Logo Agoraya" width="220" />
-
-  <h1>Agoraya</h1>
-
+  
   <p><strong>Transparansi data publik. Partisipasi warga. Tata kelola digital.</strong></p>
 
   <p>
