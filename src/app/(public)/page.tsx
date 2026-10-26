@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, FileText, Megaphone, Sparkles } from 'lucide-react';
 import { PublicHeroSearch } from './_components/public-hero-search';
 import { DashboardPreview } from './_components/dashboard-preview';
+import { ReportTrackingSection } from './_components/report-tracking-section';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -244,6 +245,8 @@ export default function PublicLandingPage() {
       </section>
 
       <DashboardPreview />
+
+      <ReportTrackingSection />
 
       <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
         <CtaBanner />
