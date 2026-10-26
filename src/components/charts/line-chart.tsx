@@ -64,8 +64,21 @@ export function LineChart({
             {showGrid ? <CartesianGrid strokeDasharray="3 3" className="stroke-border" /> : null}
             <XAxis dataKey={xKey} tickLine={false} axisLine={false} className="fill-muted-foreground text-xs" />
             <YAxis tickLine={false} axisLine={false} width={48} className="fill-muted-foreground text-xs" />
-            {showTooltip ? <Tooltip /> : null}
-            {showLegend ? <Legend /> : null}
+            {showTooltip ? (
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--popover)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius)',
+                  color: 'var(--popover-foreground)',
+                }}
+                itemStyle={{ color: 'var(--popover-foreground)' }}
+                labelStyle={{ color: 'var(--popover-foreground)' }}
+              />
+            ) : null}
+            {showLegend ? (
+              <Legend wrapperStyle={{ color: 'var(--foreground)' }} />
+            ) : null}
             {series.map((s, index) => (
               <Line
                 key={s.key}
