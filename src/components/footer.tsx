@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 const SECONDARY_NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
   { href: '/data', label: 'Data Pemerintah' },
-  { href: '/citizen/reporting', label: 'Layanan Publik' },
+  { href: '/tracking', label: 'Layanan Publik' },
   { href: '/citizen/dashboard', label: 'Lapor Warga' },
   { href: '/insights', label: 'Insight' },
   { href: '/tentang', label: 'Tentang' },
@@ -45,7 +45,7 @@ function Footer() {
           className="h-12 shrink-0 bg-white px-5 text-primary hover:bg-slate-100 focus-visible:ring-white"
           aria-label="Buat laporan"
         >
-          <Link href="/citizen/reporting">
+          <Link href="/tracking">
             Buat laporan
             <ArrowUpRight className="size-4" aria-hidden="true" />
           </Link>

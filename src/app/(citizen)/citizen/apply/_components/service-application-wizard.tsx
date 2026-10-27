@@ -738,7 +738,7 @@ function SuccessState({ trackingNumber }: { trackingNumber: string }) {
         dan tidak akan muncul pada daftar pelacakan.
       </p>
       <Button asChild className="mt-6">
-        <Link href="/citizen/reporting">
+        <Link href="/tracking">
           Lacak Pengajuan <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </Button>
@@ -832,7 +832,7 @@ export function ServiceApplicationWizard() {
               <li aria-hidden="true">&gt;</li>
               <li>
                 <Link
-                  href="/citizen/reporting"
+                  href="/tracking"
                   className="hover:text-foreground hover:underline"
                 >
                   Layanan Publik
@@ -867,7 +867,7 @@ export function ServiceApplicationWizard() {
             {!trackingNumber ? (
               <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
                 <Button asChild variant="outline" className="bg-background">
-                  <Link href="/citizen/reporting">
+                  <Link href="/tracking">
                     <ArrowLeft className="size-4" aria-hidden="true" />
                     Kembali ke pelacakan
                   </Link>
@@ -1064,7 +1064,7 @@ export function ServiceApplicationWizard() {
           <p className="text-muted-foreground text-xs">
             Perlu bantuan?{" "}
             <Link
-              href="/citizen/reporting"
+              href="/tracking"
               className="text-primary font-medium hover:underline"
             >
               Kembali ke Ruang Warga

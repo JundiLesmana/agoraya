@@ -76,6 +76,6 @@ describe("ReportTrackingSection", () => {
     ).toBe("/reports/LP-2026-007064-01");
     expect(
       screen.getByRole("link", { name: "Buat laporan baru" }).getAttribute("href"),
-    ).toBe("/citizen/reporting");
+    ).toBe("/tracking");
   });
 });

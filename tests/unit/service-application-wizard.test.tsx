@@ -16,7 +16,7 @@ describe("ServiceApplicationWizard", () => {
       screen
         .getByRole("link", { name: /Kembali ke pelacakan/ })
         .getAttribute("href"),
-    ).toBe("/citizen/reporting");
+    ).toBe("/tracking");
     fireEvent.click(screen.getByRole("button", { name: "Simpan draft" }));
     expect(screen.getByRole("status").textContent).toContain(
       "Fitur simpan draft belum tersedia",
@@ -98,7 +98,7 @@ describe("ServiceApplicationWizard", () => {
       screen
         .getByRole("link", { name: /Lacak Pengajuan/ })
         .getAttribute("href"),
-    ).toBe("/citizen/reporting");
+    ).toBe("/tracking");
   });
 
   it("rejects unsupported document formats in the upload step", () => {
