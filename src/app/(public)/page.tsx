@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, FileText, Megaphone, Sparkles } from 'lucide-react';
 import { PublicHeroSearch } from './_components/public-hero-search';
 import { DashboardPreview } from './_components/dashboard-preview';
+import { ReportTrackingSection } from './_components/report-tracking-section';
+import { RecentReportsSection } from './_components/recent-reports-section';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -83,70 +85,33 @@ function cardAccentClasses(accent: string) {
   }
 }
 
-function CtaBanner() {
+function ReportingCta() {
   return (
     <section
-      aria-labelledby="cta-banner-title"
-      className="relative isolate overflow-hidden rounded-[2rem] bg-slate-950 px-5 py-8 text-white shadow-[0_24px_90px_-36px_rgba(15,23,42,0.8)] sm:px-8 sm:py-10 lg:min-h-[300px] lg:px-8 lg:py-8"
+      aria-labelledby="reporting-cta-title"
+      className="rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/10 via-blue-50 to-sky-100 px-6 py-10 dark:from-primary/20 dark:via-blue-950/50 dark:to-slate-900 sm:px-10 sm:py-12"
     >
-      <div className="pointer-events-none absolute inset-0 z-0 hidden lg:block" aria-hidden="true">
-        <picture className="absolute inset-0 block">
-          <source media="(max-width: 1023px)" srcSet="/landing/footer-mobile.png" />
-          <Image
-            src="/landing/footer-desktop.png"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover object-right"
-          />
-        </picture>
-      </div>
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(90deg,rgba(15,23,42,0.9)_0%,rgba(15,23,42,0.74)_48%,rgba(15,23,42,0.25)_100%)]"
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10 grid gap-8 lg:grid-cols-1 lg:items-center">
-        <div className="max-w-2xl lg:max-w-[620px]">
-          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-white/70">PARTISIPASI ANDA BERARTI</p>
-          <h2
-            id="cta-banner-title"
-            className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:mt-3 lg:max-w-[600px] lg:text-3xl"
-          >
-            Data Transparan, Layanan Lebih Baik, Masa Depan Lebih Cerah
-          </h2>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-white/82 sm:text-base sm:leading-8 lg:mt-3 lg:max-w-[560px] lg:text-sm lg:leading-6">
-            Jadilah bagian dari masyarakat yang aktif, kritis, dan peduli. Gunakan data, pantau layanan, laporkan
-            masalah, dan bantu wujudkan pemerintahan yang lebih baik.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-4 sm:max-w-sm lg:mt-5 lg:max-w-none lg:items-start">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 w-full rounded-full bg-white px-6 text-base font-semibold text-slate-950 shadow-lg shadow-slate-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-xl hover:shadow-slate-950/30 focus-visible:ring-white/80 lg:h-10 lg:w-auto lg:px-5 lg:text-sm"
-            >
-              <Link href="/register">
-                Mulai Sekarang
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        <picture className="block w-full lg:hidden">
-          <source media="(max-width: 1023px)" srcSet="/landing/footer-mobile.png" />
-          <Image
-            src="/landing/footer-desktop.png"
-            alt=""
-            width={350}
-            height={180}
-            sizes="(max-width: 1023px) 100vw, 0px"
-            className="block h-auto w-full"
-          />
-        </picture>
-
-        <p className="sr-only">Bersama kita bisa membuat perubahan</p>
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">PERLU DIKETAHUI</p>
+        <h2
+          id="reporting-cta-title"
+          className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+        >
+          Melapor dengan lebih tenang
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+          Pahami progres laporan Anda dari awal hingga akhir
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan
+          privasi akan dijelaskan saat mengisi formulir.
+        </p>
+        <Button asChild size="lg" className="mt-6" aria-label="Buat laporan baru">
+          <Link href="/citizen/reporting">
+            Buat laporan baru
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </Button>
       </div>
     </section>
   );
@@ -245,9 +210,13 @@ export default function PublicLandingPage() {
 
       <DashboardPreview />
 
-      <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <CtaBanner />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <ReportingCta />
       </div>
+
+      <RecentReportsSection />
+
+      <ReportTrackingSection />
     </div>
   );
 }

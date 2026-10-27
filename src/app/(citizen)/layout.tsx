@@ -7,7 +7,7 @@ export default async function CitizenLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth({ roles: ['citizen'] });
+  await requireAuth({ roles: ["citizen"] });
   return (
     <div className="min-h-screen">
       <Navbar />
