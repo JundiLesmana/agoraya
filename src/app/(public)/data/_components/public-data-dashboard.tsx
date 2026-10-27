@@ -797,27 +797,34 @@ export function PublicDataDashboard({
       <header className="border-border border-b bg-sky-50/70 dark:bg-sky-950/20">
         <div className="container mx-auto flex flex-wrap items-end justify-between gap-4 px-4 py-7 sm:px-6 lg:px-8">
           <div>
-            <p className="text-muted-foreground mb-2 text-xs">
-              <Link href="/" className="hover:text-primary">
-                Beranda
-              </Link>{" "}
-              <span className="px-1">›</span>{" "}
-              <Link href="/data" className="hover:text-primary">
-                Data Pemerintah
-              </Link>
-              {view !== "overview" ? (
-                <>
-                  <span className="px-1">›</span>{" "}
-                  <span>
-                    {view === "budget"
-                      ? "Anggaran"
-                      : view === "projects"
-                        ? "Proyek"
-                        : "Statistik daerah"}
-                  </span>
-                </>
-              ) : null}
-            </p>
+            <nav
+              aria-label="Breadcrumb"
+              className="text-muted-foreground mb-3 text-xs"
+            >
+              <ol className="flex flex-wrap items-center gap-2">
+                <li>
+                  <Link href="/" className="hover:text-primary">
+                    Beranda
+                  </Link>
+                </li>
+                <li aria-hidden="true">&gt;</li>
+                <li>
+                  <Link href="/data" className="hover:text-primary">
+                    Data Pemerintah
+                  </Link>
+                </li>
+                <li aria-hidden="true">&gt;</li>
+                <li aria-current="page" className="text-foreground font-medium">
+                  {view === "budget"
+                    ? "Anggaran"
+                    : view === "projects"
+                      ? "Proyek"
+                      : view === "statistics"
+                        ? "Statistik daerah"
+                        : "Ringkasan"}
+                </li>
+              </ol>
+            </nav>
             <h1 className="text-card-foreground text-3xl font-semibold tracking-tight">
               {view === "budget"
                 ? "Anggaran & realisasi APBD"
@@ -854,9 +861,7 @@ export function PublicDataDashboard({
       </header>
 
       <div className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {view === "projects" ? (
-          <CategoryNavigation activeCategory={activeCategory} />
-        ) : null}
+        <CategoryNavigation activeCategory={activeCategory} />
         <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
             <h2 className="flex items-center gap-2 text-base leading-none font-semibold tracking-tight">
@@ -1031,10 +1036,6 @@ export function PublicDataDashboard({
           </CardContent>
         </Card>
 
-        {view !== "projects" ? (
-          <CategoryNavigation activeCategory={activeCategory} />
-        ) : null}
-
         {isOverview ? (
           <SummaryKpiCards
             data={{
@@ -1184,7 +1185,7 @@ export function PublicDataDashboard({
 
         {showBudget ? (
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
-            <Card className="min-w-0 border-border shadow-sm">
+            <Card className="border-border min-w-0 shadow-sm">
               <CardHeader className="px-4 pt-4 pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -1233,7 +1234,7 @@ export function PublicDataDashboard({
             </Card>
 
             {view === "budget" ? (
-              <Card className="min-w-0 border-border shadow-sm lg:order-3 lg:col-span-2">
+              <Card className="border-border min-w-0 shadow-sm lg:order-3 lg:col-span-2">
                 <CardHeader className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
                   <div>
                     <h2 className="text-base leading-none font-semibold tracking-tight">
@@ -1476,7 +1477,7 @@ export function PublicDataDashboard({
             aria-labelledby="budget-context-title"
             className="grid gap-4 lg:grid-cols-2"
           >
-            <Card className="min-w-0 border-border shadow-sm">
+            <Card className="border-border min-w-0 shadow-sm">
               <CardHeader className="px-4 pt-4 pb-2">
                 <h2 className="text-base font-semibold">
                   Anggaran & realisasi APBD
@@ -1548,7 +1549,7 @@ export function PublicDataDashboard({
 
         {view === "projects" ? (
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)]">
-            <Card className="min-w-0 border-border shadow-sm">
+            <Card className="border-border min-w-0 shadow-sm">
               <CardHeader className="px-4 pt-4 pb-2">
                 <h2 className="text-base font-semibold">
                   Progres penyelesaian
@@ -1609,7 +1610,7 @@ export function PublicDataDashboard({
               </p>
             </Card>
 
-            <Card className="min-w-0 border-border shadow-sm">
+            <Card className="border-border min-w-0 shadow-sm">
               <CardHeader className="px-4 pt-4 pb-2">
                 <h2 className="text-base font-semibold">
                   Penyelesaian per sektor
