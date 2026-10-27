@@ -25,12 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-const CATEGORIES = [
-  "Infrastruktur",
-  "Dugaan korupsi",
-  "Lingkungan",
-  "Layanan lainnya",
-] as const;
+const CATEGORIES = ["Infrastruktur", "Dugaan korupsi", "Lingkungan"] as const;
 
 const SUBCATEGORIES: Record<(typeof CATEGORIES)[number], string[]> = {
   Infrastruktur: [
@@ -52,12 +47,6 @@ const SUBCATEGORIES: Record<(typeof CATEGORIES)[number], string[]> = {
     "Saluran tersumbat",
     "Kerusakan ruang hijau",
     "Lainnya",
-  ],
-  "Layanan lainnya": [
-    "Administrasi publik",
-    "Kesehatan",
-    "Pendidikan",
-    "Layanan umum lainnya",
   ],
 };
 
@@ -158,7 +147,6 @@ function getSubcategories(
   if (category === "Infrastruktur") return SUBCATEGORIES.Infrastruktur;
   if (category === "Dugaan korupsi") return SUBCATEGORIES["Dugaan korupsi"];
   if (category === "Lingkungan") return SUBCATEGORIES.Lingkungan;
-  if (category === "Layanan lainnya") return SUBCATEGORIES["Layanan lainnya"];
   return [];
 }
 
@@ -197,7 +185,9 @@ function FormField({
 }
 
 export function ReportForm({ initialCategory }: { initialCategory?: string }) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() =>
+    initialCategory && categoryIsValid(initialCategory) ? 1 : 0,
+  );
   const [values, setValues] = useState(() => getInitialValues(initialCategory));
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [fileError, setFileError] = useState("");

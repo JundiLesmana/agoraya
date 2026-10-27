@@ -65,7 +65,7 @@ describe("StatisticsRoom", () => {
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Warga" })
         .getAttribute("href"),
-    ).toBe("/citizen/reporting");
+    ).toBe("/tracking");
     expect(
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })

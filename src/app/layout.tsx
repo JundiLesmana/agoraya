@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   },
   description:
     'Agoraya — platform transparansi, pelaporan publik, dan tata kelola pemerintahan digital untuk Indonesia.',
+  icons: {
+    icon: '/logo/brand.svg',
+  },
 };
 
 export default function RootLayout({

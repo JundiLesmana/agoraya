@@ -9,7 +9,6 @@ import {
   FileText,
   Leaf,
   MapPin,
-  MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,44 +17,28 @@ import { ReportTrackingSection } from "@/app/(public)/_components/report-trackin
 
 const REPORT_CATEGORIES = [
   {
-    label: "Infrastruktur",
-    description: "Jalan rusak, lampu jalan, jembatan, dan fasilitas umum.",
+    label: "Infrastruktur Rusak",
+    category: "Infrastruktur",
+    description: "Jalan, trotoar, atau fasilitas umum.",
     icon: Construction,
-    cardClassName:
-      "border-blue-200 bg-blue-50 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/70",
-    iconClassName: "text-blue-700 dark:text-blue-300",
   },
   {
-    label: "Dugaan korupsi",
-    description:
-      "Dugaan penyalahgunaan anggaran, pungutan liar, atau wewenang.",
+    label: "Dugaan Penyimpangan",
+    category: "Dugaan korupsi",
+    description: "Dugaan yang perlu pemeriksaan. Gunakan jalur rahasia.",
     icon: CircleAlert,
-    cardClassName:
-      "border-orange-200 bg-orange-50 hover:border-orange-300 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950/40 dark:hover:bg-orange-950/70",
-    iconClassName: "text-orange-700 dark:text-orange-300",
   },
   {
-    label: "Lingkungan",
-    description: "Sampah menumpuk, pencemaran, dan saluran tersumbat.",
+    label: "Isu Lingkungan",
+    category: "Lingkungan",
+    description: "Sampah, pencemaran, atau drainase.",
     icon: Leaf,
-    cardClassName:
-      "border-emerald-200 bg-emerald-50 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/70",
-    iconClassName: "text-emerald-700 dark:text-emerald-300",
-  },
-  {
-    label: "Layanan lainnya",
-    description: "Kendala layanan publik dan masalah lain di sekitar Anda.",
-    icon: MessagesSquare,
-    cardClassName:
-      "border-violet-200 bg-violet-50 hover:border-violet-300 hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:hover:bg-violet-950/70",
-    iconClassName: "text-violet-700 dark:text-violet-300",
   },
 ] as const satisfies readonly {
   label: string;
+  category: string;
   description: string;
   icon: LucideIcon;
-  cardClassName: string;
-  iconClassName: string;
 }[];
 
 const REPORTING_STEPS = [
@@ -83,11 +66,15 @@ const REPORTING_STEPS = [
 
 function reportHref(category?: string) {
   return category
-    ? `/citizen/reporting?category=${encodeURIComponent(category)}`
-    : "/citizen/reporting";
+    ? `/citizen/dashboard?category=${encodeURIComponent(category)}#report-form`
+    : "#report-form";
 }
 
-export function ReportQuickActions() {
+export function ReportQuickActions({
+  initialCategory,
+}: {
+  initialCategory?: string;
+}) {
   return (
     <div className="bg-background text-foreground [--primary-foreground:#ffffff] [--primary:#1769e0]">
       <nav
@@ -129,7 +116,7 @@ export function ReportQuickActions() {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-11">
-                <Link href="#report-examples">Lacak laporan</Link>
+                <Link href="/tracking">Lacak laporan</Link>
               </Button>
             </div>
             <p className="text-muted-foreground mt-3 text-xs">
@@ -175,27 +162,26 @@ export function ReportQuickActions() {
           Pilih kategori yang paling sesuai agar laporan diteruskan ke pihak
           yang tepat.
         </p>
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
           {REPORT_CATEGORIES.map((category) => {
             const Icon = category.icon;
             return (
               <Link
                 key={category.label}
-                href={reportHref(category.label)}
+                href={reportHref(category.category)}
                 aria-label={`Buat laporan kategori ${category.label}`}
-                className={`group focus-visible:ring-primary min-h-40 rounded-xl border p-5 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none ${category.cardClassName}`}
+                className="group focus-visible:ring-primary flex min-h-28 items-start gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition duration-150 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:items-center sm:p-5 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-800"
               >
-                <span className="mb-3 flex size-11 items-center justify-center rounded-xl bg-white dark:bg-slate-900">
-                  <Icon
-                    aria-hidden="true"
-                    className={`size-6 ${category.iconClassName}`}
-                  />
+                <span className="text-primary flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60">
+                  <Icon aria-hidden="true" className="size-5" />
                 </span>
-                <span className="text-foreground block font-semibold">
-                  {category.label}
-                </span>
-                <span className="text-muted-foreground mt-1 block text-sm leading-5">
-                  {category.description}
+                <span className="min-w-0">
+                  <span className="text-foreground block font-semibold">
+                    {category.label}
+                  </span>
+                  <span className="text-muted-foreground mt-1 block text-sm leading-5">
+                    {category.description}
+                  </span>
                 </span>
               </Link>
             );
@@ -282,7 +268,10 @@ export function ReportQuickActions() {
             Isi informasi selengkap mungkin. Kolom bertanda * wajib diisi.
           </p>
           <div className="mt-6">
-            <ReportForm />
+            <ReportForm
+              key={initialCategory ?? "default"}
+              initialCategory={initialCategory}
+            />
           </div>
         </div>
       </section>

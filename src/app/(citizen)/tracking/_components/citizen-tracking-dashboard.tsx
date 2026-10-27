@@ -732,7 +732,9 @@ export function CitizenTrackingDashboard() {
     <div className="pb-12">
       <section className="border-b border-border bg-sky-50 dark:bg-sky-950/30">
         <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-          <p className="text-xs text-muted-foreground">Beranda · Layanan Publik · Ruang Warga</p>
+          <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
+            Beranda &gt; Layanan Publik &gt; Pelacakan
+          </nav>
           <div className="mt-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -751,7 +753,10 @@ export function CitizenTrackingDashboard() {
               </Button>
             </div>
           </div>
-          <ServiceSpaceNavigation activeSpace="citizen" />
+          <ServiceSpaceNavigation
+            activeSpace="citizen"
+            statisticsHref="/tracking/stat"
+          />
         </div>
       </section>
 
