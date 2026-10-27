@@ -1,5 +1,5 @@
-import { CitizenTrackingDashboard } from '../../tracking/_components/citizen-tracking-dashboard';
+import { redirect } from "next/navigation";
 
 export default function CitizenReportingPage() {
-  return <CitizenTrackingDashboard />;
+  redirect("/tracking");
 }

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CitizenTrackingDashboard } from "@/app/(citizen)/tracking/_components/citizen-tracking-dashboard";
+import CitizenTrackingPage from "@/app/(citizen)/tracking/page";
 import AsnReportingPage from "@/app/(asn)/asn/reporting/page";
 import {
   formatDateTimeWib,
@@ -22,6 +23,17 @@ describe("tracking date helpers", () => {
 });
 
 describe("CitizenTrackingDashboard", () => {
+  it("serves the tracking dashboard at the /tracking route", () => {
+    render(<CitizenTrackingPage />);
+
+    expect(
+      screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: "Cari nomor pelacakan" }),
+    ).toBeTruthy();
+  });
+
   it("renders the four summary cards, service table, education, and selected details", () => {
     render(<CitizenTrackingDashboard />);
 
@@ -41,7 +53,7 @@ describe("CitizenTrackingDashboard", () => {
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Warga" })
         .getAttribute("href"),
-    ).toBe("/citizen/reporting");
+    ).toBe("/tracking");
     expect(
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })
@@ -51,7 +63,7 @@ describe("CitizenTrackingDashboard", () => {
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Statistik" })
         .getAttribute("href"),
-    ).toBe("/data/statistik");
+    ).toBe("/tracking/stat");
     expect(
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Statistik" })
@@ -67,6 +79,9 @@ describe("CitizenTrackingDashboard", () => {
         name: "Layanan jelas, langkah lebih mudah",
       }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("navigation", { name: "Breadcrumb" }).textContent,
+    ).toContain("Beranda > Layanan Publik > Pelacakan");
   });
 
   it("validates tracking number format and finds a matching application", () => {

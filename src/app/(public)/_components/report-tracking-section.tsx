@@ -86,7 +86,7 @@ export function ReportTrackingSection() {
                 Lihat contoh laporan
               </Link>
               <Link
-                href="/citizen/reporting"
+                href="/tracking"
                 className="inline-flex min-h-10 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 Buat laporan baru

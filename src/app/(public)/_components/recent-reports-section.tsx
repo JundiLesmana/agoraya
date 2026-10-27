@@ -227,7 +227,7 @@ export function RecentReportsSection() {
       </p>
       <div className="mt-5">
         <Link
-          href="/citizen/reporting"
+          href="/tracking"
           className="text-primary focus-visible:ring-ring inline-flex min-h-10 items-center gap-2 rounded-md px-2 text-sm font-semibold underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           Buat laporan baru

@@ -405,7 +405,7 @@ export function StatisticsRoom() {
               <li>
                 <Link
                   className="hover:text-foreground"
-                  href="/citizen/reporting"
+                  href="/tracking"
                 >
                   Layanan Publik
                 </Link>

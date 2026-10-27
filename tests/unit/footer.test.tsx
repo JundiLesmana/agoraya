@@ -46,7 +46,7 @@ describe('Footer', () => {
     ).toBeTruthy();
 
     const cta = screen.getByRole('link', { name: 'Buat laporan' });
-    expect(cta.getAttribute('href')).toBe('/citizen/reporting');
+    expect(cta.getAttribute('href')).toBe('/tracking');
     expect(cta.getAttribute('aria-label')).toBe('Buat laporan');
     expect(
       cta.compareDocumentPosition(

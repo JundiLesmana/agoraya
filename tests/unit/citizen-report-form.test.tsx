@@ -28,30 +28,25 @@ function completeDetails() {
   });
 }
 
-function advanceToDetails() {
-  fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
-}
-
 function advanceToAttachments() {
-  advanceToDetails();
   completeDetails();
   fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
 }
 
 describe("ReportForm", () => {
-  it("starts with the requested category and validates the required category", () => {
+  it("starts at details when given a valid category", () => {
     render(<ReportForm initialCategory="Infrastruktur" />);
 
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
-      "1",
-    );
-    expect(screen.getByRole("radio", { name: "Infrastruktur" })).toHaveProperty(
-      "checked",
-      true,
+      "2",
     );
     expect(
+      screen.getByRole("heading", { name: "Detail masalah" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "Infrastruktur" })).toBeNull();
+    expect(
       screen.getByRole("button", { name: /lanjut/i }).hasAttribute("disabled"),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("requires a category before continuing", () => {
@@ -59,10 +54,22 @@ describe("ReportForm", () => {
     expect(
       screen.getByRole("button", { name: /lanjut/i }).hasAttribute("disabled"),
     ).toBe(true);
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect(screen.queryByRole("radio", { name: "Layanan lainnya" })).toBeNull();
+  });
+
+  it("keeps an invalid initial category on the category step", () => {
+    render(<ReportForm initialCategory="Tidak dikenal" />);
+
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
+      "1",
+    );
+    expect(screen.getByRole("radio", { name: "Infrastruktur" })).toBeTruthy();
   });
 
   it("validates detail fields in real time and allows returning to a previous step", () => {
-    render(<ReportForm initialCategory="Infrastruktur" />);
+    render(<ReportForm />);
+    fireEvent.click(screen.getByRole("radio", { name: "Infrastruktur" }));
     fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
 
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
@@ -185,7 +192,6 @@ describe("ReportForm", () => {
 
   it("requires valid contact details and never reports a false submission success", () => {
     render(<ReportForm initialCategory="Infrastruktur" />);
-    advanceToDetails();
     completeDetails();
     fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
     fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));

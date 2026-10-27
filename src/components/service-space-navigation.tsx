@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 type ServiceSpace = "citizen" | "agency" | "statistics";
 
 const SERVICE_SPACES = [
-  { id: "citizen", href: "/citizen/reporting", label: "Ruang Warga" },
+  { id: "citizen", href: "/tracking", label: "Ruang Warga" },
   { id: "agency", href: "/asn/reporting", label: "Ruang Instansi" },
   { id: "statistics", href: "/data/statistik", label: "Ruang Statistik" },
 ] as const;
@@ -12,9 +12,11 @@ const SERVICE_SPACES = [
 export function ServiceSpaceNavigation({
   activeSpace,
   variant = "default",
+  statisticsHref = "/data/statistik",
 }: {
   activeSpace: ServiceSpace;
   variant?: "default" | "plain";
+  statisticsHref?: string;
 }) {
   return (
     <nav
@@ -30,7 +32,7 @@ export function ServiceSpaceNavigation({
         return (
           <Link
             key={space.id}
-            href={space.href}
+            href={space.id === "statistics" ? statisticsHref : space.href}
             aria-current={active ? "page" : undefined}
             className={cn(
               "focus-visible:ring-ring rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",

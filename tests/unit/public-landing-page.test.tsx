@@ -47,7 +47,7 @@ describe('PublicLandingPage', () => {
 
     expect(screen.getByRole('link', { name: /lihat data/i }).getAttribute('href')).toBe('/data');
     expect(screen.getByRole('link', { name: /cek layanan/i }).getAttribute('href')).toBe('/citizen/dashboard');
-    expect(screen.getByRole('link', { name: /laporkan sekarang/i }).getAttribute('href')).toBe('/citizen/reporting');
+    expect(screen.getByRole('link', { name: /laporkan sekarang/i }).getAttribute('href')).toBe('/tracking');
     expect(screen.getByRole('link', { name: /jelajahi insight/i }).getAttribute('href')).toBe('/insights');
   });
 
@@ -63,7 +63,7 @@ describe('PublicLandingPage', () => {
     ).toBeTruthy();
 
     const cta = within(reportingCta).getByRole('link', { name: 'Buat laporan baru' });
-    expect(cta.getAttribute('href')).toBe('/citizen/reporting');
+    expect(cta.getAttribute('href')).toBe('/tracking');
     expect(cta.closest('section')?.className).toContain('bg-gradient-to-br');
     expect(
       screen.getByTestId('dashboard-preview').compareDocumentPosition(cta) &

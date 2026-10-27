@@ -12,7 +12,7 @@ import { useTheme } from '@/components/theme-provider';
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
   { href: '/data', label: 'Data Pemerintah' },
-  { href: '/citizen/reporting', label: 'Layanan Publik' },
+  { href: '/tracking', label: 'Layanan Publik' },
   { href: '/citizen/dashboard', label: 'Lapor Warga' },
   { href: '/insights', label: 'Insight' },
   { href: '/tentang', label: 'Tentang' },
