@@ -79,16 +79,12 @@ describe('InsightPage — hero section', () => {
     expect(deskripsi).toBeTruthy();
   });
 
-  it('menampilkan banner informasi di bagian bawah', () => {
+  it('menampilkan info banner "Seluruh angka · Data contoh" di bawah filter', () => {
     render(<InsightPage />);
 
-    const banner = screen.getByText(
-      /seluruh angka, temuan, dan sumber di lamaran ini adalah data contoh untuk ilustrasi, bukan data resmi aktual/i,
-    );
+    const banner = screen.getByRole('status');
     expect(banner).toBeTruthy();
-
-    // Ikon informasi ada dalam banner
-    const infoIcon = document.querySelector('svg');
-    expect(infoIcon).toBeTruthy();
+    expect(banner.textContent).toContain('Seluruh angka');
+    expect(banner.textContent).toContain('Data contoh');
   });
 });
