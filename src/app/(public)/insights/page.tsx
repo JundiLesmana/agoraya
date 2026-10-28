@@ -6,6 +6,7 @@ import {
   SekilasCards,
   SekilasSkeleton,
 } from './_components/sekilas-cards';
+import { TimelyServiceComparison } from './_components/timely-service-comparison';
 
 export const metadata: Metadata = {
   title: 'Insight Publik | Agoraya',
@@ -72,6 +73,10 @@ export default function InsightPage() {
       <Suspense fallback={<SekilasSkeleton />}>
         <SekilasCards />
       </Suspense>
+
+      <div className="mt-6">
+        <TimelyServiceComparison />
+      </div>
 
       <Suspense
         fallback={
