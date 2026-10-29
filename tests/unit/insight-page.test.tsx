@@ -224,7 +224,7 @@ describe('InsightPage — source and methodology', () => {
       screen
         .getByRole('link', { name: /jelajahi data pemerintah/i })
         .getAttribute('href'),
-    ).toBe('/data');
+    ).toBe('/data-pemerintah');
   });
 
   it('mengatur grid satu, dua, lalu tiga kolom sesuai breakpoint', () => {
@@ -238,5 +238,28 @@ describe('InsightPage — source and methodology', () => {
     expect(grid?.className).toContain('grid-cols-1');
     expect(grid?.className).toContain('md:grid-cols-2');
     expect(grid?.className).toContain('lg:grid-cols-3');
+  });
+});
+
+describe('InsightPage — data CTA', () => {
+  it('menampilkan CTA beraksesibel yang mengarah ke laman Data Pemerintah', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', {
+      name: 'Dari insight, lanjutkan ke datanya.',
+    });
+    expect(
+      within(section).getByText(
+        'Temukan dataset dan pelajari konteks di balik setiap angka.',
+      ),
+    ).toBeTruthy();
+
+    const cta = within(section).getByRole('link', {
+      name: 'Jelajahi Data Pemerintah',
+    });
+    expect(cta.getAttribute('href')).toBe('/data-pemerintah');
+    expect(cta.getAttribute('aria-label')).toBe('Jelajahi Data Pemerintah');
+    expect(cta.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getByRole('main').lastElementChild).toBe(section);
   });
 });
