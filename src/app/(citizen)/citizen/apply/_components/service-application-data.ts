@@ -1,4 +1,4 @@
-export type ServiceCategory = "Pengaduan" | "Perizinan" | "Bansos";
+export type ServiceCategory = "Pengaduan" | "Perizinan" | "Bansos" | "Kesehatan";
 
 export interface PublicService {
   id: string;
@@ -6,23 +6,14 @@ export interface PublicService {
   description: string;
   category: ServiceCategory;
   agency: string;
-  prefix: "PGD" | "IZN" | "BSL";
+  prefix: "PGD" | "IZN" | "BSL" | "KSE";
 }
 
 // TODO(#86): replace this simulated catalog with data from the public-services API.
 export const PUBLIC_SERVICES: readonly PublicService[] = [
   {
-    id: "road-report",
-    name: "Pengaduan fasilitas umum",
-    description:
-      "Laporkan jalan, lampu, drainase, dan fasilitas publik lainnya.",
-    category: "Pengaduan",
-    agency: "Dinas terkait",
-    prefix: "PGD",
-  },
-  {
     id: "business-permit",
-    name: "Izin usaha mikro",
+    name: "Perizinan",
     description: "Ajukan perizinan usaha mikro dengan panduan dokumen.",
     category: "Perizinan",
     agency: "Dinas Penanaman Modal dan PTSP",
@@ -30,7 +21,7 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
   },
   {
     id: "education-aid",
-    name: "Bantuan pendidikan",
+    name: "Pendidikan",
     description: "Ajukan bantuan pendidikan bagi warga yang memenuhi kriteria.",
     category: "Bansos",
     agency: "Dinas Sosial",
@@ -38,11 +29,19 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
   },
   {
     id: "social-aid",
-    name: "Bantuan sosial keluarga",
+    name: "Sosial",
     description: "Sampaikan kebutuhan bantuan sosial untuk keluarga.",
     category: "Bansos",
     agency: "Dinas Sosial",
     prefix: "BSL",
+  },
+  {
+    id: "health-service",
+    name: "Kesehatan",
+    description: "Akses layanan kesehatan dan fasilitas puskesmas.",
+    category: "Kesehatan",
+    agency: "Dinas Kesehatan",
+    prefix: "KSE",
   },
 ];
 

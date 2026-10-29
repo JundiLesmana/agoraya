@@ -64,12 +64,12 @@ describe("ReportForm", () => {
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
       "1",
     );
-    expect(screen.getByRole("radio", { name: "Infrastruktur" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Infrastruktur/ })).toBeTruthy();
   });
 
   it("validates detail fields in real time and allows returning to a previous step", () => {
     render(<ReportForm />);
-    fireEvent.click(screen.getByRole("radio", { name: "Infrastruktur" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Infrastruktur/ }));
     fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
 
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(

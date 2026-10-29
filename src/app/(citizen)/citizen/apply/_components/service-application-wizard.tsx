@@ -25,6 +25,7 @@ import {
   isValidEmail,
   isValidNik,
   PUBLIC_SERVICES,
+  type ServiceCategory,
   type PublicService,
 } from "./service-application-data";
 
@@ -57,7 +58,10 @@ const CATEGORIES = [
   "Pengaduan",
   "Perizinan",
   "Bansos",
+  "Kesehatan",
 ] as const;
+
+type CategoryFilter = (typeof CATEGORIES)[number];
 
 // This fixture is intentionally synthetic; the current session contract has no profile data.
 const PROFILE = {
@@ -188,19 +192,32 @@ function ServiceCatalog({
   onSelect: (service: PublicService) => void;
 }) {
   const [query, setQuery] = React.useState("");
-  const [category, setCategory] =
-    React.useState<(typeof CATEGORIES)[number]>("Semua kategori");
+  const [category, setCategory] = React.useState<CategoryFilter>("Semua kategori");
   const normalizedQuery = query.trim().toLocaleLowerCase("id");
   const services = PUBLIC_SERVICES.filter((service) => {
-    const matchesCategory =
-      category === "Semua kategori" || service.category === category;
-    const matchesSearch =
-      !normalizedQuery ||
-      `${service.name} ${service.description} ${service.category}`
-        .toLocaleLowerCase("id")
-        .includes(normalizedQuery);
+      const matchesCategory =
+        category === "Semua kategori" || service.category === category;
+      const matchesSearch =
+        !normalizedQuery ||
+        `${service.name} ${service.description} ${service.agency}`
+          .toLocaleLowerCase("id")
+          .includes(normalizedQuery);
     return matchesCategory && matchesSearch;
   });
+
+  const visibleCategories = React.useMemo(() => {
+    const cats = new Set(
+      PUBLIC_SERVICES.filter((service) => {
+        if (!normalizedQuery) return true;
+        return `${service.name} ${service.description} ${service.agency}`
+          .toLocaleLowerCase("id")
+          .includes(normalizedQuery);
+      }).map((service) => service.category),
+    );
+    return CATEGORIES.filter(
+      (item) => item === "Semua kategori" || cats.has(item as ServiceCategory),
+    );
+  }, [normalizedQuery]);
 
   return (
     <section aria-labelledby="catalog-heading" className="space-y-4">
@@ -243,7 +260,7 @@ function ServiceCatalog({
             }
             className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           >
-            {CATEGORIES.map((item) => (
+            {visibleCategories.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
@@ -270,9 +287,6 @@ function ServiceCatalog({
                   <span className="flex items-start justify-between gap-3">
                     <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                       <FileText className="size-4" aria-hidden="true" />
-                    </span>
-                    <span className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      {service.category}
                     </span>
                   </span>
                   <span className="mt-3 block font-semibold">
@@ -417,7 +431,7 @@ function ServiceSpecificFields({
               className="border-input bg-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             >
               <option value="">Pilih jenis bantuan</option>
-              <option value="Pendidikan">Bantuan pendidikan</option>
+              <option value="Pendidikan">Pendidikan</option>
               <option value="Keluarga">Bantuan keluarga</option>
             </select>
           </label>
@@ -450,7 +464,7 @@ function ServiceSpecificFields({
             <Input
               value={details.permitType}
               onChange={(event) => onChange("permitType", event.target.value)}
-              placeholder="Contoh: izin usaha mikro"
+              placeholder="Contoh: Perizinan"
             />
           </label>
           <label className="block space-y-1.5 text-sm">

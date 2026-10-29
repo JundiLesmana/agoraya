@@ -52,7 +52,7 @@ const SERVICE_TYPES = [
   ["Administrasi", "#dc7437"],
   ["Kebersihan", "#138574"],
   ["Kesehatan", "#9d5a9c"],
-  ["Bantuan sosial", "#be8a24"],
+  ["Sosial", "#be8a24"],
   ["Lainnya", "#68778a"],
 ] as const;
 const DISTRICTS: Record<Exclude<AnalyticsRegion, "all">, readonly string[]> = {

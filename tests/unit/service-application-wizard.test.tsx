@@ -21,13 +21,13 @@ describe("ServiceApplicationWizard", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "Fitur simpan draft belum tersedia",
     );
-    expect(screen.getByText("Izin usaha mikro")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Perizinan/ })).toBeTruthy();
 
     fireEvent.change(screen.getByRole("textbox", { name: "Cari layanan" }), {
       target: { value: "pendidikan" },
     });
-    expect(screen.getByText("Bantuan pendidikan")).toBeTruthy();
-    expect(screen.queryByText("Izin usaha mikro")).toBeNull();
+    expect(screen.getByText("Pendidikan")).toBeTruthy();
+    expect(screen.queryByText("Perizinan")).toBeNull();
     fireEvent.change(screen.getByRole("textbox", { name: "Cari layanan" }), {
       target: { value: "" },
     });
@@ -37,15 +37,15 @@ describe("ServiceApplicationWizard", () => {
         target: { value: "Perizinan" },
       },
     );
-    expect(screen.getByText("Izin usaha mikro")).toBeTruthy();
-    expect(screen.queryByText("Bantuan pendidikan")).toBeNull();
+    expect(screen.getByRole("button", { name: /Perizinan/ })).toBeTruthy();
+    expect(screen.queryByText("Pendidikan")).toBeNull();
   });
 
   it("walks through details, document upload, review, and simulated success", () => {
     render(<ServiceApplicationWizard />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: /Pengaduan fasilitas umum/ }),
+      screen.getByRole("button", { name: /Perizinan/ }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Pilih layanan" }));
     expect(screen.getByRole("heading", { name: "Data & Detail" })).toBeTruthy();
@@ -61,21 +61,20 @@ describe("ServiceApplicationWizard", () => {
       target: { value: "warga.simulasi@example.test" },
     });
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Judul pengaduan" }), {
-      target: { value: "Lampu jalan padam" },
+    fireEvent.change(screen.getByRole("textbox", { name: "Nama usaha" }), {
+      target: { value: "Warung Makmur" },
     });
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Alamat atau lokasi kejadian" }),
-      {
-        target: { value: "Jl. Melati" },
+    fireEvent.change(screen.getByRole("textbox", { name: "Jenis izin" }), {
+      target: { value: "Perizinan" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Alamat usaha" }), {
+      target: { value: "Jl. Melati" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tujuan pengajuan" }), {
+      target: {
+        value: "Mengurus perizinan untuk warung kopi.",
       },
-    );
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Ceritakan detail" }),
-      {
-        target: { value: "Lampu jalan di depan taman tidak menyala." },
-      },
-    );
+    });
     fireEvent.click(screen.getByRole("button", { name: "Lanjut ke dokumen" }));
 
     const document = new File(["sample"], "foto.jpg", { type: "image/jpeg" });
@@ -88,7 +87,7 @@ describe("ServiceApplicationWizard", () => {
     const review = screen.getByRole("region", {
       name: "Periksa kembali pengajuan Anda",
     });
-    expect(within(review).getByText("Lampu jalan padam")).toBeTruthy();
+    expect(within(review).getByText("Warung Makmur")).toBeTruthy();
     expect(within(review).getByText("foto.jpg")).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Kirim simulasi" }));
@@ -104,24 +103,21 @@ describe("ServiceApplicationWizard", () => {
   it("rejects unsupported document formats in the upload step", () => {
     render(<ServiceApplicationWizard />);
     fireEvent.click(
-      screen.getByRole("button", { name: /Pengaduan fasilitas umum/ }),
+      screen.getByRole("button", { name: /Perizinan/ }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Pilih layanan" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Judul pengaduan" }), {
-      target: { value: "Lampu jalan padam" },
+    fireEvent.change(screen.getByRole("textbox", { name: "Nama usaha" }), {
+      target: { value: "Warung Makmur" },
     });
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Alamat atau lokasi kejadian" }),
-      {
-        target: { value: "Jl. Melati" },
-      },
-    );
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Ceritakan detail" }),
-      {
-        target: { value: "Lampu jalan padam sejak tadi malam." },
-      },
-    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Jenis izin" }), {
+      target: { value: "Perizinan" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Alamat usaha" }), {
+      target: { value: "Jl. Melati" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tujuan pengajuan" }), {
+      target: { value: "Mengurus perizinan untuk warung kopi." },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Lanjut ke dokumen" }));
 
     fireEvent.change(screen.getByLabelText("Pilih dokumen pendukung"), {

@@ -64,32 +64,36 @@ const REPORTING_STEPS = [
   },
 ] as const;
 
-function reportHref(category?: string) {
-  return category
-    ? `/citizen/dashboard?category=${encodeURIComponent(category)}#report-form`
-    : "#report-form";
+function reportHref(category?: string, subcategory?: string) {
+  const parts: string[] = [];
+  if (category) parts.push(`category=${encodeURIComponent(category)}`);
+  if (subcategory) parts.push(`subcategory=${encodeURIComponent(subcategory)}`);
+  const query = parts.join("&");
+  return query ? `/citizen/dashboard?${query}#report-form` : "#report-form";
 }
 
 export function ReportQuickActions({
   initialCategory,
+  initialSubcategory,
 }: {
   initialCategory?: string;
+  initialSubcategory?: string;
 }) {
   return (
     <div className="bg-background text-foreground [--primary-foreground:#ffffff] [--primary:#1769e0]">
-      <nav
-        aria-label="Breadcrumb"
-        className="text-muted-foreground mx-auto max-w-7xl px-4 py-3 text-xs sm:px-6 lg:px-8"
-      >
-        Beranda <span className="mx-2">›</span>{" "}
-        <span className="font-medium text-blue-700 dark:text-blue-400">
-          Lapor Warga
-        </span>
-      </nav>
       <section
         aria-labelledby="reporting-hero-title"
         className="bg-sky-50 px-4 py-10 sm:px-6 sm:py-12 lg:px-8 dark:bg-slate-950/70"
       >
+        <nav
+          aria-label="Breadcrumb"
+          className="text-muted-foreground mx-auto max-w-7xl px-4 py-3 text-xs sm:px-6 lg:px-8"
+        >
+          Beranda <span className="mx-2">›</span>{" "}
+          <span className="font-medium text-blue-700 dark:text-blue-400">
+            Lapor Warga
+          </span>
+        </nav>
         <div className="mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <p className="mb-3 text-xs font-bold tracking-wide text-blue-700 uppercase dark:text-blue-400">
@@ -271,6 +275,7 @@ export function ReportQuickActions({
             <ReportForm
               key={initialCategory ?? "default"}
               initialCategory={initialCategory}
+              initialSubcategory={initialSubcategory}
             />
           </div>
         </div>
