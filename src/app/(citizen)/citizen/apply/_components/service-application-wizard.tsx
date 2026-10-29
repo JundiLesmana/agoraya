@@ -25,6 +25,7 @@ import {
   isValidEmail,
   isValidNik,
   PUBLIC_SERVICES,
+  type ServiceCategory,
   type PublicService,
 } from "./service-application-data";
 
@@ -52,7 +53,15 @@ const INITIAL_DETAILS: ApplicationDetails = {
   householdMembers: "",
 };
 
-const CATEGORIES = ["Semua kategori", "Perizinan", "Bansos", "Kesehatan"] as const;
+const CATEGORIES = [
+  "Semua kategori",
+  "Pengaduan",
+  "Perizinan",
+  "Bansos",
+  "Kesehatan",
+] as const;
+
+type CategoryFilter = (typeof CATEGORIES)[number];
 
 // This fixture is intentionally synthetic; the current session contract has no profile data.
 const PROFILE = {
@@ -183,8 +192,7 @@ function ServiceCatalog({
   onSelect: (service: PublicService) => void;
 }) {
   const [query, setQuery] = React.useState("");
-  const [category, setCategory] =
-    React.useState<(typeof CATEGORIES)[number]>("Semua kategori");
+  const [category, setCategory] = React.useState<CategoryFilter>("Semua kategori");
   const normalizedQuery = query.trim().toLocaleLowerCase("id");
   const services = PUBLIC_SERVICES.filter((service) => {
       const matchesCategory =
@@ -207,7 +215,7 @@ function ServiceCatalog({
       }).map((service) => service.category),
     );
     return CATEGORIES.filter(
-      (item) => item === "Semua kategori" || cats.has(item as (typeof CATEGORIES)[number]),
+      (item) => item === "Semua kategori" || cats.has(item as ServiceCategory),
     );
   }, [normalizedQuery]);
 
