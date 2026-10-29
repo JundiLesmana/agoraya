@@ -111,7 +111,8 @@ export default function InsightPage() {
           </p>
         </div>
         <Link
-          href="/data"
+          href="/data-pemerintah"
+          aria-label="Jelajahi Data Pemerintah"
           className="bg-primary text-primary-foreground focus-visible:outline-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           Jelajahi Data Pemerintah
