@@ -460,10 +460,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section aria-label="Peran dan mulai" className="sr-only">
-        <h2>Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.</h2>
-      </section>
-
       <section
         aria-labelledby="faq-title"
         className="dark:bg-background bg-white py-14 sm:py-16"
@@ -485,6 +481,72 @@ export default function AboutPage() {
             </p>
           </div>
           <FaqAccordion items={faqs} />
+        </div>
+      </section>
+
+      <section aria-label="Peran dan mulai" className="sr-only">
+        <h2>Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.</h2>
+      </section>
+
+      <section
+        aria-labelledby="cta-title"
+        className="dark:bg-background relative isolate overflow-hidden bg-[#f0f7ff] py-14 sm:py-16"
+      >
+        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <div>
+            <p
+              id="cta-title"
+              className="dark:text-foreground text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
+            >
+              Siap menjelajahi?
+            </p>
+            <p className="dark:text-muted-foreground mt-3 max-w-[460px] text-sm leading-6 text-slate-600">
+              Mulai kenali data pemerintah atau temukan layanan publik yang Anda
+              butuhkan.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button
+                asChild
+                className="h-[46px] rounded-[10px] px-5 text-sm font-semibold shadow-none"
+              >
+                <Link
+                  href="/data"
+                  aria-label="Jelajahi Data Pemerintah"
+                >
+                  Jelajahi Data Pemerintah
+                  <ArrowRight aria-hidden="true" className="size-5" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="h-[46px] rounded-[10px] border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 shadow-none hover:bg-blue-50 hover:text-blue-800 dark:border-slate-600 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800 dark:hover:text-sky-200"
+              >
+                <Link
+                  href="/tracking"
+                  aria-label="Lihat Layanan Publik"
+                >
+                  Lihat Layanan Publik
+                  <ArrowRight aria-hidden="true" className="size-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl">
+            <picture>
+              <source
+                media="(max-width: 1023px)"
+                srcSet="/landing/footer-mobile.png"
+              />
+              <Image
+                src="/landing/footer-desktop.png"
+                alt="Ajakan untuk menjelajahi data dan layanan publik"
+                fill
+                sizes="(max-width: 1023px) 100vw, 50vw"
+                className="object-cover object-center"
+              />
+            </picture>
+          </div>
         </div>
       </section>
     </>

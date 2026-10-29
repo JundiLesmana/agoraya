@@ -191,11 +191,25 @@ function ServiceCatalog({
         category === "Semua kategori" || service.category === category;
       const matchesSearch =
         !normalizedQuery ||
-        `${service.description} ${service.agency}`
+        `${service.name} ${service.description} ${service.agency}`
           .toLocaleLowerCase("id")
           .includes(normalizedQuery);
     return matchesCategory && matchesSearch;
   });
+
+  const visibleCategories = React.useMemo(() => {
+    const cats = new Set(
+      PUBLIC_SERVICES.filter((service) => {
+        if (!normalizedQuery) return true;
+        return `${service.name} ${service.description} ${service.agency}`
+          .toLocaleLowerCase("id")
+          .includes(normalizedQuery);
+      }).map((service) => service.category),
+    );
+    return CATEGORIES.filter(
+      (item) => item === "Semua kategori" || cats.has(item as (typeof CATEGORIES)[number]),
+    );
+  }, [normalizedQuery]);
 
   return (
     <section aria-labelledby="catalog-heading" className="space-y-4">
@@ -238,7 +252,7 @@ function ServiceCatalog({
             }
             className="border-input bg-background focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           >
-            {CATEGORIES.map((item) => (
+            {visibleCategories.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
