@@ -30,21 +30,22 @@ const COLOR_CLASSES: Record<SekilasColor, { icon: string; text: string }> = {
   },
 };
 
-const PRESENTATION: Record<
+const PRESENTATION = new Map<
   string,
   { Icon: typeof Clock; color: SekilasColor }
-> = {
-  Layanan: { Icon: Clock, color: "success" },
-  Realisasi: { Icon: TrendingUp, color: "success" },
-  "Penduduk miskin": { Icon: Users, color: "success" },
-};
+>([
+  ["Layanan", { Icon: Clock, color: "success" }],
+  ["Realisasi", { Icon: TrendingUp, color: "success" }],
+  ["Penduduk miskin", { Icon: Users, color: "success" }],
+]);
 
 function SekilasCard({ item }: { item: SekilasItem }) {
-  const { Icon, color } = PRESENTATION[item.label] ?? {
+  const { Icon, color } = PRESENTATION.get(item.label) ?? {
     Icon: AlertTriangle,
     color: "warning",
   };
-  const classes = COLOR_CLASSES[color];
+  const classes =
+    color === "success" ? COLOR_CLASSES.success : COLOR_CLASSES.warning;
   const ariaLabel = buildSekilasAriaLabel(item);
 
   return (
@@ -59,12 +60,15 @@ function SekilasCard({ item }: { item: SekilasItem }) {
         >
           <Icon className="size-4" aria-hidden="true" />
         </div>
-        <SourceBadge
-          source="SIMULATED"
-          label="Data contoh"
-          withIcon={false}
-          className="px-1.5 py-0.5 text-[10px] leading-none"
-        />
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-[10px]">Simulasi</span>
+          <SourceBadge
+            source="SIMULATED"
+            label="Data contoh"
+            withIcon={false}
+            className="px-1.5 py-0.5 text-[10px] leading-none"
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-1 p-0">
         <CardDescription className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -147,9 +151,10 @@ function SekilasError({
 interface SekilasCardsProps {
   /** Filter awal yang dikirim ke API (wilayah, fokus, periode). */
   filters?: { wilayah?: string; fokus?: string; periode?: string };
+  topik?: string;
 }
 
-export function SekilasCards({ filters }: SekilasCardsProps = {}) {
+export function SekilasCards({ filters, topik }: SekilasCardsProps = {}) {
   const searchParams = useSearchParams();
   const [data, setData] = useState<SekilasItem[] | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -237,6 +242,33 @@ export function SekilasCards({ filters }: SekilasCardsProps = {}) {
     );
   }
 
+  const topicLabels = new Map([
+    ["Layanan", "Layanan"],
+    ["Anggaran", "Realisasi"],
+    ["Kesejahteraan", "Penduduk miskin"],
+  ]);
+  const isAllTopics = !topik || topik === "Semua topik";
+  const topicLabel = topik ? topicLabels.get(topik) : undefined;
+  const visibleData = isAllTopics
+    ? data
+    : data.filter((item) => item.label === topicLabel);
+
+  if (visibleData.length === 0) {
+    return (
+      <section aria-labelledby="sekilas-title" className="space-y-4">
+        <h2
+          id="sekilas-title"
+          className="text-foreground text-xl font-semibold tracking-tight"
+        >
+          Sekilas, apa yang berubah?
+        </h2>
+        <p role="status" className="text-muted-foreground text-sm">
+          Tidak ada ringkasan untuk topik yang dipilih.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="sekilas-title" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -251,7 +283,7 @@ export function SekilasCards({ filters }: SekilasCardsProps = {}) {
         </p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {data.map((item) => (
+        {visibleData.map((item) => (
           <SekilasCard key={item.label} item={item} />
         ))}
       </div>

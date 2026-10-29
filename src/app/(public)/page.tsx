@@ -16,8 +16,7 @@ export const metadata: Metadata = {
   keywords: ['data pemerintah', 'transparansi', 'layanan publik', 'lapor warga', 'insight', 'APBD', 'Indonesia'],
   openGraph: {
     title: 'Agoraya — Transparan, Terbuka, Untuk Indonesia yang Lebih Baik',
-    description:
-      'Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan masalah, dan mendapatkan insight berbasis data.',
+    description: 'Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan masalah, dan mendapatkan insight berbasis data.',
     url: 'https://agoraya.vercel.app',
     siteName: 'Agoraya',
     locale: 'id_ID',
@@ -26,16 +25,14 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Agoraya — Transparansi Data Publik untuk Indonesia',
-    description:
-      'Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan masalah, dan mendapatkan insight berbasis data.',
+    description: 'Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan masalah, dan mendapatkan insight berbasis data.',
   },
 };
 
 const SERVICE_CARDS = [
   {
     title: 'Data Pemerintah',
-    description:
-      'Akses data pemerintah secara real-time, seperti anggaran, realisasi proyek, dan statistik daerah, dalam bentuk dashboard interaktif dan visualisasi yang mudah dipahami.',
+    description: 'Akses data pemerintah secara real-time, seperti anggaran, realisasi proyek, dan statistik daerah, dalam bentuk dashboard interaktif dan visualisasi yang mudah dipahami.',
     href: '/data',
     cta: 'Lihat Data',
     accent: 'blue',
@@ -43,8 +40,7 @@ const SERVICE_CARDS = [
   },
   {
     title: 'Layanan Publik',
-    description:
-      'Pantau status dan progres layanan publik seperti pengaduan warga, perizinan, atau bantuan sosial dengan sistem tracking yang transparan dari sisi pengguna maupun instansi.',
+    description: 'Pantau status dan progres layanan publik seperti pengaduan warga, perizinan, atau bantuan sosial dengan sistem tracking yang transparan dari sisi pengguna maupun instansi.',
     href: '/citizen/dashboard',
     cta: 'Cek Layanan',
     accent: 'green',
@@ -63,7 +59,7 @@ const SERVICE_CARDS = [
     title: 'Insight',
     description:
       'Ubah data publik menjadi insight yang mudah dicerna, seperti perbandingan kualitas layanan antar daerah, tren anggaran, atau indikator kesejahteraan untuk membantu pengambilan keputusan.',
-    href: '/insights',
+    href: '/insight',
     cta: 'Jelajahi Insight',
     accent: 'violet',
     Icon: Sparkles,
@@ -89,23 +85,15 @@ function ReportingCta() {
   return (
     <section
       aria-labelledby="reporting-cta-title"
-      className="rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/10 via-blue-50 to-sky-100 px-6 py-10 dark:from-primary/20 dark:via-blue-950/50 dark:to-slate-900 sm:px-10 sm:py-12"
+      className="border-primary/10 from-primary/10 dark:from-primary/20 rounded-3xl border bg-gradient-to-br via-blue-50 to-sky-100 px-6 py-10 sm:px-10 sm:py-12 dark:via-blue-950/50 dark:to-slate-900"
     >
       <div className="mx-auto max-w-3xl text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">PERLU DIKETAHUI</p>
-        <h2
-          id="reporting-cta-title"
-          className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
-        >
+        <p className="text-primary text-xs font-semibold tracking-[0.24em] uppercase">PERLU DIKETAHUI</p>
+        <h2 id="reporting-cta-title" className="text-foreground mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
           Melapor dengan lebih tenang
         </h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-          Pahami progres laporan Anda dari awal hingga akhir
-        </p>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan
-          privasi akan dijelaskan saat mengisi formulir.
-        </p>
+        <p className="text-muted-foreground mt-3 text-sm leading-6 sm:text-base">Pahami progres laporan Anda dari awal hingga akhir</p>
+        <p className="text-muted-foreground mt-3 text-sm">Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan privasi akan dijelaskan saat mengisi formulir.</p>
         <Button asChild size="lg" className="mt-6" aria-label="Buat laporan baru">
           <Link href="/tracking">
             Buat laporan baru
@@ -119,25 +107,20 @@ function ReportingCta() {
 
 export default function PublicLandingPage() {
   return (
-    <div className="overflow-hidden bg-background">
-      <section
-        aria-labelledby="hero-title"
-        className="relative isolate overflow-hidden lg:min-h-[480px] xl:min-h-[500px]"
-      >
+    <div className="bg-background overflow-hidden">
+      <section aria-labelledby="hero-title" className="relative isolate overflow-hidden lg:min-h-[480px] xl:min-h-[500px]">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(246,250,255,0.98)_0%,rgba(226,237,252,0.94)_52%,rgba(207,225,250,0.82)_100%)] dark:bg-[linear-gradient(135deg,rgba(9,15,25,0.98)_0%,rgba(16,31,50,0.94)_52%,rgba(19,43,67,0.88)_100%)]" />
         <div className="relative z-10 mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:flex lg:min-h-[480px] lg:items-center lg:px-8 lg:py-10 xl:min-h-[500px]">
           <div className="max-w-2xl lg:max-w-[680px]">
             <h1
               id="hero-title"
-              className="max-w-3xl text-[clamp(1.25rem,7vw,2.25rem)] leading-[1.12] font-semibold tracking-tight text-foreground sm:text-4xl sm:leading-tight lg:max-w-[680px] lg:text-5xl lg:leading-[1.08]"
+              className="text-foreground max-w-3xl text-[clamp(1.25rem,7vw,2.25rem)] leading-[1.12] font-semibold tracking-tight sm:text-4xl sm:leading-tight lg:max-w-[680px] lg:text-5xl lg:leading-[1.08]"
             >
-              Transparan, Terbuka, Untuk{' '}
-              <span className="text-blue-700 dark:text-sky-300">Indonesia</span> yang Lebih Baik
+              Transparan, Terbuka, Untuk <span className="text-blue-700 dark:text-sky-300">Indonesia</span> yang Lebih Baik
             </h1>
-            <p className="mt-3 max-w-2xl text-xs leading-4 text-muted-foreground sm:mt-4 sm:text-base sm:leading-7 lg:text-[15px] lg:leading-6">
-              Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan
-              masalah, dan mendapatkan insight berbasis data. Karena partisipasi Anda, mendorong
-              pemerintahan yang lebih transparan, akuntabel, dan responsif.
+            <p className="text-muted-foreground mt-3 max-w-2xl text-xs leading-4 sm:mt-4 sm:text-base sm:leading-7 lg:text-[15px] lg:leading-6">
+              Satu platform untuk mengakses data pemerintah, memantau layanan publik, melaporkan masalah, dan mendapatkan insight berbasis data. Karena partisipasi Anda, mendorong pemerintahan yang
+              lebih transparan, akuntabel, dan responsif.
             </p>
             <div className="mt-4 max-w-3xl sm:mt-6">
               <PublicHeroSearch />
@@ -147,14 +130,7 @@ export default function PublicLandingPage() {
         <div className="relative z-0 aspect-[390/230] w-full lg:absolute lg:inset-0 lg:aspect-auto">
           <picture className="absolute inset-0 block">
             <source media="(max-width: 1023px)" srcSet="/landing/hero-mobile.png" />
-            <Image
-              src="/landing/hero-desktop.png"
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-right"
-            />
+            <Image src="/landing/hero-desktop.png" alt="" fill priority sizes="100vw" className="object-cover object-right" />
           </picture>
           <div
             className="pointer-events-none absolute inset-0 z-[1] dark:bg-[linear-gradient(90deg,rgba(9,15,25,0.96)_0%,rgba(9,15,25,0.88)_48%,rgba(9,15,25,0.08)_78%,transparent_100%)]"
@@ -164,39 +140,31 @@ export default function PublicLandingPage() {
         <p className="sr-only">Data yang terbuka adalah langkah awal untuk perubahan nyata</p>
       </section>
 
-      <section
-        aria-labelledby="ecosystem-title"
-        className="mx-auto max-w-7xl px-4 pb-8 pt-20 sm:px-6 lg:px-8"
-      >
+      <section aria-labelledby="ecosystem-title" className="mx-auto max-w-7xl px-4 pt-20 pb-8 sm:px-6 lg:px-8">
         <div className="mb-8 max-w-2xl">
-          <p className="text-sm font-semibold tracking-[0.24em] text-muted-foreground">EKOSISTEM LAYANAN</p>
-          <h2
-            id="ecosystem-title"
-            className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
-          >
+          <p className="text-muted-foreground text-sm font-semibold tracking-[0.24em]">EKOSISTEM LAYANAN</p>
+          <h2 id="ecosystem-title" className="text-foreground mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
             Solusi Lengkap untuk Transparansi dan Partisipasi Publik
           </h2>
-          <p className="mt-3 text-base leading-7 text-muted-foreground">
-            Dari data hingga aksi nyata, semua dalam satu ekosistem terintegrasi.
-          </p>
+          <p className="text-muted-foreground mt-3 text-base leading-7">Dari data hingga aksi nyata, semua dalam satu ekosistem terintegrasi.</p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {SERVICE_CARDS.map(({ title, description, href, cta, accent, Icon }) => (
             <article
               key={title}
-              className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl focus-within:-translate-y-1 focus-within:shadow-2xl"
+              className="group border-border bg-card flex h-full flex-col overflow-hidden rounded-3xl border shadow-sm transition-all duration-300 focus-within:-translate-y-1 focus-within:shadow-2xl hover:-translate-y-1 hover:shadow-2xl"
             >
               <div className={cn('flex flex-1 flex-col p-6', cardAccentClasses(accent))}>
-                <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/90 shadow-sm ring-1 ring-inset ring-white/10 dark:bg-slate-900/80 dark:ring-white/10">
+                <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-white/90 shadow-sm ring-1 ring-white/10 ring-inset dark:bg-slate-900/80 dark:ring-white/10">
                   <Icon className="size-6" aria-hidden="true" />
                 </div>
-                <h3 className="mt-4 text-2xl font-semibold text-foreground">{title}</h3>
-                <p className="mt-4 max-w-sm text-sm leading-7 text-muted-foreground">{description}</p>
+                <h3 className="text-foreground mt-4 text-2xl font-semibold">{title}</h3>
+                <p className="text-muted-foreground mt-4 max-w-sm text-sm leading-7">{description}</p>
                 <div className="mt-5">
                   <Link
                     href={href}
-                    className="inline-flex items-center gap-2 text-sm font-semibold transition hover:gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    className="focus-visible:ring-primary inline-flex items-center gap-2 text-sm font-semibold transition hover:gap-3 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                   >
                     {cta}
                     <ArrowRight className="size-4" aria-hidden="true" />
