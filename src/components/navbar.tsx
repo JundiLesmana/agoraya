@@ -10,12 +10,12 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Beranda" },
-  { href: "/data", label: "Data Pemerintah" },
-  { href: "/tracking", label: "Layanan Publik" },
-  { href: "/citizen/dashboard", label: "Lapor Warga" },
-  { href: "/insights", label: "Insight" },
-  { href: "/tentang", label: "Tentang" },
+  { href: '/', label: 'Beranda' },
+  { href: '/data', label: 'Data Pemerintah' },
+  { href: '/tracking', label: 'Layanan Publik' },
+  { href: '/citizen/dashboard', label: 'Lapor Warga' },
+  { href: '/insight', label: 'Insight' },
+  { href: '/tentang', label: 'Tentang' },
 ] as const;
 
 function isNavigationItemActive(pathname: string, href: string) {
@@ -48,32 +48,15 @@ function Navbar() {
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return;
-    const firstFocusable = mobileMenuRef.current?.querySelector<HTMLElement>(
-      'a, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
+    const firstFocusable = mobileMenuRef.current?.querySelector<HTMLElement>('a, button:not([disabled]), [tabindex]:not([tabindex="-1"])');
     firstFocusable?.focus();
   }, [mobileMenuOpen]);
 
   return (
     <header className="border-border/60 bg-background/95 supports-[backdrop-filter]:bg-background/75 sticky top-0 z-50 border-b shadow-sm backdrop-blur">
-      <div
-        className={cn(
-          "mx-auto flex h-20 items-center gap-4 px-4 sm:px-6 lg:px-8",
-          "max-w-7xl",
-        )}
-      >
-        <Link
-          href="/"
-          className="focus-visible:ring-ring flex items-center gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-        >
-          <Image
-            src={logoSrc}
-            alt="Agoraya"
-            width={180}
-            height={48}
-            priority
-            className="h-10 w-auto shrink-0 object-contain"
-          />
+      <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="focus-visible:ring-ring flex items-center gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
+          <Image src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="Agoraya" width={180} height={48} priority className="h-10 w-auto shrink-0 object-contain" />
         </Link>
 
         <nav
@@ -87,10 +70,8 @@ function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                  active
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground",
+                  'text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+                  active && 'text-primary',
                 )}
                 aria-current={
                   active
@@ -114,10 +95,8 @@ function Navbar() {
               aria-pressed={theme === "light"}
               onClick={toggleTheme}
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                theme === "light"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <SunMedium className="size-4" /> Terang
@@ -128,10 +107,8 @@ function Navbar() {
               aria-pressed={theme === "dark"}
               onClick={toggleTheme}
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                theme === "dark"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+                theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <MoonStar className="size-4" /> Gelap
@@ -162,19 +139,13 @@ function Navbar() {
       </div>
 
       <div
-        className={cn(
-          "border-border/60 bg-background overflow-hidden border-t transition-all duration-300 ease-in-out lg:hidden",
-          mobileMenuOpen ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0",
-        )}
+        className={cn('border-border/60 bg-background overflow-hidden border-t transition-all duration-300 ease-in-out lg:hidden', mobileMenuOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0')}
       >
-        <div
-          ref={mobileMenuRef}
-          id="mobile-navigation"
-          className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:px-8"
-        >
+        <div ref={mobileMenuRef} id="mobile-navigation" className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="border-border flex items-center justify-between border-b pb-3">
             <div>
               <p className="text-sm font-semibold">Agoraya</p>
+              <p className="text-muted-foreground text-xs">SatuData.id</p>
             </div>
             <div className="border-border inline-flex rounded-full border p-1">
               <button
@@ -182,12 +153,7 @@ function Navbar() {
                 aria-label="Tema terang"
                 aria-pressed={theme === "light"}
                 onClick={toggleTheme}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  theme === "light"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground",
-                )}
+                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
                 Terang
               </button>
@@ -196,43 +162,23 @@ function Navbar() {
                 aria-label="Tema gelap"
                 aria-pressed={theme === "dark"}
                 onClick={toggleTheme}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  theme === "dark"
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground",
-                )}
+                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
                 Gelap
               </button>
             </div>
           </div>
           <nav aria-label="Navigasi mobile" className="grid gap-2">
-            {NAV_ITEMS.map((item) => {
-              const active = isNavigationItemActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "focus-visible:ring-ring rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                  aria-current={
-                    active
-                      ? pathname === item.href
-                        ? "page"
-                        : "location"
-                      : undefined
-                  }
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
           <Button asChild className="w-full">
             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>

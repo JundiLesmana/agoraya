@@ -4,14 +4,7 @@ import type { ReactNode } from 'react';
 import { render, screen, within } from '@testing-library/react';
 
 vi.mock('next/link', () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: {
-    href: string;
-    children: ReactNode;
-  }) => (
+  default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -23,7 +16,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-import InsightPage from '@/app/(public)/insights/page';
+import InsightPage from '@/app/(public)/insight/page';
 
 describe('InsightPage — breadcrumb', () => {
   it('merender 2 item breadcrumb dengan separator yang benar', () => {
@@ -35,9 +28,7 @@ describe('InsightPage — breadcrumb', () => {
     const { getByRole, getByText } = within(breadcrumb);
 
     // "Beranda" mengarah ke "/"
-    expect(getByRole('link', { name: /beranda/i }).getAttribute('href')).toBe(
-      '/',
-    );
+    expect(getByRole('link', { name: /beranda/i }).getAttribute('href')).toBe('/');
 
     // "Insight" adalah halaman saat ini: tidak dapat diklik, aria-current="page"
     const currentPage = getByText(/insight/i);
@@ -71,9 +62,7 @@ describe('InsightPage — hero section', () => {
     expect(judul.className).toContain('font-bold');
 
     // Deskripsi
-    const deskripsi = screen.getByText(
-      /bandingkan layanan daerah, telusuri anggaran, dan pahami kesejahteraan/i,
-    );
+    const deskripsi = screen.getByText(/bandingkan layanan daerah, telusuri anggaran, dan pahami kesejahteraan/i);
     expect(deskripsi).toBeTruthy();
   });
 
@@ -84,6 +73,31 @@ describe('InsightPage — hero section', () => {
     expect(banner).toBeTruthy();
     expect(banner?.textContent).toContain('Seluruh angka');
     expect(banner?.textContent).toContain('Data contoh');
+    expect(banner?.textContent).toContain('Simulasi');
+  });
+});
+
+describe('InsightPage — filter controls', () => {
+  it('menampilkan empat filter serta tombol reset dan terapkan', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', { name: 'Filter insight' });
+    expect(
+      within(section).getByLabelText('Pilih wilayah perbandingan provinsi'),
+    ).toBeTruthy();
+    expect(
+      within(section).getByLabelText(
+        'Pilih kabupaten atau kota fokus daerah',
+      ),
+    ).toBeTruthy();
+    expect(within(section).getByLabelText('Pilih tahun periode')).toBeTruthy();
+    expect(within(section).getByLabelText('Pilih topik insight')).toBeTruthy();
+    expect(
+      within(section).getByRole('button', { name: 'Reset filter' }),
+    ).toBeTruthy();
+    expect(
+      within(section).getByRole('button', { name: 'Terapkan filter' }),
+    ).toBeTruthy();
   });
 });
 
@@ -111,11 +125,7 @@ describe('InsightPage — reading guide', () => {
         name: 'Mulai dari ukuran yang sama',
       }),
     ).toBeTruthy();
-    expect(
-      within(guides[0]).getByText(
-        'Periksa wilayah, tahun, dan satuan. 0,2 poin persentase, bukan 0,2%.',
-      ),
-    ).toBeTruthy();
+    expect(within(guides[0]).getByText('Periksa wilayah, tahun, dan satuan. 0,2 poin persentase, bukan 0,2%.')).toBeTruthy();
 
     expect(
       within(guides[1]).getByRole('heading', {
@@ -123,11 +133,7 @@ describe('InsightPage — reading guide', () => {
         name: 'Baca arah, bukan hanya angka',
       }),
     ).toBeTruthy();
-    expect(
-      within(guides[1]).getByText(
-        'Nilai tinggi tidak selalu lebih baik. Kemiskinan diharapkan turun; lama sekolah diharapkan naik.',
-      ),
-    ).toBeTruthy();
+    expect(within(guides[1]).getByText('Nilai tinggi tidak selalu lebih baik. Kemiskinan diharapkan turun; lama sekolah diharapkan naik.')).toBeTruthy();
 
     expect(
       within(guides[2]).getByRole('heading', {
@@ -135,11 +141,7 @@ describe('InsightPage — reading guide', () => {
         name: 'Selalu lihat konteksnya',
       }),
     ).toBeTruthy();
-    expect(
-      within(guides[2]).getByText(
-        'Korelasi bukan sebab-akibat. Gunakan data bersama kondisi lapangan; data yang tidak tersedia tidak boleh dianggap nol.',
-      ),
-    ).toBeTruthy();
+    expect(within(guides[2]).getByText('Korelasi bukan sebab-akibat. Gunakan data bersama kondisi lapangan; data yang tidak tersedia tidak boleh dianggap nol.')).toBeTruthy();
   });
 
   it('mengatur grid satu, dua, lalu tiga kolom sesuai breakpoint', () => {
@@ -163,11 +165,7 @@ describe('InsightPage — source and methodology', () => {
     const section = screen.getByRole('region', {
       name: 'Sumber & metodologi',
     });
-    expect(
-      within(section).getByText(
-        'Kenali asal angka dan batas penggunaannya sebelum mengambil kesimpulan.',
-      ),
-    ).toBeTruthy();
+    expect(within(section).getByText('Kenali asal angka dan batas penggunaannya sebelum mengambil kesimpulan.')).toBeTruthy();
 
     const expectedItems = [
       {
@@ -207,9 +205,7 @@ describe('InsightPage — source and methodology', () => {
       if (!cardElement) return;
 
       const card = within(cardElement);
-      expect(
-        card.getByRole('heading', { level: 3, name: item.title }),
-      ).toBeTruthy();
+      expect(card.getByRole('heading', { level: 3, name: item.title })).toBeTruthy();
       expect(card.getByText(item.source)).toBeTruthy();
       expect(card.getByText(item.period)).toBeTruthy();
       expect(card.getByText(item.coverage)).toBeTruthy();
@@ -220,11 +216,7 @@ describe('InsightPage — source and methodology', () => {
       expect(referenceLink.getAttribute('rel')).toBe('noopener noreferrer');
     });
 
-    expect(
-      screen
-        .getByRole('link', { name: /jelajahi data pemerintah/i })
-        .getAttribute('href'),
-    ).toBe('/data-pemerintah');
+    expect(screen.getByRole('link', { name: /jelajahi data pemerintah/i }).getAttribute('href')).toBe('/data-pemerintah');
   });
 
   it('mengatur grid satu, dua, lalu tiga kolom sesuai breakpoint', () => {
@@ -248,11 +240,7 @@ describe('InsightPage — data CTA', () => {
     const section = screen.getByRole('region', {
       name: 'Dari insight, lanjutkan ke datanya.',
     });
-    expect(
-      within(section).getByText(
-        'Temukan dataset dan pelajari konteks di balik setiap angka.',
-      ),
-    ).toBeTruthy();
+    expect(within(section).getByText('Temukan dataset dan pelajari konteks di balik setiap angka.')).toBeTruthy();
 
     const cta = within(section).getByRole('link', {
       name: 'Jelajahi Data Pemerintah',
