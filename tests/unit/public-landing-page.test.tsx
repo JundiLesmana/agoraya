@@ -48,30 +48,29 @@ describe('PublicLandingPage', () => {
     expect(screen.getByRole('link', { name: /lihat data/i }).getAttribute('href')).toBe('/data');
     expect(screen.getByRole('link', { name: /cek layanan/i }).getAttribute('href')).toBe('/citizen/dashboard');
     expect(screen.getByRole('link', { name: /laporkan sekarang/i }).getAttribute('href')).toBe('/tracking');
-    expect(screen.getByRole('link', { name: /jelajahi insight/i }).getAttribute('href')).toBe('/insights');
+    expect(screen.getByRole('link', { name: /jelajahi insight/i }).getAttribute('href')).toBe('/insight');
   });
 
   it('renders the reporting CTA with its message and a link to the report form', () => {
     render(<PublicLandingPage />);
 
-    const reportingCta = screen.getByRole('region', { name: 'Melapor dengan lebih tenang' });
+    const reportingCta = screen.getByRole('region', {
+      name: 'Melapor dengan lebih tenang',
+    });
     expect(within(reportingCta).getByText('Pahami progres laporan Anda dari awal hingga akhir')).toBeTruthy();
-    expect(
-      within(reportingCta).getByText(
-        'Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan privasi akan dijelaskan saat mengisi formulir.',
-      ),
-    ).toBeTruthy();
+    expect(within(reportingCta).getByText('Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan privasi akan dijelaskan saat mengisi formulir.')).toBeTruthy();
 
-    const cta = within(reportingCta).getByRole('link', { name: 'Buat laporan baru' });
+    const cta = within(reportingCta).getByRole('link', {
+      name: 'Buat laporan baru',
+    });
     expect(cta.getAttribute('href')).toBe('/tracking');
     expect(cta.closest('section')?.className).toContain('bg-gradient-to-br');
-    expect(
-      screen.getByTestId('dashboard-preview').compareDocumentPosition(cta) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(screen.getByTestId('dashboard-preview').compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       cta.compareDocumentPosition(
-        screen.getByRole('heading', { name: /laporan terkirim, tindak lanjut terlihat/i }),
+        screen.getByRole('heading', {
+          name: /laporan terkirim, tindak lanjut terlihat/i,
+        }),
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -111,7 +110,9 @@ describe('PublicLandingPage', () => {
     render(<PublicLandingPage />);
 
     const grid = screen
-      .getByRole('heading', { name: /solusi lengkap untuk transparansi dan partisipasi publik/i })
+      .getByRole('heading', {
+        name: /solusi lengkap untuk transparansi dan partisipasi publik/i,
+      })
       .closest('section')
       ?.querySelector('.grid');
 
@@ -122,10 +123,10 @@ describe('PublicLandingPage', () => {
   it('keeps the reporting CTA keyboard accessible', () => {
     render(<PublicLandingPage />);
 
-    const reportingCta = screen.getByRole('region', { name: 'Melapor dengan lebih tenang' });
-    expect(within(reportingCta).getByRole('link', { name: 'Buat laporan baru' }).className).toContain(
-      'focus-visible:ring-2',
-    );
+    const reportingCta = screen.getByRole('region', {
+      name: 'Melapor dengan lebih tenang',
+    });
+    expect(within(reportingCta).getByRole('link', { name: 'Buat laporan baru' }).className).toContain('focus-visible:ring-2');
   });
 
   it('mounts the DashboardPreview section within the page', () => {
@@ -137,7 +138,11 @@ describe('PublicLandingPage', () => {
   it('renders the hero heading with the platform tagline', () => {
     render(<PublicLandingPage />);
 
-    expect(screen.getByRole('heading', { name: /transparan, terbuka, untuk indonesia yang lebih baik/i })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', {
+        name: /transparan, terbuka, untuk indonesia yang lebih baik/i,
+      }),
+    ).toBeTruthy();
     expect(screen.getByTestId('hero-search')).toBeTruthy();
   });
 
@@ -146,16 +151,20 @@ describe('PublicLandingPage', () => {
 
     expect(container.firstElementChild?.className).toContain('bg-background');
 
-    const hero = screen.getByRole('heading', { name: /transparan, terbuka, untuk indonesia yang lebih baik/i }).closest('section');
+    const hero = screen
+      .getByRole('heading', {
+        name: /transparan, terbuka, untuk indonesia yang lebih baik/i,
+      })
+      .closest('section');
     expect(hero?.querySelector('div')?.className).toContain('dark:bg-[linear-gradient');
     expect(hero?.querySelector('h1')?.className).toContain('text-foreground');
-    expect(
-      Array.from(hero?.querySelectorAll('[aria-hidden="true"]') ?? []).some((element) =>
-        element.className.includes('dark:bg-[linear-gradient(90deg'),
-      ),
-    ).toBe(true);
+    expect(Array.from(hero?.querySelectorAll('[aria-hidden="true"]') ?? []).some((element) => element.className.includes('dark:bg-[linear-gradient(90deg'))).toBe(true);
 
-    const ecosystem = screen.getByRole('heading', { name: /solusi lengkap untuk transparansi dan partisipasi publik/i }).closest('section');
+    const ecosystem = screen
+      .getByRole('heading', {
+        name: /solusi lengkap untuk transparansi dan partisipasi publik/i,
+      })
+      .closest('section');
     expect(ecosystem?.querySelector('article')?.className).toContain('bg-card');
     expect(ecosystem?.querySelector('article h3')?.className).toContain('text-foreground');
     expect(ecosystem?.querySelector('article p')?.className).toContain('text-muted-foreground');
@@ -173,7 +182,10 @@ describe('PublicLandingPage', () => {
         media: source.getAttribute('media'),
         srcSet: source.getAttribute('srcset'),
       })),
-    ).toContainEqual({ media: '(max-width: 1023px)', srcSet: '/landing/hero-mobile.png' });
+    ).toContainEqual({
+      media: '(max-width: 1023px)',
+      srcSet: '/landing/hero-mobile.png',
+    });
   });
 
   it('renders the shared navbar and footer once around the landing page', () => {

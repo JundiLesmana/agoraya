@@ -1,23 +1,20 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Suspense } from 'react';
-import { ArrowRight } from 'lucide-react';
-import { InsightDashboard } from './_components/insight-dashboard';
-import { InsightMethodology } from './_components/insight-methodology';
-import { InsightReadingGuide } from './_components/insight-reading-guide';
-import { SekilasCards, SekilasSkeleton } from './_components/sekilas-cards';
-import { TimelyServiceComparison } from './_components/timely-service-comparison';
-import { WellbeingIndicators } from './_components/wellbeing-indicators';
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
+import { ArrowRight } from "lucide-react";
+import { InsightDashboard } from "./_components/insight-dashboard";
+import { InsightMethodology } from "./_components/insight-methodology";
+import { InsightReadingGuide } from "./_components/insight-reading-guide";
 
 export const metadata: Metadata = {
-  title: 'Insight Publik | Agoraya',
+  title: "Insight Publik | Agoraya",
   description:
-    'Pahami data pemerintah melalui interpretasi analitis. Bandingkan layanan daerah, telusuri anggaran, dan pahami kesejahteraan untuk keputusan yang lebih terarah.',
+    "Pahami data pemerintah melalui interpretasi analitis. Bandingkan layanan daerah, telusuri anggaran, dan pahami kesejahteraan untuk keputusan yang lebih terarah.",
 };
 
 const BREADCRUMB_ITEMS = [
-  { label: 'Beranda', href: '/', current: false },
-  { label: 'Insight', href: undefined, current: true },
+  { label: "Beranda", href: "/", current: false },
+  { label: "Insight", href: undefined, current: true },
 ] as const;
 
 export default function InsightPage() {
@@ -26,7 +23,7 @@ export default function InsightPage() {
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="text-muted-foreground mb-10 text-xs"
+        className="text-muted-foreground mb-4 text-xs"
       >
         <ol className="flex flex-wrap items-center gap-1">
           {BREADCRUMB_ITEMS.flatMap((item, index) => [
@@ -57,42 +54,28 @@ export default function InsightPage() {
       </nav>
 
       {/* Hero section */}
-      <section className="max-w-3xl">
+      <section className="-mx-4 -mt-2 mb-6 bg-sky-50 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 dark:bg-sky-950/20">
         <span className="text-primary mb-3 inline-block text-xs font-semibold tracking-wider uppercase">
           INSIGHT PUBLIK
         </span>
-        <h1 className="text-foreground mt-0 mb-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+        <h1 className="text-foreground mt-0 mb-3 text-3xl font-bold tracking-tight sm:text-4xl">
           Pahami datanya. Lihat maknanya.
         </h1>
-        <p className="text-muted-foreground text-lg leading-relaxed">
+        <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed sm:text-base">
           Bandingkan layanan daerah, telusuri anggaran, dan pahami
           kesejahteraan. Insight sederhana untuk keputusan yang lebih terarah.
         </p>
       </section>
 
-      <InsightReadingGuide />
-
-      {/* Sekilas: 3 kartu KPI perubahan kunci */}
-      <Suspense fallback={<SekilasSkeleton />}>
-        <SekilasCards />
-      </Suspense>
-
-      <div className="mt-6">
-        <TimelyServiceComparison />
-      </div>
-
-      <div className="mt-6">
-        <WellbeingIndicators />
-      </div>
-
       <Suspense
         fallback={
-          <div className="border-border bg-muted/40 h-40 animate-pulse rounded-xl border" />
+          <div className="border-border bg-muted/40 h-96 animate-pulse rounded-xl border" />
         }
       >
         <InsightDashboard />
       </Suspense>
 
+      <InsightReadingGuide />
       <InsightMethodology />
 
       <section
