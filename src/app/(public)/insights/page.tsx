@@ -7,6 +7,7 @@ import {
   SekilasSkeleton,
 } from './_components/sekilas-cards';
 import { TimelyServiceComparison } from './_components/timely-service-comparison';
+import { WellbeingIndicators } from './_components/wellbeing-indicators';
 
 export const metadata: Metadata = {
   title: 'Insight Publik | Agoraya',
@@ -76,6 +77,10 @@ export default function InsightPage() {
 
       <div className="mt-6">
         <TimelyServiceComparison />
+      </div>
+
+      <div className="mt-6">
+        <WellbeingIndicators />
       </div>
 
       <Suspense
