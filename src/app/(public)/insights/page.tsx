@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Info } from 'lucide-react';
+import { Suspense } from 'react';
+import { InsightDashboard } from './_components/insight-dashboard';
 
 export const metadata: Metadata = {
   title: 'Insight Publik | Agoraya',
@@ -61,18 +62,11 @@ export default function InsightPage() {
           Bandingkan layanan daerah, telusuri anggaran, dan pahami
           kesejahteraan. Insight sederhana untuk keputusan yang lebih terarah.
         </p>
-
-        {/* Informasi banner */}
-        <div className="mt-10 rounded-2xl border border-border bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <Info className="mt-0.5 size-5 text-primary flex-shrink-0" aria-hidden="true" />
-            <p className="text-sm text-muted-foreground leading-6">
-              Seluruh angka, temuan, dan sumber di lamaran ini adalah data
-              contoh untuk ilustrasi, bukan data resmi aktual.
-            </p>
-          </div>
-        </div>
       </section>
+
+      <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-border bg-muted/40" />}>
+        <InsightDashboard />
+      </Suspense>
     </main>
   );
 }
