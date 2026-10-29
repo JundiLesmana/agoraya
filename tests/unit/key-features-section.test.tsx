@@ -2,85 +2,68 @@
 
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-
 import { KeyFeaturesSection } from "@/app/(public)/_components/key-features-section";
 
 const FEATURES = [
   {
-    caption: "Ringkasan data",
-    title: "Dashboard Ringkasan",
+    caption: "Pahami informasi",
+    title: "Data Pemerintah",
     description:
-      "Lihat ringkasan anggaran, proyek, dan indikator sosial-ekonomi dalam satu tampilan.",
-    detail: "Untuk warga: lihat capaian pembangunan di wilayah Anda.",
+      "Ruang untuk menelusuri data anggaran, proyek, dan statistik daerah dengan memperhatikan sumber serta periode datanya.",
+    detail: "Untuk warga: membaca konteks sebelum menyimpulkan.",
     cardClass: "bg-[#edf6ff]",
   },
   {
-    caption: "Alokasi anggaran",
-    title: "Data Anggaran",
+    caption: "Kenali prosesnya",
+    title: "Layanan Publik",
     description:
-      "Telusuri alokasi dan realisasi anggaran per sektor dan wilayah.",
-    detail: "Untuk warga: telusuri penggunaan anggaran daerah.",
+      "Ruang untuk memahami alur layanan, persyaratan, dan perkembangan proses dari sisi warga maupun instansi.",
+    detail: "Untuk instansi: menjelaskan tahapan layanan dengan lebih jelas.",
     cardClass: "bg-[#eff9f4]",
   },
   {
-    caption: "Proyek pembangunan",
-    title: "Proyek Daerah",
+    caption: "Sampaikan persoalan",
+    title: "Laporan Warga",
     description:
-      "Pantau progres proyek pembangunan dari perencanaan hingga penyelesaian.",
-    detail: "Untuk warga: pantau status proyek di sekitar Anda.",
+      "Ruang partisipasi untuk menyampaikan masalah sekitar, dengan konteks pelaporan, verifikasi, dan tindak lanjut.",
+    detail: "Untuk warga: menyusun laporan yang faktual dan relevan.",
     cardClass: "bg-[#fff6ef]",
   },
   {
-    caption: "Indikator sosial",
-    title: "Statistik Daerah",
+    caption: "Temukan maknanya",
+    title: "Insight",
     description:
-      "Akses indikator sosial-ekonomi seperti IPM, kemiskinan, dan pengangguran.",
-    detail: "Untuk semua: lihat indikator kesejahteraan daerah.",
-    cardClass: "bg-[#edf6ff]",
-  },
-  {
-    caption: "Interpretasi data",
-    title: "Insight Publik",
-    description:
-      "Dapatkan interpretasi bermakna dari data mentah untuk pengambilan keputusan.",
-    detail: "Untuk semua: baca analisis dan insight publik.",
+      "Ruang untuk membaca perbandingan layanan, tren anggaran, dan indikator kesejahteraan secara lebih kontekstual.",
+    detail: "Untuk semua: membandingkan data dengan dasar yang setara.",
     cardClass: "bg-[#f5f0ff]",
-  },
-  {
-    caption: "Partisipasi warga",
-    title: "Lapor Warga",
-    description:
-      "Laporkan masalah publik dan pantau tindak lanjutnya secara real-time.",
-    detail: "Untuk warga: laporkan masalah dan pantau tindak lanjut.",
-    cardClass: "bg-[#fff6ef]",
   },
 ];
 
+const SECTION_NAME = "Dari memahami data hingga ikut berperan";
+
 describe("KeyFeaturesSection", () => {
-  it("renders the section heading and description", () => {
+  it("renders the four-pillar heading and introduction", () => {
     render(<KeyFeaturesSection />);
 
-    const section = screen.getByRole("region", { name: "Fitur Utama" });
+    const section = screen.getByRole("region", { name: SECTION_NAME });
     expect(
       within(section).getByRole("heading", {
         level: 2,
-        name: "Fitur Utama",
+        name: SECTION_NAME,
       }),
     ).toBeTruthy();
     expect(
       within(section).getByText(
-        "Platform ini menyediakan berbagai fitur untuk mengakses dan menganalisis data pembangunan.",
+        "Empat ruang yang saling melengkapi untuk mendukung transparansi dan partisipasi publik.",
       ),
     ).toBeTruthy();
   });
 
-  it("renders exactly six feature cards with the specified headings and descriptions", () => {
+  it("renders exactly four feature cards with their expected copy", () => {
     render(<KeyFeaturesSection />);
 
-    const section = screen.getByRole("region", { name: "Fitur Utama" });
-    const cards = within(section).getAllByRole("article");
-
-    expect(cards).toHaveLength(6);
+    const section = screen.getByRole("region", { name: SECTION_NAME });
+    expect(within(section).getAllByRole("article")).toHaveLength(4);
     for (const { title, caption, description, detail } of FEATURES) {
       const card = within(section).getByRole("article", { name: title });
 
@@ -94,36 +77,35 @@ describe("KeyFeaturesSection", () => {
         "true",
       );
     }
-
-    expect(within(section).queryByRole("link")).toBeNull();
   });
 
-  it("uses the responsive three-breakpoint grid and the specified card hover treatment", () => {
+  it("uses the four-card responsive layout and matching pastel colors", () => {
     render(<KeyFeaturesSection />);
 
-    const section = screen.getByRole("region", { name: "Fitur Utama" });
+    const section = screen.getByRole("region", { name: SECTION_NAME });
     const grid = section.querySelector(".grid");
     const firstCard = within(section).getByRole("article", {
-      name: "Dashboard Ringkasan",
+      name: "Data Pemerintah",
     });
 
     expect(grid?.className).toContain("grid-cols-1");
-    expect(grid?.className).toContain("md:grid-cols-2");
-    expect(grid?.className).toContain("lg:grid-cols-3");
-    expect(grid?.className).toContain("gap-6");
+    expect(grid?.className).toContain("sm:grid-cols-2");
+    expect(grid?.className).toContain("xl:grid-cols-4");
     expect(firstCard.className).toContain("rounded-[14px]");
     expect(firstCard.className).toContain("bg-[#edf6ff]");
     expect(firstCard.className).toContain("p-6");
     expect(firstCard.className).toContain("hover:border-blue-600");
     expect(firstCard.className).toContain("hover:-translate-y-1");
     expect(firstCard.className).toContain("hover:shadow-md");
+    expect(
+      within(section).getByText(/empat pilar ini menjelaskan arah platform/i),
+    ).toBeTruthy();
   });
 
-  it("renders decorative icons in colored containers and pastel feature cards", () => {
+  it("renders the decorative icons in colored containers", () => {
     render(<KeyFeaturesSection />);
 
-    const section = screen.getByRole("region", { name: "Fitur Utama" });
-
+    const section = screen.getByRole("region", { name: SECTION_NAME });
     for (const { title, cardClass } of FEATURES) {
       const card = within(section).getByRole("article", { name: title });
       const icon = card.querySelector("svg");
@@ -135,9 +117,5 @@ describe("KeyFeaturesSection", () => {
       expect(iconContainer?.className).toContain("size-[52px]");
       expect(iconContainer?.className).toContain("rounded-[16px]");
     }
-
-    expect(
-      within(section).getByText(/fitur-fitur ini menghubungkan akses data/i),
-    ).toBeTruthy();
   });
 });

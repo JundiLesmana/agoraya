@@ -1,10 +1,7 @@
 import {
-  BarChart3,
-  Banknote,
-  Building2,
-  Info,
+  ChartNoAxesColumnIncreasing,
+  ClipboardList,
   Lightbulb,
-  LayoutDashboard,
   Megaphone,
 } from "lucide-react";
 
@@ -14,63 +11,45 @@ type Feature = {
   description: string;
   detail: string;
   accent: "blue" | "green" | "orange" | "violet";
-  Icon: typeof LayoutDashboard;
+  Icon: typeof ChartNoAxesColumnIncreasing;
 };
 
 const FEATURES: Feature[] = [
   {
-    caption: "Ringkasan data",
-    title: "Dashboard Ringkasan",
+    caption: "Pahami informasi",
+    title: "Data Pemerintah",
     description:
-      "Lihat ringkasan anggaran, proyek, dan indikator sosial-ekonomi dalam satu tampilan.",
-    detail: "Untuk warga: lihat capaian pembangunan di wilayah Anda.",
+      "Ruang untuk menelusuri data anggaran, proyek, dan statistik daerah dengan memperhatikan sumber serta periode datanya.",
+    detail: "Untuk warga: membaca konteks sebelum menyimpulkan.",
     accent: "blue",
-    Icon: LayoutDashboard,
+    Icon: ChartNoAxesColumnIncreasing,
   },
   {
-    caption: "Alokasi anggaran",
-    title: "Data Anggaran",
+    caption: "Kenali prosesnya",
+    title: "Layanan Publik",
     description:
-      "Telusuri alokasi dan realisasi anggaran per sektor dan wilayah.",
-    detail: "Untuk warga: telusuri penggunaan anggaran daerah.",
+      "Ruang untuk memahami alur layanan, persyaratan, dan perkembangan proses dari sisi warga maupun instansi.",
+    detail: "Untuk instansi: menjelaskan tahapan layanan dengan lebih jelas.",
     accent: "green",
-    Icon: Banknote,
+    Icon: ClipboardList,
   },
   {
-    caption: "Proyek pembangunan",
-    title: "Proyek Daerah",
+    caption: "Sampaikan persoalan",
+    title: "Laporan Warga",
     description:
-      "Pantau progres proyek pembangunan dari perencanaan hingga penyelesaian.",
-    detail: "Untuk warga: pantau status proyek di sekitar Anda.",
-    accent: "orange",
-    Icon: Building2,
-  },
-  {
-    caption: "Indikator sosial",
-    title: "Statistik Daerah",
-    description:
-      "Akses indikator sosial-ekonomi seperti IPM, kemiskinan, dan pengangguran.",
-    detail: "Untuk semua: lihat indikator kesejahteraan daerah.",
-    accent: "blue",
-    Icon: BarChart3,
-  },
-  {
-    caption: "Interpretasi data",
-    title: "Insight Publik",
-    description:
-      "Dapatkan interpretasi bermakna dari data mentah untuk pengambilan keputusan.",
-    detail: "Untuk semua: baca analisis dan insight publik.",
-    accent: "violet",
-    Icon: Lightbulb,
-  },
-  {
-    caption: "Partisipasi warga",
-    title: "Lapor Warga",
-    description:
-      "Laporkan masalah publik dan pantau tindak lanjutnya secara real-time.",
-    detail: "Untuk warga: laporkan masalah dan pantau tindak lanjut.",
+      "Ruang partisipasi untuk menyampaikan masalah sekitar, dengan konteks pelaporan, verifikasi, dan tindak lanjut.",
+    detail: "Untuk warga: menyusun laporan yang faktual dan relevan.",
     accent: "orange",
     Icon: Megaphone,
+  },
+  {
+    caption: "Temukan maknanya",
+    title: "Insight",
+    description:
+      "Ruang untuk membaca perbandingan layanan, tren anggaran, dan indikator kesejahteraan secara lebih kontekstual.",
+    detail: "Untuk semua: membandingkan data dengan dasar yang setara.",
+    accent: "violet",
+    Icon: Lightbulb,
   },
 ];
 
@@ -109,24 +88,24 @@ export function KeyFeaturesSection() {
       aria-labelledby="key-features-title"
       className="bg-[#f8fafc] py-14 sm:py-16"
     >
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-9 max-w-[720px] text-center">
           <p className="text-[11px] font-semibold text-[#405a78]">
-            FITUR UTAMA AGORAYA
+            EMPAT PILAR Agoraya
           </p>
           <h2
             id="key-features-title"
-            className="mt-3 text-[28px] font-bold text-[#17263b] lg:text-[32px]"
+            className="mt-3 text-[28px] leading-tight font-bold text-[#17263b] lg:text-[32px]"
           >
-            Fitur Utama
+            Dari memahami data hingga ikut berperan
           </h2>
           <p className="mt-3 text-base text-slate-500">
-            Platform ini menyediakan berbagai fitur untuk mengakses dan
-            menganalisis data pembangunan.
+            Empat ruang yang saling melengkapi untuk mendukung transparansi dan
+            partisipasi publik.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {FEATURES.map(
             ({ caption, title, description, detail, accent, Icon }, index) => {
               const styles = accentClasses(accent);
@@ -155,7 +134,7 @@ export function KeyFeaturesSection() {
                   >
                     {title}
                   </h3>
-                  <p className="mt-4 text-sm leading-[1.5] text-slate-500">
+                  <p className="mt-4 text-sm leading-[1.5] text-slate-600">
                     {description}
                   </p>
                   <p className="mt-4 text-sm leading-6 font-medium text-[#17263b]">
@@ -167,15 +146,17 @@ export function KeyFeaturesSection() {
           )}
         </div>
 
-        <div className="mt-8 flex items-start gap-3 rounded-[10px] border border-[#dce6f1] bg-white px-4 py-3 text-sm leading-6 text-slate-500">
-          <Info
+        <div className="mt-8 flex items-start gap-3 rounded-[10px] border border-[#dce6f1] bg-white px-4 py-3 text-sm leading-6 text-slate-600">
+          <span
             aria-hidden="true"
-            className="mt-0.5 size-5 shrink-0 text-blue-600"
-          />
+            className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-blue-600 text-[10px] font-bold text-blue-700"
+          >
+            i
+          </span>
           <p>
-            Fitur-fitur ini menghubungkan akses data, pemahaman layanan, dan
-            partisipasi warga. Informasi yang tersedia mengikuti data pada
-            masing-masing halaman.
+            Empat pilar ini menjelaskan arah platform. Ketersediaan data,
+            pelacakan, dan tindak lanjut mengikuti informasi pada masing-masing
+            halaman; bukan berarti semua sumber atau instansi telah terhubung.
           </p>
         </div>
       </div>
