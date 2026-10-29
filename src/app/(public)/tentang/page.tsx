@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BookOpen, ListChecks, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { KeyFeaturesSection } from "../_components/key-features-section";
 
 export const metadata: Metadata = {
   title: "Tentang Agoraya",
@@ -184,6 +185,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <KeyFeaturesSection />
     </>
   );
 }
