@@ -2,7 +2,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+const route = vi.hoisted(() => ({ pathname: "/tracking" }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => route.pathname,
+}));
 
 import { Footer } from "@/components/footer";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -77,6 +81,34 @@ describe("Footer", () => {
         screen.getByRole("navigation", { name: /navigasi sekunder/i }),
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("omits the shared report CTA on the homepage", () => {
+    route.pathname = "/";
+    render(<Footer />);
+
+    expect(
+      screen.queryByRole("heading", {
+        name: "Perubahan dimulai dari kepedulian Anda",
+      }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("navigation", { name: /navigasi sekunder/i }),
+    ).toBeTruthy();
+    route.pathname = "/tracking";
+  });
+
+  it("centers the footer navigation links horizontally at every breakpoint", () => {
+    render(<Footer />);
+
+    const navigation = screen.getByRole("navigation", {
+      name: /navigasi sekunder/i,
+    });
+
+    expect(navigation.className).toContain("flex");
+    expect(navigation.className).toContain("flex-wrap");
+    expect(navigation.className).toContain("justify-center");
+    expect(navigation.className).not.toContain("grid-cols-1");
   });
 
   it("renders secure external social links", () => {

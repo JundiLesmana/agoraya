@@ -101,14 +101,14 @@ describe("CitizenTrackingDashboard", () => {
     fireEvent.change(trackingInput, { target: { value: "bsl-261010-00051" } });
     fireEvent.submit(form);
     expect(screen.getByRole("dialog").textContent).toContain(
-      "Pengajuan bantuan pendidikan",
+      "Pengajuan pendidikan",
     );
     fireEvent.click(screen.getByRole("button", { name: "Tutup dialog" }));
     expect(screen.getByRole("status").textContent).toContain(
       "BSL-261010-00051 ditemukan",
     );
     expect(
-      screen.getAllByText("Pengajuan bantuan pendidikan").length,
+      screen.getAllByText("Pengajuan pendidikan").length,
     ).toBeGreaterThan(0);
   });
 
@@ -118,7 +118,7 @@ describe("CitizenTrackingDashboard", () => {
     fireEvent.change(
       screen.getByRole("combobox", { name: "Kategori layanan" }),
       {
-        target: { value: "Bantuan sosial" },
+        target: { value: "Sosial" },
       },
     );
     fireEvent.change(
@@ -132,7 +132,7 @@ describe("CitizenTrackingDashboard", () => {
       name: "Daftar pengajuan layanan warga",
     });
     expect(
-      within(table).getByText("Pengajuan bantuan pendidikan"),
+      within(table).getByText("Pengajuan pendidikan"),
     ).toBeTruthy();
     expect(
       within(table).queryByText("Lampu jalan padam di Jl. Melati"),

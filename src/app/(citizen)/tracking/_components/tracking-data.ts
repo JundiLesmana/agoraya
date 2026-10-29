@@ -4,7 +4,7 @@ export type TrackingStatus =
   | 'Diverifikasi'
   | 'Selesai';
 
-export type TrackingCategory = 'Pengaduan' | 'Perizinan' | 'Bantuan sosial';
+export type TrackingCategory = 'Pengaduan' | 'Perizinan' | 'Sosial' | 'Kesehatan';
 
 export interface TrackingTimelineItem {
   title: string;
@@ -93,7 +93,7 @@ export const TRACKING_APPLICATIONS: readonly TrackingApplication[] = [
     timeline: [
       {
         title: 'Pengajuan diterima',
-        description: 'Permohonan izin usaha tercatat dan masuk antrean.',
+        description: 'Permohonan perizinan tercatat dan masuk antrean.',
         occurredAt: '2026-10-11T10:00:00+07:00',
         completed: true,
       },
@@ -108,8 +108,8 @@ export const TRACKING_APPLICATIONS: readonly TrackingApplication[] = [
   {
     id: 'bantuan-pendidikan',
     trackingNumber: 'BSL-261010-00051',
-    serviceName: 'Pengajuan bantuan pendidikan',
-    category: 'Bantuan sosial',
+    serviceName: 'Pengajuan pendidikan',
+    category: 'Sosial',
     status: 'Diverifikasi',
     submittedAt: '2026-10-10T08:30:00+07:00',
     targetAt: '2026-10-22T17:00:00+07:00',
@@ -117,7 +117,7 @@ export const TRACKING_APPLICATIONS: readonly TrackingApplication[] = [
     progressLabel: 'Diverifikasi',
     progressDescription: 'Data pengajuan telah diverifikasi dan menunggu keputusan.',
     agency: 'Dinas Sosial',
-    team: 'Tim Bantuan Pendidikan',
+    team: 'Tim Pendidikan',
     responseEstimate: '3 hari kerja',
     timeline: [
       {
