@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Menu, MoonStar, Search, SunMedium, X } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useTheme } from '@/components/theme-provider';
+import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Menu, MoonStar, Search, SunMedium, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
@@ -21,16 +21,21 @@ const NAV_ITEMS = [
 function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const isAboutPage = pathname === "/tentang";
+  const logoSrc =
+    isAboutPage || theme !== "dark"
+      ? "/logo/logo-light.svg"
+      : "/logo/logo-dark.svg";
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileMenuOpen(false);
+      if (event.key === "Escape") setMobileMenuOpen(false);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileMenuOpen]);
 
   React.useEffect(() => {
@@ -46,7 +51,10 @@ function Navbar() {
           <Image src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="Agoraya" width={180} height={48} priority className="h-10 w-auto shrink-0 object-contain" />
         </Link>
 
-        <nav aria-label="Navigasi utama" className="hidden flex-1 items-center justify-center gap-1 lg:flex">
+        <nav
+          aria-label="Navigasi utama"
+          className="hidden flex-1 items-center justify-center gap-1 lg:flex"
+        >
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;
             return (
@@ -69,7 +77,7 @@ function Navbar() {
             <button
               type="button"
               aria-label="Tema terang"
-              aria-pressed={theme === 'light'}
+              aria-pressed={theme === "light"}
               onClick={toggleTheme}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
@@ -81,7 +89,7 @@ function Navbar() {
             <button
               type="button"
               aria-label="Tema gelap"
-              aria-pressed={theme === 'dark'}
+              aria-pressed={theme === "dark"}
               onClick={toggleTheme}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
@@ -91,25 +99,45 @@ function Navbar() {
               <MoonStar className="size-4" /> Gelap
             </button>
           </div>
-          <Button asChild>
+          <Button
+            asChild
+            className={cn(
+              isAboutPage && "bg-blue-700 text-white hover:bg-blue-800",
+            )}
+          >
             <Link href="/login">Masuk / Daftar</Link>
           </Button>
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:hidden">
-          <Button variant="ghost" size="icon" aria-label="Cari" className="size-10">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Cari"
+            className={cn(
+              "size-10",
+              isAboutPage && "text-slate-700 hover:bg-slate-100",
+            )}
+          >
             <Search className="size-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+            aria-label={mobileMenuOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
-            className="size-10"
+            className={cn(
+              "size-10",
+              isAboutPage && "text-slate-700 hover:bg-slate-100",
+            )}
             onClick={() => setMobileMenuOpen((value) => !value)}
           >
-            {mobileMenuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            {mobileMenuOpen ? (
+              <X className="size-4" />
+            ) : (
+              <Menu className="size-4" />
+            )}
           </Button>
         </div>
       </div>
@@ -127,7 +155,7 @@ function Navbar() {
               <button
                 type="button"
                 aria-label="Tema terang"
-                aria-pressed={theme === 'light'}
+                aria-pressed={theme === "light"}
                 onClick={toggleTheme}
                 className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
@@ -136,7 +164,7 @@ function Navbar() {
               <button
                 type="button"
                 aria-label="Tema gelap"
-                aria-pressed={theme === 'dark'}
+                aria-pressed={theme === "dark"}
                 onClick={toggleTheme}
                 className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
@@ -156,7 +184,13 @@ function Navbar() {
               </Link>
             ))}
           </nav>
-          <Button asChild className="w-full">
+          <Button
+            asChild
+            className={cn(
+              "w-full",
+              isAboutPage && "bg-blue-700 text-white hover:bg-blue-800",
+            )}
+          >
             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
               Masuk / Daftar
             </Link>
