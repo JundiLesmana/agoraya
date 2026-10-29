@@ -54,6 +54,7 @@ describe("AboutPage", () => {
       "Peran berbeda, tujuan yang sama",
       "Terbuka untuk publik, tetap menghormati privasi",
       "Kenali sebelum menjelajahi",
+      "Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.",
     ];
     const headings = screen.getAllByRole("heading", { level: 2 });
     const renderedOrder = headings.map((heading) => heading.textContent);
