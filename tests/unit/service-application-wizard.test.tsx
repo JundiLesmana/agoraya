@@ -21,7 +21,7 @@ describe("ServiceApplicationWizard", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "Fitur simpan draft belum tersedia",
     );
-    expect(screen.getByText("Perizinan")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Perizinan/ })).toBeTruthy();
 
     fireEvent.change(screen.getByRole("textbox", { name: "Cari layanan" }), {
       target: { value: "pendidikan" },
@@ -37,7 +37,7 @@ describe("ServiceApplicationWizard", () => {
         target: { value: "Perizinan" },
       },
     );
-    expect(screen.getByText("Perizinan")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Perizinan/ })).toBeTruthy();
     expect(screen.queryByText("Pendidikan")).toBeNull();
   });
 

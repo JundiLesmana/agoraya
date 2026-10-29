@@ -26,7 +26,7 @@ describe("Footer", () => {
       screen.getByRole("navigation", { name: /media sosial/i }),
     ).toBeTruthy();
     expect(
-      screen.getByText("© 2025 Agoraya. Semua hak dilindungi."),
+      screen.getByText("© 2026 Agoraya. Semua hak dilindungi."),
     ).toBeTruthy();
   });
 
