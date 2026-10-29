@@ -18,6 +18,7 @@ import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Button } from "@/components/ui/button";
 import {
   formatPercentagePoints,
+  TIMELY_SERVICE_CITIES,
   timelyServiceResponseSchema,
   transformTimelyServiceResponse,
   type TimelyServiceChartRow,
@@ -25,14 +26,6 @@ import {
 } from "@/lib/insight-layanan";
 
 const CITY_QUERY = "Bandung,Bogor,Depok,Bekasi,Cimahi";
-
-const CHART_COLORS: Record<TimelyServiceChartRow["city"], string> = {
-  Bandung: "#1769d2",
-  Bogor: "#8bb8eb",
-  Depok: "#8bb8eb",
-  Bekasi: "#8bb8eb",
-  Cimahi: "#8bb8eb",
-};
 
 function isTimelyServiceChartRow(
   value: unknown,
@@ -121,12 +114,19 @@ function ComparisonEmpty() {
   );
 }
 
-function ComparisonChart({ data }: { data: TimelyServiceComparison }) {
+function ComparisonChart({
+  data,
+  focusedCity,
+}: {
+  data: TimelyServiceComparison;
+  focusedCity: TimelyServiceChartRow["city"];
+}) {
   const chartData = data.rows.map((row) => ({
     ...row,
     cityLabel: `Kota ${row.city}`,
   }));
-  const positiveDelta = data.rows[0]?.deltaFromAverage ?? 0;
+  const focusedRow = data.rows.find((row) => row.city === focusedCity);
+  const focusedDelta = focusedRow?.deltaFromAverage ?? 0;
 
   return (
     <div className="min-w-0">
@@ -197,7 +197,10 @@ function ComparisonChart({ data }: { data: TimelyServiceComparison }) {
               maxBarSize={28}
             >
               {chartData.map((row) => (
-                <Cell key={row.city} fill={CHART_COLORS[row.city]} />
+                <Cell
+                  key={row.city}
+                  fill={row.city === focusedCity ? "#1769d2" : "#8bb8eb"}
+                />
               ))}
               <LabelList
                 dataKey="percentage"
@@ -214,7 +217,8 @@ function ComparisonChart({ data }: { data: TimelyServiceComparison }) {
       <p className="text-muted-foreground mt-1 text-xs">
         Rata-rata sederhana:{" "}
         {data.average.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%.
-        Bandung {formatPercentagePoints(positiveDelta)} di atas rata-rata.
+        Kota {focusedCity} {formatPercentagePoints(focusedDelta)} dari
+        rata-rata.
       </p>
       <div className="border-primary bg-muted/60 text-muted-foreground mt-4 rounded-md border-l-4 p-3 text-xs leading-relaxed">
         <p>
@@ -257,7 +261,11 @@ function ComparisonChart({ data }: { data: TimelyServiceComparison }) {
   );
 }
 
-export function TimelyServiceComparison() {
+export function TimelyServiceComparison({
+  fokus = "Kota Bandung",
+}: {
+  fokus?: string;
+}) {
   const [data, setData] = useState<TimelyServiceComparison | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -297,6 +305,13 @@ export function TimelyServiceComparison() {
     return <ComparisonEmpty />;
   }
 
+  const focusedCity =
+    TIMELY_SERVICE_CITIES.find((city) => fokus === `Kota ${city}`) ?? "Bandung";
+  const focusedRow = data.rows.find((row) => row.city === focusedCity);
+  const isHighest =
+    focusedRow !== undefined &&
+    data.rows.every((row) => row.percentage <= focusedRow.percentage);
+
   return (
     <section
       aria-labelledby="timely-service-title"
@@ -314,7 +329,7 @@ export function TimelyServiceComparison() {
             Seberapa tepat waktu layanan daerah?
           </h2>
           <p className="text-muted-foreground mt-2 text-sm">
-            Bandingkan penyelesaian layanan di 5 kota Jawa Barat
+            Bandingkan penyelesaian layanan di 5 kota Jawa Barat · {fokus}
           </p>
         </div>
         <SourceBadge source="SIMULATED" label="Data contoh" />
@@ -322,7 +337,7 @@ export function TimelyServiceComparison() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2.4fr)_minmax(15rem,0.9fr)]">
         <div className="min-w-0">
-          <ComparisonChart data={data} />
+          <ComparisonChart data={data} focusedCity={focusedCity} />
         </div>
         <aside
           aria-labelledby="timely-service-meaning"
@@ -336,14 +351,19 @@ export function TimelyServiceComparison() {
             Apa artinya?
           </h3>
           <p className="mt-4 text-sm leading-relaxed font-medium">
-            Bandung paling tinggi di antara 5 kota yang dibandingkan.
+            Kota {focusedCity}{" "}
+            {isHighest
+              ? "memiliki nilai tertinggi"
+              : `mencatat ${focusedRow?.percentage ?? 0}% penyelesaian tepat waktu`}{" "}
+            di antara 5 kota yang dibandingkan.
           </p>
           <p className="text-primary mt-4 text-3xl font-bold">
-            {data.roundedAverage}%
+            {focusedRow?.percentage ?? 0}%
           </p>
           <p className="mt-2 text-xs leading-relaxed text-blue-900/70">
-            Rata-rata sederhana 5 kota. Bandung berada{" "}
-            {formatPercentagePoints(positiveDeltaForBandung(data))} di atas
+            Rata-rata sederhana 5 kota adalah {data.roundedAverage}%. Kota{" "}
+            {focusedCity}{" "}
+            {formatPercentagePoints(focusedRow?.deltaFromAverage ?? 0)} dari
             rata-rata.
           </p>
           <div className="my-4 border-t border-blue-200" />
@@ -361,8 +381,4 @@ export function TimelyServiceComparison() {
       </div>
     </section>
   );
-}
-
-function positiveDeltaForBandung(data: TimelyServiceComparison): number {
-  return data.rows.find((row) => row.city === "Bandung")?.deltaFromAverage ?? 0;
 }

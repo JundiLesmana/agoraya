@@ -40,7 +40,7 @@ describe("TimelyServiceComparison", () => {
     expect(
       within(table).getByRole("row", { name: /kota depok 81%/i }),
     ).toBeTruthy();
-    expect(screen.getAllByText("81%")).toHaveLength(2);
+    expect(screen.getByText("81%")).toBeTruthy();
     expect(
       screen.getByText(
         /bukan peningkatan kualitas layanan keseluruhan\. volume permohonan dan jenis layanan tiap kota dapat berbeda\./i,
