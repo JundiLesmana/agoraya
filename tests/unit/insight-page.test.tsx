@@ -46,9 +46,7 @@ describe('InsightPage — breadcrumb', () => {
     expect(currentLi?.querySelector('a')).toBeNull();
 
     // Separator di antara item (1 separator untuk 2 item)
-    const separators = breadcrumb.querySelectorAll(
-      'li[aria-hidden="true"]',
-    );
+    const separators = breadcrumb.querySelectorAll('li[aria-hidden="true"]');
     expect(separators.length).toBe(1);
     separators.forEach((sep: Element) => {
       expect(sep.textContent?.trim()).toBe('›');
@@ -82,9 +80,7 @@ describe('InsightPage — hero section', () => {
   it('menampilkan info banner "Seluruh angka · Data contoh" di bawah filter', () => {
     render(<InsightPage />);
 
-    const banner = screen
-      .getByText('Seluruh angka')
-      .closest('[role="status"]');
+    const banner = screen.getByText('Seluruh angka').closest('[role="status"]');
     expect(banner).toBeTruthy();
     expect(banner?.textContent).toContain('Seluruh angka');
     expect(banner?.textContent).toContain('Data contoh');
@@ -106,7 +102,7 @@ describe('InsightPage — reading guide', () => {
       }),
     ).toBeTruthy();
 
-    const guides = within(section).getAllByRole("article");
+    const guides = within(section).getAllByRole('article');
     expect(guides).toHaveLength(3);
 
     expect(
@@ -156,6 +152,91 @@ describe('InsightPage — reading guide', () => {
 
     expect(grid?.className).toContain('grid-cols-1');
     expect(grid?.className).toContain('sm:grid-cols-2');
+    expect(grid?.className).toContain('lg:grid-cols-3');
+  });
+});
+
+describe('InsightPage — source and methodology', () => {
+  it('menampilkan ringkasan sumber, periode, cakupan, dan label simulasi', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', {
+      name: 'Sumber & metodologi',
+    });
+    expect(
+      within(section).getByText(
+        'Kenali asal angka dan batas penggunaannya sebelum mengambil kesimpulan.',
+      ),
+    ).toBeTruthy();
+
+    const expectedItems = [
+      {
+        title: 'Layanan perizinan',
+        source: 'Simulasi layanan perizinan Agoraya',
+        period: '2024',
+        coverage: '5 kota di Jawa Barat',
+        href: 'https://oss.go.id/',
+      },
+      {
+        title: 'Anggaran daerah',
+        source: 'Simulasi APBD Agoraya · Data contoh',
+        period: '2020-2024',
+        coverage: 'Kota Bandung',
+        href: 'https://djpk.kemenkeu.go.id/portal/data/apbd',
+      },
+      {
+        title: 'Kesejahteraan warga',
+        source: 'Simulasi sosial-ekonomi Agoraya',
+        period: '2023-2024',
+        coverage: 'Kota Bandung',
+        href: 'https://sirusa.web.bps.go.id/metadata/',
+      },
+    ];
+    const cards = within(section).getAllByRole('article');
+    expect(cards).toHaveLength(3);
+
+    expectedItems.forEach((item) => {
+      const cardElement = cards.find(
+        (candidate) =>
+          within(candidate).queryByRole('heading', {
+            level: 3,
+            name: item.title,
+          }) !== null,
+      );
+      expect(cardElement).toBeTruthy();
+      if (!cardElement) return;
+
+      const card = within(cardElement);
+      expect(
+        card.getByRole('heading', { level: 3, name: item.title }),
+      ).toBeTruthy();
+      expect(card.getByText(item.source)).toBeTruthy();
+      expect(card.getByText(item.period)).toBeTruthy();
+      expect(card.getByText(item.coverage)).toBeTruthy();
+      expect(card.getByText('Simulasi')).toBeTruthy();
+      const referenceLink = card.getByRole('link');
+      expect(referenceLink.getAttribute('href')).toBe(item.href);
+      expect(referenceLink.getAttribute('target')).toBe('_blank');
+      expect(referenceLink.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+
+    expect(
+      screen
+        .getByRole('link', { name: /jelajahi data pemerintah/i })
+        .getAttribute('href'),
+    ).toBe('/data');
+  });
+
+  it('mengatur grid satu, dua, lalu tiga kolom sesuai breakpoint', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', {
+      name: 'Sumber & metodologi',
+    });
+    const grid = section.querySelector('div.grid');
+
+    expect(grid?.className).toContain('grid-cols-1');
+    expect(grid?.className).toContain('md:grid-cols-2');
     expect(grid?.className).toContain('lg:grid-cols-3');
   });
 });
