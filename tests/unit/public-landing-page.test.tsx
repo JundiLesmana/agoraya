@@ -76,6 +76,37 @@ describe('PublicLandingPage', () => {
     ).toBeTruthy();
   });
 
+  it('renders the homepage CTA with responsive footer artwork', () => {
+    render(<PublicLandingPage />);
+
+    const cta = screen.getByRole('region', {
+      name: 'Data Transparan, Layanan Lebih Baik, Masa Depan Lebih Cerah',
+    });
+    expect(within(cta).getByText('PARTISIPASI ANDA BERARTI')).toBeTruthy();
+    expect(
+      within(cta).getByText(
+        'Gunakan data dan laporkan masalah untuk perubahan yang lebih baik.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(cta).getByText(
+        'Jadilah bagian dari masyarakat yang aktif, kritis, dan peduli. Gunakan data, pantau layanan, laporkan masalah, dan bantu wujudkan pemerintahan yang lebih baik.',
+      ),
+    ).toBeTruthy();
+    expect(
+      within(cta).getByRole('link', { name: 'Mulai Sekarang' }).getAttribute('href'),
+    ).toBe('/tracking');
+    expect(
+      Array.from(cta.querySelectorAll('img')).map((image) => image.getAttribute('src')),
+    ).toContain('/landing/footer-desktop.png');
+    expect(
+      Array.from(cta.querySelectorAll('picture source')).map((source) => ({
+        media: source.getAttribute('media'),
+        srcSet: source.getAttribute('srcset'),
+      })),
+    ).toContainEqual({ media: '(max-width: 639px)', srcSet: '/landing/footer-mobile.png' });
+  });
+
   it('exposes the section as a responsive card grid container', () => {
     render(<PublicLandingPage />);
 

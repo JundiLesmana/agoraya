@@ -148,13 +148,15 @@ function StepList({ steps }: { steps: typeof citizenSteps }) {
         <li key={title} className="flex items-start gap-3">
           <span
             aria-hidden="true"
-            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#edf6ff] text-xs font-semibold text-blue-700"
+            className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#edf6ff] text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-sky-300"
           >
             {index + 1}
           </span>
           <div>
-            <h4 className="text-sm font-bold text-[#17263b]">{title}</h4>
-            <p className="mt-1 text-sm leading-6 text-slate-600">
+            <h4 className="dark:text-foreground text-sm font-bold text-[#17263b]">
+              {title}
+            </h4>
+            <p className="dark:text-muted-foreground mt-1 text-sm leading-6 text-slate-600">
               {description}
             </p>
           </div>
@@ -178,8 +180,9 @@ export default function AboutPage() {
 
       <section
         aria-labelledby="about-title"
-        className="relative isolate overflow-hidden bg-[#eaf4fb] lg:min-h-[492px]"
+        className="relative isolate overflow-hidden lg:min-h-[492px]"
       >
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(246,250,255,0.98)_0%,rgba(226,237,252,0.94)_52%,rgba(207,225,250,0.82)_100%)] dark:bg-[linear-gradient(135deg,rgba(9,15,25,0.98)_0%,rgba(16,31,50,0.94)_52%,rgba(19,43,67,0.88)_100%)]" />
         <div className="relative z-10 mx-auto max-w-7xl px-4 pt-7 pb-7 sm:px-6 lg:flex lg:min-h-[492px] lg:items-center lg:px-8 lg:py-10">
           <div className="max-w-[650px]">
             <nav
@@ -188,41 +191,49 @@ export default function AboutPage() {
             >
               <Link
                 href="/"
-                className="text-slate-600 hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                className="text-slate-600 hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:text-slate-300 dark:hover:text-sky-200 dark:focus-visible:outline-sky-300"
               >
                 Beranda
               </Link>
-              <span aria-hidden="true" className="text-slate-500">
+              <span
+                aria-hidden="true"
+                className="text-slate-500 dark:text-slate-400"
+              >
                 /
               </span>
-              <span aria-current="page" className="font-semibold text-blue-800">
+              <span
+                aria-current="page"
+                className="font-semibold text-blue-800 dark:text-sky-300"
+              >
                 Tentang
               </span>
             </nav>
-            <p className="text-[11px] font-semibold text-[#405a78]">
+            <p className="text-[11px] font-semibold text-[#405a78] dark:text-slate-300">
               TENTANG Agoraya
             </p>
             <h1
               id="about-title"
-              className="mt-5 text-[32px] leading-[1.12] font-bold tracking-tight text-[#17263b] sm:text-[40px] lg:text-[44px]"
+              className="mt-5 text-[32px] leading-[1.12] font-bold tracking-tight text-[#17263b] sm:text-[40px] lg:text-[44px] dark:text-slate-100"
             >
               Lebih terbuka datanya.
               <br /> Lebih berarti{" "}
-              <span className="text-blue-700">partisipasinya.</span>
+              <span className="text-blue-700 dark:text-sky-300">
+                partisipasinya.
+              </span>
             </h1>
-            <p className="mt-5 max-w-[620px] text-sm leading-6 text-slate-600 sm:text-base">
+            <p className="mt-5 max-w-[620px] text-sm leading-6 text-slate-600 sm:text-base dark:text-slate-300">
               Agoraya adalah ruang digital untuk memahami data pemerintah,
               mengenali layanan publik, dan menyuarakan persoalan di sekitar
               kita.
             </p>
-            <p className="mt-5 max-w-[620px] text-sm leading-6 text-slate-600">
+            <p className="mt-5 max-w-[620px] text-sm leading-6 text-slate-600 dark:text-slate-300">
               Dirancang untuk mendekatkan informasi dan partisipasi, agar warga
               dan instansi dapat berdialog dengan dasar yang lebih jelas.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button
                 asChild
-                className="h-[46px] rounded-[10px] bg-blue-700 px-5 text-sm font-semibold text-white shadow-none hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                className="h-[46px] rounded-[10px] px-5 text-sm font-semibold shadow-none"
               >
                 <Link
                   href="/#ecosystem-title"
@@ -235,7 +246,7 @@ export default function AboutPage() {
               <Button
                 asChild
                 variant="outline"
-                className="h-[46px] rounded-[10px] border-slate-200 bg-white px-5 text-sm font-semibold text-blue-700 shadow-none hover:bg-blue-50 hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                className="h-[46px] rounded-[10px] border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 shadow-none hover:bg-blue-50 hover:text-blue-800 dark:border-slate-600 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800 dark:hover:text-sky-200"
               >
                 <Link
                   href="/tracking"
@@ -263,34 +274,38 @@ export default function AboutPage() {
               className="object-cover object-center"
             />
           </picture>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[1] dark:bg-[linear-gradient(90deg,rgba(9,15,25,0.96)_0%,rgba(9,15,25,0.88)_48%,rgba(9,15,25,0.08)_78%,transparent_100%)]"
+          />
         </div>
       </section>
 
       <section
         aria-labelledby="mission-title"
-        className="bg-white py-14 sm:py-16"
+        className="dark:bg-background bg-white py-14 sm:py-16"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 grid gap-6 md:grid-cols-[5fr_7fr] md:gap-10">
             <div>
-              <p className="text-[11px] font-semibold tracking-wide text-[#405a78]">
+              <p className="text-[11px] font-semibold tracking-wide text-[#405a78] dark:text-slate-300">
                 TUJUAN KAMI
               </p>
               <h2
                 id="mission-title"
-                className="mt-3 max-w-[500px] text-[28px] leading-[1.2] font-bold tracking-tight text-[#17263b]"
+                className="dark:text-foreground mt-3 max-w-[500px] text-[28px] leading-[1.2] font-bold tracking-tight text-[#17263b]"
               >
                 Informasi yang jelas. Partisipasi yang bermakna.
               </h2>
             </div>
-            <div className="text-sm leading-[1.8] text-slate-600 sm:text-base">
+            <div className="dark:text-muted-foreground text-sm leading-[1.8] text-slate-600 sm:text-base">
               <p>
                 Kami ingin membantu warga memahami isu publik dan memberi
                 masukan yang relevan. Bagi instansi, informasi yang tertata
                 dapat menjadi bahan untuk menjelaskan proses dan melihat
                 kebutuhan masyarakat.
               </p>
-              <p className="mt-4 leading-[1.7] font-semibold text-[#17263b]">
+              <p className="mt-4 leading-[1.7] font-semibold text-[#17263b] dark:text-slate-200">
                 Keterbukaan bukan hanya menyediakan data, tetapi juga membuatnya
                 dapat dipahami dan dipertanyakan.
               </p>
@@ -301,20 +316,20 @@ export default function AboutPage() {
               <article
                 key={title}
                 aria-labelledby={`mission-${index + 1}-title`}
-                className="rounded-[14px] border border-[#dce6f1] bg-[#fbfcfe] p-6"
+                className="dark:border-border dark:bg-card rounded-[14px] border border-[#dce6f1] bg-[#fbfcfe] p-6"
               >
                 <Icon
                   aria-hidden="true"
-                  className="size-6 text-blue-600"
+                  className="size-6 text-blue-600 dark:text-sky-300"
                   strokeWidth={1.7}
                 />
                 <h3
                   id={`mission-${index + 1}-title`}
-                  className="mt-4 text-[17px] font-bold text-[#17263b]"
+                  className="dark:text-foreground mt-4 text-[17px] font-bold text-[#17263b]"
                 >
                   {title}
                 </h3>
-                <p className="mt-3 text-sm leading-[1.65] text-slate-600">
+                <p className="dark:text-muted-foreground mt-3 text-sm leading-[1.65] text-slate-600">
                   {description}
                 </p>
               </article>
@@ -327,49 +342,49 @@ export default function AboutPage() {
 
       <section
         aria-labelledby="participation-title"
-        className="bg-white py-14 sm:py-16"
+        className="dark:bg-background bg-white py-14 sm:py-16"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-[11px] font-semibold tracking-wide text-[#405a78]">
+          <p className="text-[11px] font-semibold tracking-wide text-[#405a78] dark:text-slate-300">
             AMBIL BAGIAN
           </p>
           <h2
             id="participation-title"
-            className="mt-3 text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
+            className="dark:text-foreground mt-3 text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
           >
             Peran berbeda, tujuan yang sama
           </h2>
-          <p className="mt-3 text-base text-slate-600">
+          <p className="dark:text-muted-foreground mt-3 text-base text-slate-600">
             Informasi yang lebih baik tumbuh dari kontribusi yang jelas dan
             dialog yang saling menghargai.
           </p>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <article className="rounded-[14px] border border-[#dce6f1] bg-white p-6">
+            <article className="dark:border-border dark:bg-card rounded-[14px] border border-[#dce6f1] bg-white p-6">
               <div className="flex items-start gap-4">
-                <span className="rounded-xl bg-[#edf6ff] p-3 text-blue-700">
+                <span className="rounded-xl bg-[#edf6ff] p-3 text-blue-700 dark:bg-blue-950 dark:text-sky-300">
                   <UsersRound aria-hidden="true" className="size-5" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-bold text-[#17263b]">
+                  <h3 className="dark:text-foreground text-lg font-bold text-[#17263b]">
                     Untuk warga
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="dark:text-muted-foreground text-sm text-slate-600">
                     Mulai dari hal yang dekat dengan Anda.
                   </p>
                 </div>
               </div>
               <StepList steps={citizenSteps} />
             </article>
-            <article className="rounded-[14px] border border-[#dce6f1] bg-white p-6">
+            <article className="dark:border-border dark:bg-card rounded-[14px] border border-[#dce6f1] bg-white p-6">
               <div className="flex items-start gap-4">
-                <span className="rounded-xl bg-[#eff9f4] p-3 text-blue-700">
+                <span className="rounded-xl bg-[#eff9f4] p-3 text-blue-700 dark:bg-emerald-950 dark:text-emerald-300">
                   <Building2 aria-hidden="true" className="size-5" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-bold text-[#17263b]">
+                  <h3 className="dark:text-foreground text-lg font-bold text-[#17263b]">
                     Untuk instansi
                   </h3>
-                  <p className="text-sm text-slate-600">
+                  <p className="dark:text-muted-foreground text-sm text-slate-600">
                     Bangun penjelasan yang mudah diikuti.
                   </p>
                 </div>
@@ -377,7 +392,7 @@ export default function AboutPage() {
               <StepList steps={agencySteps} />
             </article>
           </div>
-          <p className="mt-8 text-sm leading-6 text-slate-500">
+          <p className="dark:text-muted-foreground mt-8 text-sm leading-6 text-slate-500">
             Panduan ini adalah cara berkontribusi secara bertanggung jawab,
             bukan jaminan waktu respons atau tindak lanjut dari instansi.
           </p>
@@ -386,23 +401,23 @@ export default function AboutPage() {
 
       <section
         aria-labelledby="privacy-title"
-        className="bg-[#eaf5fb] py-12 sm:py-14"
+        className="bg-[#eaf5fb] py-12 sm:py-14 dark:bg-[#101f32]"
       >
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:grid-cols-[5fr_7fr] sm:px-6 lg:grid-cols-[5fr_7fr] lg:px-8">
           <div>
-            <span className="inline-flex size-12 items-center justify-center rounded-xl bg-white text-blue-700">
+            <span className="inline-flex size-12 items-center justify-center rounded-xl bg-white text-blue-700 dark:bg-blue-950 dark:text-sky-300">
               <ShieldCheck aria-hidden="true" className="size-6" />
             </span>
-            <p className="mt-5 text-[11px] font-semibold tracking-wide text-[#405a78]">
+            <p className="mt-5 text-[11px] font-semibold tracking-wide text-[#405a78] dark:text-slate-300">
               DATA YANG BERTANGGUNG JAWAB
             </p>
             <h2
               id="privacy-title"
-              className="mt-3 max-w-[460px] text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
+              className="dark:text-foreground mt-3 max-w-[460px] text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
             >
               Terbuka untuk publik, tetap menghormati privasi
             </h2>
-            <p className="mt-3 max-w-[460px] text-sm leading-6 text-slate-600">
+            <p className="dark:text-muted-foreground mt-3 max-w-[460px] text-sm leading-6 text-slate-600">
               Keterbukaan tidak berarti semua informasi pribadi perlu
               dipublikasikan.
             </p>
@@ -429,14 +444,16 @@ export default function AboutPage() {
                   strokeWidth={2.5}
                 />
                 <div>
-                  <h3 className="text-sm font-bold text-[#17263b]">{title}</h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                  <h3 className="dark:text-foreground text-sm font-bold text-[#17263b]">
+                    {title}
+                  </h3>
+                  <p className="dark:text-muted-foreground mt-1 text-sm leading-6 text-slate-600">
                     {description}
                   </p>
                 </div>
               </div>
             ))}
-            <p className="pt-1 text-xs leading-5 text-slate-500">
+            <p className="dark:text-muted-foreground pt-1 text-xs leading-5 text-slate-500">
               Sebelum mengirim data, baca ketentuan penggunaan dan informasi
               privasi yang tersedia pada layanan terkait.
             </p>
@@ -444,78 +461,27 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section aria-labelledby="faq-title" className="bg-white py-14 sm:py-16">
+      <section
+        aria-labelledby="faq-title"
+        className="dark:bg-background bg-white py-14 sm:py-16"
+      >
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:grid-cols-[4fr_8fr] sm:px-6 lg:px-8">
           <div>
-            <p className="text-[11px] font-semibold tracking-wide text-[#405a78]">
+            <p className="text-[11px] font-semibold tracking-wide text-[#405a78] dark:text-slate-300">
               PERTANYAAN UMUM
             </p>
             <h2
               id="faq-title"
-              className="mt-3 max-w-[350px] text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
+              className="dark:text-foreground mt-3 max-w-[350px] text-[28px] leading-tight font-bold tracking-tight text-[#17263b]"
             >
               Kenali sebelum menjelajahi
             </h2>
-            <p className="mt-3 max-w-[350px] text-sm leading-6 text-slate-600">
+            <p className="dark:text-muted-foreground mt-3 max-w-[350px] text-sm leading-6 text-slate-600">
               Beberapa hal penting agar Anda menggunakan Agoraya dengan
               pemahaman yang tepat.
             </p>
           </div>
           <FaqAccordion items={faqs} />
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="about-cta-title"
-        className="relative isolate mx-4 my-6 flex min-h-[300px] items-center overflow-hidden rounded-xl bg-[#173b63] text-white sm:mx-6 lg:mx-auto lg:max-w-7xl"
-      >
-        <picture className="absolute inset-0 -z-10">
-          <source
-            media="(max-width: 767px)"
-            srcSet="/landing/footer-mobile.png"
-          />
-          <Image
-            src="/landing/footer-desktop.png"
-            alt=""
-            fill
-            sizes="(max-width: 767px) 100vw, 1320px"
-            className="object-cover object-center"
-          />
-        </picture>
-        <div className="max-w-[600px] px-6 py-10 sm:px-9 lg:ml-8">
-          <p className="text-[11px] font-semibold tracking-wide text-blue-100">
-            PARTISIPASI ANDA BERARTI
-          </p>
-          <h2
-            id="about-cta-title"
-            className="mt-3 text-[28px] leading-tight font-bold sm:text-[32px]"
-          >
-            Mulai dari rasa ingin tahu.
-            <br />
-            Lanjutkan dengan peran Anda.
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-blue-50">
-            Jelajahi data, kenali layanan, dan temukan ruang untuk
-            berpartisipasi dengan lebih terinformasi.
-          </p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Button
-              asChild
-              className="min-h-11 bg-white px-5 text-sm font-semibold text-blue-800 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              <Link href="/data">
-                Jelajahi Data Pemerintah
-                <ArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-            </Button>
-            <Link
-              href="/tracking"
-              className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-white underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              Lihat Layanan Publik
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          </div>
         </div>
       </section>
     </>

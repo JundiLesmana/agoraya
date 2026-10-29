@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const POPULAR_TAGS = ['APBD', 'Proyek Infrastruktur', 'Pendidikan', 'Kesehatan', 'Bantuan Sosial'] as const;
+const POPULAR_TAGS = ['APBD', 'Proyek Infrastruktur', 'Pendidikan', 'Kesehatan', 'Sosial'] as const;
 
 function PublicHeroSearch() {
   const router = useRouter();

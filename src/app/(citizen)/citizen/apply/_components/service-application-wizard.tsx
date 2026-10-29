@@ -52,12 +52,7 @@ const INITIAL_DETAILS: ApplicationDetails = {
   householdMembers: "",
 };
 
-const CATEGORIES = [
-  "Semua kategori",
-  "Pengaduan",
-  "Perizinan",
-  "Bansos",
-] as const;
+const CATEGORIES = ["Semua kategori", "Perizinan", "Bansos", "Kesehatan"] as const;
 
 // This fixture is intentionally synthetic; the current session contract has no profile data.
 const PROFILE = {
@@ -271,9 +266,6 @@ function ServiceCatalog({
                     <span className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                       <FileText className="size-4" aria-hidden="true" />
                     </span>
-                    <span className="bg-muted rounded-full px-2.5 py-1 text-xs font-medium">
-                      {service.category}
-                    </span>
                   </span>
                   <span className="mt-3 block font-semibold">
                     {service.name}
@@ -417,7 +409,7 @@ function ServiceSpecificFields({
               className="border-input bg-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             >
               <option value="">Pilih jenis bantuan</option>
-              <option value="Pendidikan">Bantuan pendidikan</option>
+              <option value="Pendidikan">Pendidikan</option>
               <option value="Keluarga">Bantuan keluarga</option>
             </select>
           </label>
@@ -450,7 +442,7 @@ function ServiceSpecificFields({
             <Input
               value={details.permitType}
               onChange={(event) => onChange("permitType", event.target.value)}
-              placeholder="Contoh: izin usaha mikro"
+              placeholder="Contoh: Perizinan"
             />
           </label>
           <label className="block space-y-1.5 text-sm">
