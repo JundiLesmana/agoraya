@@ -44,6 +44,7 @@ import {
   formatRupiahForScreenReader,
 } from "@/lib/public-data-format";
 import { SummaryKpiCards } from "./summary-kpi-cards";
+import { BudgetActualsTrend } from "./budget-actuals-trend";
 
 const REGIONS = [
   { value: "all", label: "Seluruh Indonesia", budget: 2_450, coverage: 514 },
@@ -862,6 +863,7 @@ export function PublicDataDashboard({
 
       <div className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <CategoryNavigation activeCategory={activeCategory} />
+        {view === "budget" ? <BudgetActualsTrend /> : null}
         <Card className="border-border shadow-sm">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3">
             <h2 className="flex items-center gap-2 text-base leading-none font-semibold tracking-tight">
