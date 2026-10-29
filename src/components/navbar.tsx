@@ -73,7 +73,7 @@ function Navbar() {
                   'text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                   active && 'text-primary',
                 )}
-                aria-current={active && pathname === item.href ? "page" : undefined}
+                aria-current={active ? "page" : undefined}
               >
                 {item.label}
               </Link>
