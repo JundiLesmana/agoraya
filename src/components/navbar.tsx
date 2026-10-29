@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, MoonStar, Search, SunMedium, X } from "lucide-react";
+import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,14 +18,22 @@ const NAV_ITEMS = [
   { href: '/tentang', label: 'Tentang' },
 ] as const;
 
+function isNavigationItemActive(pathname: string, href: string) {
+  if (href === "/") return pathname === href;
+  if (pathname === href || pathname.startsWith(`${href}/`)) return true;
+  if (
+    href === "/tracking" &&
+    (pathname === "/citizen/apply" || pathname.startsWith("/citizen/apply/"))
+  )
+    return true;
+  return false;
+}
+
 function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const isAboutPage = pathname === "/tentang";
   const logoSrc =
-    isAboutPage || theme !== "dark"
-      ? "/logo/logo-light.svg"
-      : "/logo/logo-dark.svg";
+    theme === "dark" ? "/logo/logo-dark.svg" : "/logo/logo-light.svg";
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -56,7 +64,7 @@ function Navbar() {
           className="hidden flex-1 items-center justify-center gap-1 lg:flex"
         >
           {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
+            const active = isNavigationItemActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
@@ -65,6 +73,13 @@ function Navbar() {
                   'text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                   active && 'text-primary',
                 )}
+                aria-current={
+                  active
+                    ? pathname === item.href
+                      ? "page"
+                      : "location"
+                    : undefined
+                }
               >
                 {item.label}
               </Link>
@@ -99,12 +114,7 @@ function Navbar() {
               <MoonStar className="size-4" /> Gelap
             </button>
           </div>
-          <Button
-            asChild
-            className={cn(
-              isAboutPage && "bg-blue-700 text-white hover:bg-blue-800",
-            )}
-          >
+          <Button asChild>
             <Link href="/login">Masuk / Daftar</Link>
           </Button>
         </div>
@@ -113,24 +123,10 @@ function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Cari"
-            className={cn(
-              "size-10",
-              isAboutPage && "text-slate-700 hover:bg-slate-100",
-            )}
-          >
-            <Search className="size-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             aria-label={mobileMenuOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-navigation"
-            className={cn(
-              "size-10",
-              isAboutPage && "text-slate-700 hover:bg-slate-100",
-            )}
+            className="size-10"
             onClick={() => setMobileMenuOpen((value) => !value)}
           >
             {mobileMenuOpen ? (
@@ -184,13 +180,7 @@ function Navbar() {
               </Link>
             ))}
           </nav>
-          <Button
-            asChild
-            className={cn(
-              "w-full",
-              isAboutPage && "bg-blue-700 text-white hover:bg-blue-800",
-            )}
-          >
+          <Button asChild className="w-full">
             <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
               Masuk / Daftar
             </Link>

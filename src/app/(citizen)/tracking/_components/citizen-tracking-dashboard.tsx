@@ -44,7 +44,7 @@ const CATEGORY_OPTIONS = [
   { value: 'Semua kategori', label: 'Semua kategori' },
   { value: 'Pengaduan', label: 'Pengaduan' },
   { value: 'Perizinan', label: 'Perizinan' },
-  { value: 'Bantuan sosial', label: 'Bantuan sosial' },
+  { value: 'Sosial', label: 'Sosial' },
 ] as const;
 
 const STATUS_OPTIONS = [
@@ -257,7 +257,7 @@ function ApplicationList({
                 className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <Button type="submit" className="h-10 shrink-0 bg-blue-700 text-white hover:bg-blue-800">
+            <Button type="submit" className="h-10 shrink-0">
               <Search className="size-4" aria-hidden="true" />
               Lacak layanan
             </Button>
@@ -552,7 +552,7 @@ function ApplicationDetails({
         <div className="border-t border-border pt-4">
           <Button
             onClick={onContact}
-            className="h-10 w-full bg-blue-700 text-white hover:bg-blue-800"
+            className="h-10 w-full"
           >
             <MessageCircle className="size-4" aria-hidden="true" />
             Hubungi instansi
@@ -887,7 +887,6 @@ export function CitizenTrackingDashboard() {
             form="upload-document-form"
             type="submit"
             disabled={!uploadFile}
-            className="bg-blue-700 text-white hover:bg-blue-800"
           >
             <Upload className="size-4" aria-hidden="true" />
             Simpan pilihan (simulasi)
@@ -939,7 +938,6 @@ export function CitizenTrackingDashboard() {
             form="contact-agency-form"
             type="submit"
             disabled={!contactMessage.trim()}
-            className="bg-blue-700 text-white hover:bg-blue-800"
           >
             <MessageCircle className="size-4" aria-hidden="true" />
             Kirim pesan (simulasi)

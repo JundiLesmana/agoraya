@@ -46,7 +46,7 @@ const BASE_MONTH_TRENDS = [
 const BASE_SERVICES = [
   { name: "Pengaduan warga", value: 480 },
   { name: "Perizinan", value: 360 },
-  { name: "Bantuan sosial", value: 240 },
+  { name: "Sosial", value: 240 },
   { name: "Administrasi", value: 120 },
 ] as const;
 

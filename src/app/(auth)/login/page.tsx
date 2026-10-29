@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default function LoginPage() {
   return (
     <main>
@@ -9,9 +11,9 @@ export default function LoginPage() {
           </label>
           <input id="email" type="email" className="mt-1 block w-full rounded border p-2" />
         </div>
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded">
+        <Button type="submit" className="w-full">
           Login
-        </button>
+        </Button>
       </form>
     </main>
   );
