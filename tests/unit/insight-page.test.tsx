@@ -90,3 +90,72 @@ describe('InsightPage — hero section', () => {
     expect(banner?.textContent).toContain('Data contoh');
   });
 });
+
+describe('InsightPage — reading guide', () => {
+  it('menampilkan tiga panduan dengan heading dan teks yang benar', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', {
+      name: 'Cara membaca insight ini',
+    });
+
+    expect(
+      within(section).getByRole('heading', {
+        level: 2,
+        name: 'Cara membaca insight ini',
+      }),
+    ).toBeTruthy();
+
+    const guides = within(section).getAllByRole("article");
+    expect(guides).toHaveLength(3);
+
+    expect(
+      within(guides[0]).getByRole('heading', {
+        level: 3,
+        name: 'Mulai dari ukuran yang sama',
+      }),
+    ).toBeTruthy();
+    expect(
+      within(guides[0]).getByText(
+        'Periksa wilayah, tahun, dan satuan. 0,2 poin persentase, bukan 0,2%.',
+      ),
+    ).toBeTruthy();
+
+    expect(
+      within(guides[1]).getByRole('heading', {
+        level: 3,
+        name: 'Baca arah, bukan hanya angka',
+      }),
+    ).toBeTruthy();
+    expect(
+      within(guides[1]).getByText(
+        'Nilai tinggi tidak selalu lebih baik. Kemiskinan diharapkan turun; lama sekolah diharapkan naik.',
+      ),
+    ).toBeTruthy();
+
+    expect(
+      within(guides[2]).getByRole('heading', {
+        level: 3,
+        name: 'Selalu lihat konteksnya',
+      }),
+    ).toBeTruthy();
+    expect(
+      within(guides[2]).getByText(
+        'Korelasi bukan sebab-akibat. Gunakan data bersama kondisi lapangan; data yang tidak tersedia tidak boleh dianggap nol.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('mengatur grid satu, dua, lalu tiga kolom sesuai breakpoint', () => {
+    render(<InsightPage />);
+
+    const section = screen.getByRole('region', {
+      name: 'Cara membaca insight ini',
+    });
+    const grid = section.querySelector('div.grid');
+
+    expect(grid?.className).toContain('grid-cols-1');
+    expect(grid?.className).toContain('sm:grid-cols-2');
+    expect(grid?.className).toContain('lg:grid-cols-3');
+  });
+});
