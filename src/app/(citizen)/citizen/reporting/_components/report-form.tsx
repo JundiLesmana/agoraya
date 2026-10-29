@@ -13,11 +13,15 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  CircleAlert,
+  Construction,
   FileText,
   ImagePlus,
+  Leaf,
   ShieldCheck,
   Trash2,
   UploadCloud,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +30,32 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 const CATEGORIES = ["Infrastruktur", "Dugaan korupsi", "Lingkungan"] as const;
+
+const CATEGORY_CARDS = [
+  {
+    label: "Infrastruktur",
+    category: "Infrastruktur",
+    description: "Jalan, trotoar, atau fasilitas umum.",
+    icon: Construction,
+  },
+  {
+    label: "Dugaan korupsi",
+    category: "Dugaan korupsi",
+    description: "Dugaan yang perlu pemeriksaan. Gunakan jalur rahasia.",
+    icon: CircleAlert,
+  },
+  {
+    label: "Lingkungan",
+    category: "Lingkungan",
+    description: "Sampah, pencemaran, atau drainase.",
+    icon: Leaf,
+  },
+] as const satisfies readonly {
+  label: string;
+  category: (typeof CATEGORIES)[number];
+  description: string;
+  icon: LucideIcon;
+}[];
 
 const SUBCATEGORIES: Record<(typeof CATEGORIES)[number], string[]> = {
   Infrastruktur: [
@@ -99,10 +129,21 @@ function isAllowedFileType(file: File, extension: string): boolean {
   return false;
 }
 
-function getInitialValues(category?: string): ReportFormValues {
+function getInitialValues(
+  category?: string,
+  subcategory?: string,
+): ReportFormValues {
+  const validCategory = category && categoryIsValid(category) ? category : "";
+  const subcategoryOptions = categoryIsValid(validCategory)
+    ? getSubcategories(validCategory as (typeof CATEGORIES)[number])
+    : [];
+  const validSubcategory =
+    subcategory && subcategoryOptions.includes(subcategory)
+      ? subcategory
+      : "";
   return {
-    category: category && categoryIsValid(category) ? category : "",
-    subcategory: "",
+    category: validCategory,
+    subcategory: validSubcategory,
     title: "",
     description: "",
     province: "",
@@ -184,11 +225,19 @@ function FormField({
   );
 }
 
-export function ReportForm({ initialCategory }: { initialCategory?: string }) {
+export function ReportForm({
+  initialCategory,
+  initialSubcategory,
+}: {
+  initialCategory?: string;
+  initialSubcategory?: string;
+}) {
   const [step, setStep] = useState(() =>
     initialCategory && categoryIsValid(initialCategory) ? 1 : 0,
   );
-  const [values, setValues] = useState(() => getInitialValues(initialCategory));
+  const [values, setValues] = useState(() =>
+    getInitialValues(initialCategory, initialSubcategory),
+  );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [fileError, setFileError] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -398,30 +447,37 @@ export function ReportForm({ initialCategory }: { initialCategory?: string }) {
               <p className="text-muted-foreground text-sm">
                 Pilih kategori yang paling mendekati masalah Anda.
               </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {CATEGORIES.map((category) => (
-                  <label
-                    key={category}
-                    className={`focus-within:ring-primary flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors focus-within:ring-2 ${
-                      values.category === category
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="category"
-                      value={category}
-                      checked={values.category === category}
-                      onChange={() => {
-                        updateValue("category", category);
-                        updateValue("subcategory", "");
-                      }}
-                      className="accent-primary size-4"
-                    />
-                    <span className="font-medium">{category}</span>
-                  </label>
-                ))}
+              <div className="grid gap-3 sm:grid-cols-3">
+                {CATEGORY_CARDS.map(({ label, category, description, icon: Icon }) => {
+                  const selected = values.category === category;
+                  return (
+                    <label
+                      key={category}
+                      className={`focus-within:ring-primary flex cursor-pointer flex-col items-center gap-3 rounded-lg border p-4 transition-colors focus-within:ring-2 ${
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-muted/50"
+                      }`}
+                    >
+                      <Icon aria-hidden="true" className="text-primary size-5" />
+                      <span className="font-medium">{label}</span>
+                      <span className="text-muted-foreground text-xs text-center">
+                        {description}
+                      </span>
+                      <input
+                        type="radio"
+                        name="category"
+                        value={category}
+                        checked={selected}
+                        onChange={() => {
+                          updateValue("category", category);
+                          updateValue("subcategory", "");
+                        }}
+                        className="sr-only"
+                      />
+                    </label>
+                  );
+                })}
               </div>
               {!validateStep(0, values) ? (
                 <FieldError>
