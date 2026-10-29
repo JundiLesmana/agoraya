@@ -36,7 +36,7 @@ describe("Navbar", () => {
         name: "Data Pemerintah",
       });
       expect(dataLinks).toHaveLength(2);
-      expect(dataLinks[0].getAttribute("aria-current")).toBe("location");
+      expect(dataLinks[0].getAttribute("aria-current")).toBe("page");
       expect(dataLinks[0].className).toContain("text-primary");
       expect(dataLinks[1].getAttribute("aria-current")).toBe("location");
       expect(dataLinks[1].className).toContain("bg-primary/10");

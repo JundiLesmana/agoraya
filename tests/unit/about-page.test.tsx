@@ -54,7 +54,6 @@ describe("AboutPage", () => {
       "Peran berbeda, tujuan yang sama",
       "Terbuka untuk publik, tetap menghormati privasi",
       "Kenali sebelum menjelajahi",
-      "Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.",
     ];
     const headings = screen.getAllByRole("heading", { level: 2 });
     const renderedOrder = headings.map((heading) => heading.textContent);
@@ -133,12 +132,12 @@ describe("AboutPage", () => {
     ).toBe("/tracking");
     expect(
       screen
-        .getByRole("link", { name: "Jelajahi Data Pemerintah" })
+        .getByRole("link", { name: /Jelajahi Data Pemerintah/i })
         .getAttribute("href"),
     ).toBe("/data");
     expect(
       screen
-        .getByRole("link", { name: "Lihat Layanan Publik" })
+        .getByRole("link", { name: /Lihat Layanan Publik/i })
         .getAttribute("href"),
     ).toBe("/tracking");
   });

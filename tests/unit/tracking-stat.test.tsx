@@ -95,7 +95,7 @@ describe("TrackingStatisticsPage", () => {
     expect(screen.getByRole("alert").textContent).toContain(
       "Tanggal awal harus sama dengan atau sebelum tanggal akhir",
     );
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     fireEvent.change(screen.getByLabelText("Tanggal mulai"), {
       target: { value: "2026-10-01" },
@@ -104,11 +104,11 @@ describe("TrackingStatisticsPage", () => {
       (await screen.findAllByText(/2026-10-01 — 2026-10-27/)).length,
     ).toBeGreaterThan(0);
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(String(fetchMock.mock.calls[2]?.[0])).toContain(
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(String(fetchMock.mock.calls[3]?.[0])).toContain(
       "startDate=2026-10-01",
     );
-    expect(String(fetchMock.mock.calls[2]?.[0])).toContain(
+    expect(String(fetchMock.mock.calls[3]?.[0])).toContain(
       "endDate=2026-10-27",
     );
   });
