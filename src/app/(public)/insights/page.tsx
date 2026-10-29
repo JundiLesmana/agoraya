@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { InsightDashboard } from './_components/insight-dashboard';
+import { InsightReadingGuide } from './_components/insight-reading-guide';
 import {
   SekilasCards,
   SekilasSkeleton,
@@ -69,6 +70,8 @@ export default function InsightPage() {
           kesejahteraan. Insight sederhana untuk keputusan yang lebih terarah.
         </p>
       </section>
+
+      <InsightReadingGuide />
 
       {/* Sekilas: 3 kartu KPI perubahan kunci */}
       <Suspense fallback={<SekilasSkeleton />}>
