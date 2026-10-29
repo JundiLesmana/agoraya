@@ -82,9 +82,11 @@ describe('InsightPage — hero section', () => {
   it('menampilkan info banner "Seluruh angka · Data contoh" di bawah filter', () => {
     render(<InsightPage />);
 
-    const banner = screen.getByRole('status');
+    const banner = screen
+      .getByText('Seluruh angka')
+      .closest('[role="status"]');
     expect(banner).toBeTruthy();
-    expect(banner.textContent).toContain('Seluruh angka');
-    expect(banner.textContent).toContain('Data contoh');
+    expect(banner?.textContent).toContain('Seluruh angka');
+    expect(banner?.textContent).toContain('Data contoh');
   });
 });
