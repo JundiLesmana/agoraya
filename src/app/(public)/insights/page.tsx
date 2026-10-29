@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { InsightDashboard } from './_components/insight-dashboard';
+import {
+  SekilasCards,
+  SekilasSkeleton,
+} from './_components/sekilas-cards';
 
 export const metadata: Metadata = {
   title: 'Insight Publik | Agoraya',
@@ -64,7 +68,16 @@ export default function InsightPage() {
         </p>
       </section>
 
-      <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-border bg-muted/40" />}>
+      {/* Sekilas: 3 kartu KPI perubahan kunci */}
+      <Suspense fallback={<SekilasSkeleton />}>
+        <SekilasCards />
+      </Suspense>
+
+      <Suspense
+        fallback={
+          <div className="h-40 animate-pulse rounded-xl border border-border bg-muted/40" />
+        }
+      >
         <InsightDashboard />
       </Suspense>
     </main>
