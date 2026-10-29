@@ -189,11 +189,11 @@ function ServiceCatalog({
   const services = PUBLIC_SERVICES.filter((service) => {
     const matchesCategory =
       category === "Semua kategori" || service.category === category;
-    const matchesSearch =
-      !normalizedQuery ||
-      `${service.name} ${service.description} ${service.category}`
-        .toLocaleLowerCase("id")
-        .includes(normalizedQuery);
+      const matchesSearch =
+        !normalizedQuery ||
+        `${service.description} ${service.agency}`
+          .toLocaleLowerCase("id")
+          .includes(normalizedQuery);
     return matchesCategory && matchesSearch;
   });
 

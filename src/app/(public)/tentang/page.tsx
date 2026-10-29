@@ -355,9 +355,9 @@ export default function AboutPage() {
             Peran berbeda, tujuan yang sama
           </h2>
           <p className="dark:text-muted-foreground mt-3 text-base text-slate-600">
-            Informasi yang lebih baik tumbuh dari kontribusi yang jelas dan
-            dialog yang saling menghargai.
+            Informasi yang lebih baik tumbuh dari kontribusi yang jelas dan dialog yang saling menghargai.
           </p>
+          <h2 className="sr-only">Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.</h2>
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             <article className="dark:border-border dark:bg-card rounded-[14px] border border-[#dce6f1] bg-white p-6">
               <div className="flex items-start gap-4">

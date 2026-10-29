@@ -73,13 +73,7 @@ function Navbar() {
                   'text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                   active && 'text-primary',
                 )}
-                aria-current={
-                  active
-                    ? pathname === item.href
-                      ? "page"
-                      : "location"
-                    : undefined
-                }
+                aria-current={active && pathname === item.href ? "page" : undefined}
               >
                 {item.label}
               </Link>
@@ -174,7 +168,10 @@ function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                className={cn(
+                  "text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                  isNavigationItemActive(pathname, item.href) && "bg-primary/10 text-primary",
+                )}
               >
                 {item.label}
               </Link>
