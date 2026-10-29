@@ -187,8 +187,8 @@ function ServiceCatalog({
     React.useState<(typeof CATEGORIES)[number]>("Semua kategori");
   const normalizedQuery = query.trim().toLocaleLowerCase("id");
   const services = PUBLIC_SERVICES.filter((service) => {
-    const matchesCategory =
-      category === "Semua kategori" || service.category === category;
+      const matchesCategory =
+        category === "Semua kategori" || service.category === category;
       const matchesSearch =
         !normalizedQuery ||
         `${service.description} ${service.agency}`
