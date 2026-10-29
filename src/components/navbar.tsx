@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: '/data', label: 'Data Pemerintah' },
   { href: '/tracking', label: 'Layanan Publik' },
   { href: '/citizen/dashboard', label: 'Lapor Warga' },
-  { href: '/insights', label: 'Insight' },
+  { href: '/insight', label: 'Insight' },
   { href: '/tentang', label: 'Tentang' },
 ] as const;
 
@@ -35,27 +35,15 @@ function Navbar() {
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return;
-    const firstFocusable = mobileMenuRef.current?.querySelector<HTMLElement>(
-      'a, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-    );
+    const firstFocusable = mobileMenuRef.current?.querySelector<HTMLElement>('a, button:not([disabled]), [tabindex]:not([tabindex="-1"])');
     firstFocusable?.focus();
   }, [mobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/75">
+    <header className="border-border/60 bg-background/95 supports-[backdrop-filter]:bg-background/75 sticky top-0 z-50 border-b shadow-sm backdrop-blur">
       <div className="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <Image
-            src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'}
-            alt="Agoraya"
-            width={180}
-            height={48}
-            priority
-            className="h-10 w-auto shrink-0 object-contain"
-          />
+        <Link href="/" className="focus-visible:ring-ring flex items-center gap-3 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none">
+          <Image src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo-light.svg'} alt="Agoraya" width={180} height={48} priority className="h-10 w-auto shrink-0 object-contain" />
         </Link>
 
         <nav aria-label="Navigasi utama" className="hidden flex-1 items-center justify-center gap-1 lg:flex">
@@ -66,7 +54,7 @@ function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
                   active && 'text-primary',
                 )}
               >
@@ -77,7 +65,7 @@ function Navbar() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 lg:flex">
-          <div className="inline-flex items-center rounded-full border border-border bg-background p-1 shadow-sm">
+          <div className="border-border bg-background inline-flex items-center rounded-full border p-1 shadow-sm">
             <button
               type="button"
               aria-label="Tema terang"
@@ -85,9 +73,7 @@ function Navbar() {
               onClick={toggleTheme}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                theme === 'light'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
+                theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <SunMedium className="size-4" /> Terang
@@ -99,9 +85,7 @@ function Navbar() {
               onClick={toggleTheme}
               className={cn(
                 'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                theme === 'dark'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground',
+                theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <MoonStar className="size-4" /> Gelap
@@ -131,27 +115,21 @@ function Navbar() {
       </div>
 
       <div
-        className={cn(
-          'overflow-hidden border-t border-border/60 bg-background transition-all duration-300 ease-in-out lg:hidden',
-          mobileMenuOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0',
-        )}
+        className={cn('border-border/60 bg-background overflow-hidden border-t transition-all duration-300 ease-in-out lg:hidden', mobileMenuOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0')}
       >
         <div ref={mobileMenuRef} id="mobile-navigation" className="mx-auto max-w-7xl space-y-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="border-border flex items-center justify-between border-b pb-3">
             <div>
               <p className="text-sm font-semibold">Agoraya</p>
-              <p className="text-xs text-muted-foreground">SatuData.id</p>
+              <p className="text-muted-foreground text-xs">SatuData.id</p>
             </div>
-            <div className="inline-flex rounded-full border border-border p-1">
+            <div className="border-border inline-flex rounded-full border p-1">
               <button
                 type="button"
                 aria-label="Tema terang"
                 aria-pressed={theme === 'light'}
                 onClick={toggleTheme}
-                className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                  theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
-                )}
+                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
                 Terang
               </button>
@@ -160,10 +138,7 @@ function Navbar() {
                 aria-label="Tema gelap"
                 aria-pressed={theme === 'dark'}
                 onClick={toggleTheme}
-                className={cn(
-                  'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                  theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
-                )}
+                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
               >
                 Gelap
               </button>
@@ -175,7 +150,7 @@ function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 {item.label}
               </Link>

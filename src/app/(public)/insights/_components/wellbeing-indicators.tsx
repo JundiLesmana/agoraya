@@ -67,7 +67,13 @@ function WellbeingError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-function WellbeingTable({ data }: { data: WellbeingResponse }) {
+function WellbeingTable({
+  data,
+  fokus,
+}: {
+  data: WellbeingResponse;
+  fokus: string;
+}) {
   if (data.data.length === 0) {
     return (
       <section
@@ -122,8 +128,7 @@ function WellbeingTable({ data }: { data: WellbeingResponse }) {
       >
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
           <caption className="sr-only">
-            Perbandingan indikator kesejahteraan Kota Bandung tahun 2023 dan
-            2024
+            Perbandingan indikator kesejahteraan {fokus} tahun 2023 dan 2024
           </caption>
           <thead>
             <tr className="border-border text-muted-foreground border-b">
@@ -204,7 +209,11 @@ function WellbeingTable({ data }: { data: WellbeingResponse }) {
   );
 }
 
-export function WellbeingIndicators() {
+export function WellbeingIndicators({
+  fokus = "Kota Bandung",
+}: {
+  fokus?: string;
+}) {
   const [data, setData] = useState<WellbeingResponse | null>(null);
   const [hasError, setHasError] = useState(false);
 
@@ -239,5 +248,5 @@ export function WellbeingIndicators() {
     return <WellbeingSkeleton />;
   }
 
-  return <WellbeingTable data={data} />;
+  return <WellbeingTable data={data} fokus={fokus} />;
 }
