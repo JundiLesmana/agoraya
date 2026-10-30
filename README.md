@@ -346,6 +346,7 @@ agoraya/
 │   │   │   ├── register/page.tsx
 │   │   │   └── layout.tsx
 │   │   ├── (citizen)/
+│   │   │   ├── citizen/apply/page.tsx
 │   │   │   ├── citizen/dashboard/page.tsx
 │   │   │   ├── citizen/reporting/page.tsx
 │   │   │   ├── profile/page.tsx
@@ -363,6 +364,8 @@ agoraya/
 │   │   ├── (public)/
 │   │   │   ├── _components/        # Pencarian utama dan preview dashboard
 │   │   │   ├── anggaran/page.tsx
+│   │   │   ├── insights/page.tsx
+│   │   │   ├── tracking/stat/page.tsx
 │   │   │   ├── data/
 │   │   │   │   ├── _components/    # Katalog, ringkasan, dan tabel proyek
 │   │   │   │   ├── anggaran/page.tsx
@@ -379,6 +382,14 @@ agoraya/
 │   │   ├── api/
 │   │   │   ├── audit/route.ts
 │   │   │   ├── auth/route.ts
+│   │   │   ├── insight/
+│   │   │   │   ├── anggaran/route.ts
+│   │   │   │   ├── kesejahteraan/route.ts
+│   │   │   │   ├── layanan/route.ts
+│   │   │   │   └── sekilas/route.ts
+│   │   │   ├── v1/stats/
+│   │   │   │   ├── summary/route.ts
+│   │   │   │   └── tracking-summary/route.ts
 │   │   │   ├── cron/analytics/refresh/route.ts
 │   │   │   ├── health/route.ts
 │   │   │   ├── notifications/route.ts
