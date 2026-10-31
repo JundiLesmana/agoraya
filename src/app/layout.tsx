@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
+import { PageTransition } from '@/components/page-transition';
 import { FilterProvider } from '@/lib/filter-store';
 import '@/styles/globals.css';
 
@@ -24,7 +25,9 @@ export default function RootLayout({
     <html lang="id">
       <body className="font-sans antialiased">
         <ThemeProvider>
-          <FilterProvider>{children}</FilterProvider>
+          <FilterProvider>
+            <PageTransition>{children}</PageTransition>
+          </FilterProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -10,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SourceBadge } from "@/components/source-badges/source-badge";
 import {
   buildSekilasAriaLabel,
   type SekilasItem,
@@ -54,20 +53,11 @@ function SekilasCard({ item }: { item: SekilasItem }) {
       aria-label={ariaLabel}
       className="border-border bg-card gap-3 p-4 shadow-sm"
     >
-      <CardHeader className="flex flex-row items-center justify-between gap-2 p-0">
+      <CardHeader className="p-0">
         <div
           className={`inline-flex size-9 items-center justify-center rounded-lg ${classes.icon}`}
         >
           <Icon className="size-4" aria-hidden="true" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-[10px]">Simulasi</span>
-          <SourceBadge
-            source="SIMULATED"
-            label="Data contoh"
-            withIcon={false}
-            className="px-1.5 py-0.5 text-[10px] leading-none"
-          />
         </div>
       </CardHeader>
       <CardContent className="space-y-1 p-0">
@@ -82,7 +72,9 @@ function SekilasCard({ item }: { item: SekilasItem }) {
         <p className="text-muted-foreground text-sm leading-relaxed">
           {item.interpretation}
         </p>
-        <p className="text-muted-foreground text-xs">{item.context}</p>
+        <p className="text-muted-foreground text-xs">
+          {item.context.replace(/\s*·\s*Data contoh$/, "")}
+        </p>
       </CardContent>
     </Card>
   );

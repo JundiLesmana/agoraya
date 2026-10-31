@@ -14,7 +14,6 @@ import {
   YAxis,
 } from "recharts";
 import { Info, Lightbulb } from "lucide-react";
-import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Button } from "@/components/ui/button";
 import {
   formatPercentagePoints,
@@ -226,12 +225,6 @@ function ComparisonChart({
           Persentase = permohonan selesai sesuai standar waktu ÷ seluruh
           permohonan selesai × 100. Semakin tinggi, semakin baik.
         </p>
-        <SourceBadge
-          source="SIMULATED"
-          label="Data contoh"
-          withIcon={false}
-          className="mt-2"
-        />
       </div>
       <div className="sr-only">
         <table>
@@ -332,7 +325,6 @@ export function TimelyServiceComparison({
             Bandingkan penyelesaian layanan di 5 kota Jawa Barat · {fokus}
           </p>
         </div>
-        <SourceBadge source="SIMULATED" label="Data contoh" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2.4fr)_minmax(15rem,0.9fr)]">

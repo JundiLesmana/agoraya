@@ -1,5 +1,7 @@
+import { INDONESIAN_PROVINCES } from "@/lib/indonesia-administrative-areas";
+
 export type StatisticsYear = "2024" | "2025";
-export type StatisticsRegion = "jabar" | "jateng" | "jatim";
+export type StatisticsRegion = string;
 export type StatisticsCategory =
   "Semua kategori" | "Penduduk" | "Kesejahteraan" | "Ekonomi";
 
@@ -14,14 +16,30 @@ export interface StatisticsIndicator {
   values: Record<StatisticsYear, number>;
 }
 
+const LEGACY_PROVINCE_IDS = new Map<string, string>([
+  ["Jawa Barat", "jabar"],
+  ["Jawa Tengah", "jateng"],
+  ["Jawa Timur", "jatim"],
+]);
+
 export const STATISTICS_REGIONS: {
   id: StatisticsRegion;
   name: string;
-}[] = [
-  { id: "jabar", name: "Jawa Barat" },
-  { id: "jateng", name: "Jawa Tengah" },
-  { id: "jatim", name: "Jawa Timur" },
-];
+}[] = INDONESIAN_PROVINCES.map((province) => {
+  const name = province.replace(/^Provinsi /, "");
+  const legacyId = LEGACY_PROVINCE_IDS.get(name);
+  return {
+    id:
+      legacyId ??
+      `provinsi-${name
+        .toLocaleLowerCase("id-ID")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")}`,
+    name,
+  };
+});
+
+export const SUPPORTED_STATISTICS_REGIONS = ["jabar", "jateng", "jatim"];
 
 export const STATISTICS_INDICATORS: StatisticsIndicator[] = [
   {

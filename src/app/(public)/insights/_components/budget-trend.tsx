@@ -2,8 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { LineChart } from "@/components/charts/line-chart";
-import { SourceBadge } from "@/components/source-badges";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { AccessibleChartTable } from "@/components/charts/shared";
 import {
   budgetTrendResponseSchema,
   calculateBudgetTrendSummary,
@@ -92,7 +101,6 @@ export function BudgetTrend({ fokus }: { fokus: string }) {
           <p className="text-primary text-xs font-semibold tracking-wider uppercase">
             Anggaran daerah
           </p>
-          <SourceBadge source="SIMULATED" label="Data contoh" />
         </div>
         <h2
           id="budget-trend-title"
@@ -101,23 +109,130 @@ export function BudgetTrend({ fokus }: { fokus: string }) {
           Anggaran naik, bagaimana realisasinya?
         </h2>
         <p className="text-muted-foreground text-sm">
-          {fokus} · {data.periode} · Data contoh
+          {fokus} · {data.periode}
         </p>
       </header>
 
-      <p className="text-muted-foreground text-xs">Triliun rupiah (Rp)</p>
-      <LineChart
-        data={chartData}
-        xKey="tahun"
-        width="100%"
-        height={250}
-        showDots
-        ariaLabel={`Tren anggaran dan realisasi Kota Bandung ${data.periode}, dalam triliun rupiah`}
-        series={[
-          { key: "anggaran", name: "Anggaran", color: "#1769d2" },
-          { key: "realisasi", name: "Realisasi", color: "#218b67" },
-        ]}
-      />
+      <div>
+        <p className="text-muted-foreground mb-2 text-xs">
+          Triliun rupiah (Rp)
+        </p>
+        <AccessibleChartTable
+          data={chartData}
+          xKey="tahun"
+          caption={`Grafik batang anggaran dan realisasi ${fokus}, ${data.periode}, triliun rupiah`}
+          series={[
+            { key: "anggaran", name: "Anggaran" },
+            { key: "realisasi", name: "Realisasi" },
+          ]}
+        />
+        <div aria-hidden="true" className="h-[220px] w-full min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 8, right: 8, bottom: 4, left: -18 }}
+              barGap={5}
+              barCategoryGap="22%"
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="var(--border)"
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="tahun"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+              />
+              <YAxis
+                domain={[0, 3]}
+                ticks={[0, 1, 2, 3]}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+              />
+              <Tooltip
+                formatter={(value, name) => [
+                  `${value} triliun`,
+                  name === "anggaran" ? "Anggaran" : "Realisasi",
+                ]}
+                contentStyle={{
+                  backgroundColor: "var(--popover)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  color: "var(--popover-foreground)",
+                }}
+              />
+              <Legend
+                formatter={(value) =>
+                  value === "anggaran" ? "Anggaran" : "Realisasi"
+                }
+                wrapperStyle={{
+                  color: "var(--foreground)",
+                  fontSize: 12,
+                }}
+              />
+              <Bar
+                dataKey="anggaran"
+                fill="#1769d2"
+                radius={[2, 2, 0, 0]}
+                maxBarSize={20}
+              />
+              <Bar
+                dataKey="realisasi"
+                fill="#218b67"
+                radius={[2, 2, 0, 0]}
+                maxBarSize={20}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="border-border mt-2 overflow-x-auto border-y">
+          <table className="w-full min-w-[320px] text-xs">
+            <caption className="sr-only">
+              Rincian anggaran dan realisasi {fokus} tahun {data.periode}
+            </caption>
+            <thead className="text-muted-foreground">
+              <tr className="border-border border-b">
+                <th scope="col" className="px-2 py-2 text-left font-medium">
+                  Tahun
+                </th>
+                <th scope="col" className="px-2 py-2 text-right font-medium">
+                  Anggaran
+                </th>
+                <th scope="col" className="px-2 py-2 text-right font-medium">
+                  Realisasi
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.data.map((row) => (
+                <tr
+                  key={row.tahun}
+                  className="border-border border-b last:border-0"
+                >
+                  <th scope="row" className="px-2 py-2 text-left font-medium">
+                    {row.tahun}
+                  </th>
+                  <td className="px-2 py-2 text-right tabular-nums">
+                    {row.anggaran.toLocaleString("id-ID", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}
+                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums">
+                    {row.realisasi.toLocaleString("id-ID", {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <aside
         role="note"

@@ -46,6 +46,7 @@ describe("TimelyServiceComparison", () => {
         /bukan peningkatan kualitas layanan keseluruhan\. volume permohonan dan jenis layanan tiap kota dapat berbeda\./i,
       ),
     ).toBeTruthy();
-    expect(screen.getAllByText("Data contoh").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Data contoh")).toBeNull();
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
   });
 });

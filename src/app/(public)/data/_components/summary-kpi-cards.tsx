@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SourceBadge } from "@/components/source-badges/source-badge";
 import {
   formatPersentase,
   formatRupiah,
@@ -169,18 +168,12 @@ export function SummaryKpiCards({
               className="border-border bg-card gap-3 p-4 shadow-sm"
               role="group"
             >
-              <CardHeader className="flex-row items-center justify-between gap-2 p-0">
+              <CardHeader className="flex-row items-center gap-2 p-0">
                 <span
                   className={`inline-flex size-9 items-center justify-center rounded-lg ${iconClass}`}
                 >
                   <Icon className="size-4" aria-hidden="true" />
                 </span>
-                <SourceBadge
-                  source="SIMULATED"
-                  label="Simulasi"
-                  withIcon={false}
-                  className="px-1.5 py-0.5 text-[10px]"
-                />
               </CardHeader>
               <CardContent className="space-y-1 p-0">
                 <CardDescription className="text-xs">{label}</CardDescription>

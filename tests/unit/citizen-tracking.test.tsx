@@ -37,11 +37,17 @@ describe("CitizenTrackingDashboard", () => {
   it("renders the four summary cards, service table, education, and selected details", () => {
     render(<CitizenTrackingDashboard />);
 
-    expect(screen.getByRole("heading", { name: "Ruang Warga" })).toBeTruthy();
+    const heroTitle = screen.getByRole("heading", { name: "Ruang Warga" });
+    expect(heroTitle).toBeTruthy();
+    expect(heroTitle.closest(".hero-enter")).toBeTruthy();
     expect(screen.getByText("Total pengajuan")).toBeTruthy();
     expect(screen.getAllByText("Sedang diproses").length).toBeGreaterThan(0);
     expect(screen.getByText("Perlu tindakan")).toBeTruthy();
     expect(screen.getAllByText("Selesai").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Contoh data warga")).toBeNull();
+    expect(screen.queryByText("Data simulasi")).toBeNull();
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
+    expect(screen.queryByText(/data contoh milik akun Anda/)).toBeNull();
     expect(
       screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
     ).toBeTruthy();
@@ -79,9 +85,13 @@ describe("CitizenTrackingDashboard", () => {
         name: "Layanan jelas, langkah lebih mudah",
       }),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("navigation", { name: "Breadcrumb" }).textContent,
-    ).toContain("Beranda > Layanan Publik > Pelacakan");
+    const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
+    expect(breadcrumb.textContent).toContain(
+      "Beranda > Layanan Publik > Ruang Warga",
+    );
+    const currentBreadcrumb = within(breadcrumb).getByText("Ruang Warga");
+    expect(currentBreadcrumb.getAttribute("aria-current")).toBe("page");
+    expect(currentBreadcrumb.className).toContain("text-primary");
   });
 
   it("validates tracking number format and finds a matching application", () => {
