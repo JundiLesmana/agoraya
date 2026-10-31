@@ -27,7 +27,6 @@ import {
 import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import { PieChart } from "@/components/charts/pie-chart";
-import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,19 +42,47 @@ import {
   formatRupiah,
   formatRupiahForScreenReader,
 } from "@/lib/public-data-format";
+import {
+  getRegencyOptions,
+  INDONESIAN_PROVINCES,
+} from "@/lib/indonesia-administrative-areas";
 import { SummaryKpiCards } from "./summary-kpi-cards";
 import { BudgetActualsTrend } from "./budget-actuals-trend";
 
-const REGIONS = [
-  { value: "all", label: "Seluruh Indonesia", budget: 2_450, coverage: 514 },
-  { value: "jabar", label: "Provinsi Jawa Barat", budget: 80, coverage: 27 },
+const LEGACY_PROVINCE_VALUES = new Map<string, string>([
+  ["Provinsi Jawa Barat", "jabar"],
+  ["Provinsi Jawa Tengah", "jateng"],
+  ["Provinsi Jawa Timur", "jatim"],
+]);
+
+const PROVINCE_REGIONS = INDONESIAN_PROVINCES.map((label) => {
+  const regionValue = LEGACY_PROVINCE_VALUES.get(label);
+  return {
+    value:
+      regionValue ??
+      `provinsi-${label
+        .replace(/^Provinsi /, "")
+        .toLocaleLowerCase("id-ID")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")}`,
+    label,
+    budget: 80,
+    coverage: getRegencyOptions(label).length,
+  };
+});
+
+const LEGACY_NON_PROVINCE_REGIONS = [
   { value: "bogor", label: "Kabupaten Bogor", budget: 18, coverage: 1 },
   { value: "bandung", label: "Kota Bandung", budget: 14, coverage: 1 },
-  { value: "jateng", label: "Provinsi Jawa Tengah", budget: 74, coverage: 35 },
-  { value: "jatim", label: "Provinsi Jawa Timur", budget: 92, coverage: 38 },
 ] as const;
 
-const YEARS = ["2023", "2024", "2025"] as const;
+const REGIONS = [
+  { value: "all", label: "Seluruh Indonesia", budget: 2_450, coverage: 514 },
+  ...PROVINCE_REGIONS,
+  ...LEGACY_NON_PROVINCE_REGIONS,
+];
+
+const YEARS = ["2025", "2024", "2023", "2022", "2021", "2020"] as const;
 const PERIODS = [
   { value: "q1", label: "s.d. Triwulan I", months: 3, realization: 0.25 },
   { value: "q2", label: "s.d. Triwulan II", months: 6, realization: 0.5 },
@@ -796,13 +823,13 @@ export function PublicDataDashboard({
   return (
     <div className="bg-background">
       <header className="border-border border-b bg-sky-50/70 dark:bg-sky-950/20">
-        <div className="container mx-auto flex flex-wrap items-end justify-between gap-4 px-4 py-7 sm:px-6 lg:px-8">
+        <div className="hero-enter container mx-auto flex flex-wrap items-end justify-between gap-4 px-4 py-7 sm:px-6 lg:px-8">
           <div>
             <nav
               aria-label="Breadcrumb"
-              className="text-muted-foreground mb-3 text-xs"
+              className="text-muted-foreground mb-4 text-xs"
             >
-              <ol className="flex flex-wrap items-center gap-2">
+              <ol className="flex flex-wrap items-center gap-1">
                 <li>
                   <Link href="/" className="hover:text-primary">
                     Beranda
@@ -815,7 +842,7 @@ export function PublicDataDashboard({
                   </Link>
                 </li>
                 <li aria-hidden="true">&gt;</li>
-                <li aria-current="page" className="text-foreground font-medium">
+                <li aria-current="page" className="text-primary font-medium">
                   {view === "budget"
                     ? "Anggaran"
                     : view === "projects"
@@ -826,7 +853,7 @@ export function PublicDataDashboard({
                 </li>
               </ol>
             </nav>
-            <h1 className="text-card-foreground text-3xl font-semibold tracking-tight">
+            <h1 className="text-card-foreground text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
               {view === "budget"
                 ? "Anggaran & realisasi APBD"
                 : view === "projects"
@@ -835,7 +862,7 @@ export function PublicDataDashboard({
                     ? "Statistik daerah"
                     : "Data Pemerintah"}
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="text-muted-foreground mt-4 max-w-2xl text-base leading-7">
               {view === "budget"
                 ? "Telusuri alokasi, penyerapan, dan sisa anggaran daerah secara terbuka."
                 : view === "projects"
@@ -897,7 +924,7 @@ export function PublicDataDashboard({
             </Button>
           </CardHeader>
           <CardContent
-            className={`grid gap-3 px-4 pb-4 ${view === "projects" ? "md:grid-cols-5" : "md:grid-cols-3"}`}
+            className={`grid gap-3 px-4 pb-4 ${view === "projects" ? "md:grid-cols-5" : "md:grid-cols-4"}`}
           >
             <label className="space-y-1.5 text-xs font-medium">
               Wilayah
@@ -1017,14 +1044,12 @@ export function PublicDataDashboard({
                 </label>
               </>
             ) : null}
-            {view === "projects" ? (
-              <Button className="self-end" onClick={() => setPage(1)}>
-                Terapkan filter
-              </Button>
-            ) : null}
+            <Button className="self-end" onClick={() => setPage(1)}>
+              Terapkan filter
+            </Button>
             <p
               className={`text-muted-foreground text-xs ${
-                view === "projects" ? "md:col-span-5" : "md:col-span-3"
+                view === "projects" ? "md:col-span-5" : "md:col-span-4"
               }`}
             >
               Filter aktif:{" "}
@@ -1199,12 +1224,6 @@ export function PublicDataDashboard({
                       triliun rupiah
                     </CardDescription>
                   </div>
-                  <SourceBadge
-                    source="SIMULATED"
-                    label="Simulasi"
-                    withIcon={false}
-                    className="px-1.5 py-0.5 text-[10px]"
-                  />
                 </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
@@ -1407,12 +1426,6 @@ export function PublicDataDashboard({
                       Alokasi dan realisasi · triliun rupiah
                     </CardDescription>
                   </div>
-                  <SourceBadge
-                    source="SIMULATED"
-                    label="Simulasi"
-                    withIcon={false}
-                    className="px-1.5 py-0.5 text-[10px]"
-                  />
                 </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
@@ -1448,12 +1461,6 @@ export function PublicDataDashboard({
                   Profil {selectedRegion.label} · indikator tahunan {year}
                 </CardDescription>
               </div>
-              <SourceBadge
-                source="SIMULATED"
-                label="Simulasi"
-                withIcon={false}
-                className="px-1.5 py-0.5 text-[10px]"
-              />
             </CardHeader>
             <CardContent className="grid gap-3 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-4">
               {regionalStats.map(({ label, value, note, Icon }) => (

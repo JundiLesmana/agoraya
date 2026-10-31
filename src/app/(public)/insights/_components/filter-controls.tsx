@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  getRegencyOptions,
+  INDONESIAN_PROVINCES,
+  isIndonesianProvince,
+} from "@/lib/indonesia-administrative-areas";
 
 export type InsightFilterValues = {
   wilayah: string;
@@ -20,41 +25,26 @@ export const DEFAULT_FILTERS: InsightFilterValues = {
   topik: "Semua topik",
 };
 
-const WILAYAH_OPTIONS: SelectOption[] = [
-  { value: "Provinsi Jawa Barat", label: "Provinsi Jawa Barat" },
-  { value: "Kabupaten Bandung", label: "Kabupaten Bandung" },
-  { value: "Kabupaten Bogor", label: "Kabupaten Bogor" },
-  { value: "Kabupaten Sukabumi", label: "Kabupaten Sukabumi" },
-  { value: "Kabupaten Cianjur", label: "Kabupaten Cianjur" },
-  { value: "Kabupaten Garut", label: "Kabupaten Garut" },
-  { value: "Kabupaten Tasikmalaya", label: "Kabupaten Tasikmalaya" },
-  { value: "Kabupaten Ciamis", label: "Kabupaten Ciamis" },
-  { value: "Kabupaten Kuningan", label: "Kabupaten Kuningan" },
-  { value: "Kabupaten Cirebon", label: "Kabupaten Cirebon" },
-  { value: "Kabupaten Majalengka", label: "Kabupaten Majalengka" },
-  { value: "Kabupaten Sumedang", label: "Kabupaten Sumedang" },
-  { value: "Kabupaten Indramayu", label: "Kabupaten Indramayu" },
-  { value: "Kabupaten Subang", label: "Kabupaten Subang" },
-  { value: "Kabupaten Purwakarta", label: "Kabupaten Purwakarta" },
-  { value: "Kabupaten Karawang", label: "Kabupaten Karawang" },
-  { value: "Kabupaten Bekasi", label: "Kabupaten Bekasi" },
-  { value: "Kabupaten Bandung Barat", label: "Kabupaten Bandung Barat" },
-  { value: "Kabupaten Pangandaran", label: "Kabupaten Pangandaran" },
-  { value: "Kota Bandung", label: "Kota Bandung" },
-  { value: "Kota Bogor", label: "Kota Bogor" },
-  { value: "Kota Sukabumi", label: "Kota Sukabumi" },
-  { value: "Kota Cirebon", label: "Kota Cirebon" },
-  { value: "Kota Bekasi", label: "Kota Bekasi" },
-  { value: "Kota Depok", label: "Kota Depok" },
-  { value: "Kota Cimahi", label: "Kota Cimahi" },
-  { value: "Kota Tasikmalaya", label: "Kota Tasikmalaya" },
-  { value: "Kota Banjar", label: "Kota Banjar" },
-];
+const WILAYAH_OPTIONS: SelectOption[] = INDONESIAN_PROVINCES.map(
+  (province) => ({ value: province, label: province }),
+);
+export const ALL_REGENCIES = "Semua kabupaten/kota";
 
-const FOKUS_OPTIONS: SelectOption[] = [
-  { value: "Semua kabupaten/kota", label: "Semua kabupaten/kota" },
-  ...WILAYAH_OPTIONS.filter((option) => option.value !== "Provinsi Jawa Barat"),
-];
+function normalizeFilters(filters: InsightFilterValues): InsightFilterValues {
+  const wilayah = isIndonesianProvince(filters.wilayah)
+    ? filters.wilayah
+    : DEFAULT_FILTERS.wilayah;
+  const fokusOptions = getRegencyOptions(wilayah);
+
+  return {
+    ...filters,
+    wilayah,
+    fokus:
+      filters.fokus === ALL_REGENCIES || fokusOptions.includes(filters.fokus)
+        ? filters.fokus
+        : ALL_REGENCIES,
+  };
+}
 
 const PERIODE_OPTIONS: SelectOption[] = [
   { value: "2020", label: "2020" },
@@ -88,10 +78,12 @@ export function FilterControls({
 }: FilterControlsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [local, setLocal] = React.useState<InsightFilterValues>(filters);
+  const [local, setLocal] = React.useState<InsightFilterValues>(() =>
+    normalizeFilters(filters),
+  );
 
   React.useEffect(() => {
-    setLocal(filters);
+    setLocal(normalizeFilters(filters));
   }, [filters]);
 
   const handleApply = () => {
@@ -115,16 +107,18 @@ export function FilterControls({
     onReset();
   };
 
-  const isDefault =
-    local.wilayah === DEFAULT_FILTERS.wilayah &&
-    local.fokus === DEFAULT_FILTERS.fokus &&
-    local.periode === DEFAULT_FILTERS.periode &&
-    local.topik === DEFAULT_FILTERS.topik;
   const isUnchanged =
     local.wilayah === filters.wilayah &&
     local.fokus === filters.fokus &&
     local.periode === filters.periode &&
     local.topik === filters.topik;
+  const fokusOptions: SelectOption[] = [
+    { value: ALL_REGENCIES, label: ALL_REGENCIES },
+    ...getRegencyOptions(local.wilayah).map((region) => ({
+      value: region,
+      label: region,
+    })),
+  ];
 
   return (
     <section aria-label="Filter insight" className="mx-auto max-w-7xl">
@@ -137,7 +131,11 @@ export function FilterControls({
               relevan.
             </p>
           </div>
-          <Button variant="link" onClick={handleReset} disabled={isDefault}>
+          <Button
+            variant="link"
+            onClick={handleReset}
+            className="h-auto px-2 py-1 text-blue-700 transition-colors duration-200 hover:text-blue-800 hover:no-underline active:scale-[0.98] disabled:opacity-100"
+          >
             Reset filter
           </Button>
         </div>
@@ -149,9 +147,15 @@ export function FilterControls({
               name="wilayah"
               aria-label="Pilih wilayah perbandingan provinsi"
               value={local.wilayah}
-              onChange={(event) =>
-                setLocal({ ...local, wilayah: event.target.value })
-              }
+              onChange={(event) => {
+                const wilayah = event.target.value;
+                setLocal({
+                  ...local,
+                  wilayah,
+                  fokus:
+                    wilayah === local.wilayah ? local.fokus : ALL_REGENCIES,
+                });
+              }}
               options={WILAYAH_OPTIONS}
             />
           </div>
@@ -165,7 +169,7 @@ export function FilterControls({
               onChange={(event) =>
                 setLocal({ ...local, fokus: event.target.value })
               }
-              options={FOKUS_OPTIONS}
+              options={fokusOptions}
             />
           </div>
           <div className="space-y-2">
@@ -194,7 +198,11 @@ export function FilterControls({
               options={TOPIK_OPTIONS}
             />
           </div>
-          <Button onClick={handleApply} disabled={isUnchanged}>
+          <Button
+            onClick={handleApply}
+            disabled={isUnchanged}
+            className="h-11 w-full rounded-lg bg-[#1745e8] text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1238c8] hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:pointer-events-none disabled:bg-[#1745e8] disabled:text-white disabled:opacity-100 motion-reduce:transform-none motion-reduce:transition-none"
+          >
             Terapkan filter
           </Button>
         </div>

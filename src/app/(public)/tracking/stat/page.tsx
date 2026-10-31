@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 
 export const metadata: Metadata = {
-  title: "Analitik laporan",
+  title: "Ruang Statistik",
   description:
     "Pantau volume laporan warga, kecepatan tindak lanjut, dan kinerja layanan lintas instansi.",
 };

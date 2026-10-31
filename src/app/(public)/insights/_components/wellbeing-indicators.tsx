@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Info, RefreshCw } from "lucide-react";
-import { SourceBadge } from "@/components/source-badges";
 import {
   determineColor,
   formatDelta,
@@ -22,6 +21,20 @@ function deltaColorClass(color: "green" | "red" | "neutral"): string {
       return "text-red-700 dark:text-red-400";
     case "neutral":
       return "text-muted-foreground";
+  }
+}
+
+function getIndicatorScale(
+  id: WellbeingResponse["data"][number]["id"],
+): number {
+  switch (id) {
+    case "kemiskinan":
+      return 10;
+    case "pengangguran":
+    case "sekolah":
+      return 15;
+    case "harapan_hidup":
+      return 100;
   }
 }
 
@@ -96,16 +109,9 @@ function WellbeingTable({
       className="border-border bg-card space-y-5 rounded-xl border p-5 sm:p-6"
     >
       <header className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-primary text-xs font-semibold tracking-wider uppercase">
-            Kesejahteraan warga
-          </p>
-          <SourceBadge
-            source="SIMULATED"
-            label="Data contoh"
-            withIcon={false}
-          />
-        </div>
+        <p className="text-primary text-xs font-semibold tracking-wider uppercase">
+          Kesejahteraan warga
+        </p>
         <h2
           id="wellbeing-title"
           className="text-foreground text-2xl font-bold tracking-tight"
@@ -113,86 +119,165 @@ function WellbeingTable({
           Apakah kondisi warga membaik?
         </h2>
         <p className="text-muted-foreground text-sm">
-          {data.wilayah} · {data.periode} · Data contoh
+          {data.wilayah} · {data.periode}
         </p>
         <p className="text-muted-foreground text-xs">
           Simulasi sosial-ekonomi Agoraya
         </p>
       </header>
 
-      <div
-        role="region"
-        aria-label="Tabel indikator kesejahteraan, dapat digulir horizontal"
-        tabIndex={0}
-        className="focus-visible:outline-primary overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-          <caption className="sr-only">
-            Perbandingan indikator kesejahteraan {fokus} tahun 2023 dan 2024
-          </caption>
-          <thead>
-            <tr className="border-border text-muted-foreground border-b">
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Indikator
-              </th>
-              <th scope="col" className="px-3 py-3 text-right font-semibold">
-                2023
-              </th>
-              <th scope="col" className="px-3 py-3 text-right font-semibold">
-                2024
-              </th>
-              <th
-                scope="col"
-                aria-label="Perubahan; hijau berarti indikator membaik dan merah berarti memburuk"
-                className="px-3 py-3 font-semibold"
-              >
-                Perubahan
-              </th>
-              <th scope="col" className="px-3 py-3 font-semibold">
-                Interpretasi
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.data.map((indicator) => {
-              const color = determineColor(indicator, indicator.delta);
-              const direction =
-                color === "green"
-                  ? "membaik"
-                  : color === "red"
-                    ? "memburuk"
-                    : "tidak berubah";
+      <div>
+        <div
+          aria-label="Indikator kesejahteraan dibandingkan per tahun"
+          className="mb-3 flex items-center gap-4 text-xs"
+        >
+          <span className="text-muted-foreground inline-flex items-center gap-2">
+            <span
+              className="size-2.5 rounded-sm bg-slate-300"
+              aria-hidden="true"
+            />
+            2023
+          </span>
+          <span className="text-muted-foreground inline-flex items-center gap-2">
+            <span
+              className="size-2.5 rounded-sm bg-violet-600"
+              aria-hidden="true"
+            />
+            2024
+          </span>
+        </div>
+        <div className="space-y-3">
+          {data.data.map((indicator) => {
+            const color = determineColor(indicator, indicator.delta);
+            const scale = getIndicatorScale(indicator.id);
+            const value2023Width = Math.min(
+              100,
+              (indicator.value2023 / scale) * 100,
+            );
+            const value2024Width = Math.min(
+              100,
+              (indicator.value2024 / scale) * 100,
+            );
 
-              return (
-                <tr
-                  key={indicator.id}
-                  className="border-border border-b last:border-0"
-                >
-                  <th scope="row" className="px-3 py-4 font-medium">
+            return (
+              <article
+                key={indicator.id}
+                aria-label={indicator.label}
+                className="bg-muted/30 rounded-lg p-3"
+              >
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <h3 className="text-foreground text-xs font-semibold">
                     {indicator.label}
-                  </th>
-                  <td className="px-3 py-4 text-right tabular-nums">
-                    {formatIndicatorValue(indicator.value2023)}
-                  </td>
-                  <td className="px-3 py-4 text-right tabular-nums">
-                    {formatIndicatorValue(indicator.value2024)}
-                  </td>
-                  <td className="px-3 py-4">
-                    <span className={`font-semibold ${deltaColorClass(color)}`}>
-                      {formatDelta(indicator.delta, indicator.unit)}
-                      <span className="sr-only">, {direction}</span>
+                  </h3>
+                  <span className="text-muted-foreground shrink-0 text-[10px]">
+                    0–{scale}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-2 text-[10px]">
+                    <span className="text-muted-foreground">2023</span>
+                    <div
+                      role="meter"
+                      aria-label={`${indicator.label}, 2023`}
+                      aria-valuemin={0}
+                      aria-valuemax={scale}
+                      aria-valuenow={indicator.value2023}
+                      className="bg-muted h-2 overflow-hidden rounded-full"
+                    >
+                      <div
+                        className="h-full rounded-full bg-slate-300"
+                        style={{ width: `${value2023Width}%` }}
+                      />
+                    </div>
+                    <span className="text-foreground text-right font-semibold tabular-nums">
+                      {formatIndicatorValue(indicator.value2023)}
                     </span>
-                  </td>
-                  <td className="text-muted-foreground px-3 py-4">
-                    {indicator.direction === "lower-is-better"
-                      ? "Lebih rendah = lebih baik"
-                      : "Lebih tinggi = lebih baik"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                  <div className="grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-2 text-[10px]">
+                    <span className="text-muted-foreground">2024</span>
+                    <div
+                      role="meter"
+                      aria-label={`${indicator.label}, 2024`}
+                      aria-valuemin={0}
+                      aria-valuemax={scale}
+                      aria-valuenow={indicator.value2024}
+                      className="bg-muted h-2 overflow-hidden rounded-full"
+                    >
+                      <div
+                        className="h-full rounded-full bg-violet-600"
+                        style={{ width: `${value2024Width}%` }}
+                      />
+                    </div>
+                    <span className="text-foreground text-right font-semibold tabular-nums">
+                      {formatIndicatorValue(indicator.value2024)}
+                    </span>
+                  </div>
+                </div>
+                <p
+                  className={`mt-2 text-[10px] font-semibold ${deltaColorClass(color)}`}
+                >
+                  {indicator.delta < 0 ? "Turun" : "Naik"}{" "}
+                  {formatIndicatorValue(Math.abs(indicator.delta))}{" "}
+                  {indicator.unit}
+                </p>
+                <p className="text-muted-foreground mt-1 text-[10px]">
+                  {indicator.direction === "lower-is-better"
+                    ? "Lebih rendah lebih baik"
+                    : "Lebih tinggi lebih baik"}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+        <div className="sr-only">
+          <table>
+            <caption>
+              Perbandingan indikator kesejahteraan {fokus} tahun 2023 dan 2024
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Indikator</th>
+                <th scope="col">2023</th>
+                <th scope="col">2024</th>
+                <th
+                  scope="col"
+                  aria-label="Perubahan; hijau berarti indikator membaik dan merah berarti memburuk"
+                >
+                  Perubahan
+                </th>
+                <th scope="col">Interpretasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.data.map((indicator) => {
+                const color = determineColor(indicator, indicator.delta);
+                const direction =
+                  color === "green"
+                    ? "membaik"
+                    : color === "red"
+                      ? "memburuk"
+                      : "tidak berubah";
+
+                return (
+                  <tr key={indicator.id}>
+                    <th scope="row">{indicator.label}</th>
+                    <td>{formatIndicatorValue(indicator.value2023)}</td>
+                    <td>{formatIndicatorValue(indicator.value2024)}</td>
+                    <td>
+                      {formatDelta(indicator.delta, indicator.unit)},{" "}
+                      {direction}
+                    </td>
+                    <td>
+                      {indicator.direction === "lower-is-better"
+                        ? "Lebih rendah = lebih baik"
+                        : "Lebih tinggi = lebih baik"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <aside className="border-primary bg-muted/60 flex gap-3 rounded-lg border-l-4 p-4 text-sm">

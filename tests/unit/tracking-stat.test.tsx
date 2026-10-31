@@ -23,22 +23,54 @@ describe("TrackingStatisticsPage", () => {
     render(<TrackingStatisticsPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Analitik laporan" }),
+      await screen.findByRole("heading", { name: "Ruang Statistik" }),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("heading", { name: "Ruang Statistik" })
+        .closest(".hero-enter"),
     ).toBeTruthy();
     const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(breadcrumb.textContent).toContain(
-      "Beranda > Layanan Publik > Pelacakan > Statistik",
+      "Beranda > Layanan Publik > Ruang Statistik",
     );
+    expect(breadcrumb.parentElement?.parentElement?.className).toContain(
+      "py-7",
+    );
+    expect(breadcrumb.parentElement?.parentElement?.className).not.toContain(
+      "border-b",
+    );
+    expect(
+      screen.getByText(/Ringkasan agregat tentang laporan/).className,
+    ).not.toContain("max-w-2xl");
     expect(
       within(breadcrumb)
         .getByRole("link", { name: "Beranda" })
         .getAttribute("href"),
     ).toBe("/");
+    const trackingBreadcrumb = within(breadcrumb).getByRole("link", {
+      name: "Ruang Statistik",
+    });
+    expect(trackingBreadcrumb.getAttribute("href")).toBe("/tracking");
+    expect(trackingBreadcrumb.className).toContain("text-primary");
+    const serviceNavigation = screen.getByRole("navigation", {
+      name: "Kategori layanan publik",
+    });
     expect(
-      within(breadcrumb)
-        .getByRole("link", { name: "Pelacakan" })
+      within(serviceNavigation)
+        .getByRole("link", { name: "Ruang Warga" })
         .getAttribute("href"),
     ).toBe("/tracking");
+    expect(
+      within(serviceNavigation)
+        .getByRole("link", { name: "Ruang Instansi" })
+        .getAttribute("href"),
+    ).toBe("/asn/reporting");
+    expect(
+      within(serviceNavigation)
+        .getByRole("link", { name: "Ruang Statistik" })
+        .getAttribute("aria-current"),
+    ).toBe("page");
     expect(
       screen.getAllByLabelText(/dibanding periode sebelumnya/),
     ).toHaveLength(4);
@@ -53,7 +85,13 @@ describe("TrackingStatisticsPage", () => {
         name: "Layanan yang paling lama diselesaikan, terurut menurun",
       }),
     ).toBeTruthy();
-    expect(screen.getByText("Pratinjau data simulasi")).toBeTruthy();
+    expect(screen.queryByText("Pratinjau data simulasi")).toBeNull();
+    expect(screen.queryByText("Data simulasi agregat")).toBeNull();
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
+    expect(screen.queryByText("Data simulasi", { exact: true })).toBeNull();
+    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
+      0,
+    );
   });
 
   it("updates API aggregates for period and region filters without navigation", async () => {

@@ -1,7 +1,7 @@
 export default function AnalyticsLoading() {
   return (
     <main
-      aria-label="Memuat analitik laporan"
+      aria-label="Memuat Ruang Statistik"
       aria-busy="true"
       className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
     >
@@ -27,7 +27,7 @@ export default function AnalyticsLoading() {
         <div className="border-border/80 bg-muted/40 h-80 animate-pulse rounded-xl border lg:col-span-2" />
       </div>
       <p className="sr-only" role="status">
-        Analitik laporan sedang dimuat.
+        Ruang Statistik sedang dimuat.
       </p>
     </main>
   );

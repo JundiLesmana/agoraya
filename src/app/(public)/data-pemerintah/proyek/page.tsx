@@ -19,7 +19,7 @@ export default function ProyekPage() {
     <div className="container mx-auto space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <nav
         aria-label="Breadcrumb"
-        className="text-muted-foreground mb-6 flex flex-wrap items-center gap-1 text-sm"
+        className="text-muted-foreground mb-4 flex flex-wrap items-center gap-1 text-xs"
       >
         <ol className="flex flex-wrap items-center gap-1">
           {BREADCRUMB_ITEMS.flatMap((item, index) => [
@@ -36,7 +36,7 @@ export default function ProyekPage() {
               <li
                 key={`breadcrumb-item-${index}`}
                 aria-current="page"
-                className="text-foreground font-medium"
+                className="text-primary font-medium"
               >
                 {item.label}
               </li>

@@ -15,7 +15,7 @@ const ITEMS = [
     value: "88%",
     interpretation: "penyelesaian perizinan",
     delta: "Unggul 13 poin persentase",
-    context: "Kota Bandung · 2024 · Data contoh",
+    context: "Kota Bandung · 2024",
   },
   {
     label: "Realisasi",
@@ -23,7 +23,7 @@ const ITEMS = [
     value: "+50%",
     interpretation: "Naik dari Rp1,8 triliun menjadi Rp2,7 triliun",
     delta: "90% anggaran terealisasi pada 2024",
-    context: "Kota Bandung · 2020-2024 · Data contoh",
+    context: "Kota Bandung · 2020-2024",
   },
   {
     label: "Penduduk miskin",
@@ -31,7 +31,7 @@ const ITEMS = [
     value: "3,8%",
     interpretation: "Turun 0,2 poin persentase",
     delta: "Lebih rendah = lebih baik",
-    context: "Kota Bandung · 2024 · Data contoh",
+    context: "Kota Bandung · 2024",
   },
 ];
 
@@ -82,7 +82,7 @@ describe("SekilasCards — sukses", () => {
     expect(screen.getByText("Unggul 13 poin persentase")).toBeTruthy();
     expect(screen.getByText("penyelesaian perizinan")).toBeTruthy();
     expect(
-      screen.getAllByText("Kota Bandung · 2024 · Data contoh"),
+      screen.getAllByText("Kota Bandung · 2024"),
     ).toHaveLength(2);
 
     // Kartu 2 - Realisasi
@@ -94,7 +94,7 @@ describe("SekilasCards — sukses", () => {
       screen.getByText("Naik dari Rp1,8 triliun menjadi Rp2,7 triliun"),
     ).toBeTruthy();
     expect(
-      screen.getByText("Kota Bandung · 2020-2024 · Data contoh"),
+      screen.getByText("Kota Bandung · 2020-2024"),
     ).toBeTruthy();
 
     // Kartu 3 - Penduduk miskin
@@ -104,24 +104,19 @@ describe("SekilasCards — sukses", () => {
     expect(screen.getByText("Turun 0,2 poin persentase")).toBeTruthy();
     expect(screen.getByText("Lebih rendah = lebih baik")).toBeTruthy();
     expect(
-      screen.getAllByText("Kota Bandung · 2024 · Data contoh"),
+      screen.getAllByText("Kota Bandung · 2024"),
     ).toHaveLength(2);
   });
 
-  it('menampilkan label "Data contoh" pada setiap kartu', async () => {
+  it("tidak menampilkan badge simulasi atau data contoh pada kartu", async () => {
     render(<SekilasCards />);
     await waitForCards();
 
-    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
-      3,
-    );
-    expect(screen.getAllByText("Data contoh")).toHaveLength(3);
-    expect(
-      screen.getAllByText("Kota Bandung · 2024 · Data contoh"),
-    ).toHaveLength(2);
-    expect(
-      screen.getByText("Kota Bandung · 2020-2024 · Data contoh"),
-    ).toBeTruthy();
+    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(0);
+    expect(screen.queryByText("Data contoh")).toBeNull();
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
+    expect(screen.getAllByText("Kota Bandung · 2024")).toHaveLength(2);
+    expect(screen.getByText("Kota Bandung · 2020-2024")).toBeTruthy();
   });
 
   it("menggunakan grid responsif 1 kolom mobile, 2 tablet, 3 desktop", async () => {

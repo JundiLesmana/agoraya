@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { SourceBadge } from "@/components/source-badges";
 import {
+  ALL_REGENCIES,
   DEFAULT_FILTERS,
   FilterControls,
   type InsightFilterValues,
@@ -13,6 +13,10 @@ import { BudgetTrend } from "./budget-trend";
 import { SekilasCards } from "./sekilas-cards";
 import { TimelyServiceComparison } from "./timely-service-comparison";
 import { WellbeingIndicators } from "./wellbeing-indicators";
+import {
+  getRegencyOptions,
+  isIndonesianProvince,
+} from "@/lib/indonesia-administrative-areas";
 
 type InsightTopic = "Layanan" | "Anggaran" | "Kesejahteraan";
 const SERVICE_COMPARISON_CITIES = [
@@ -26,9 +30,26 @@ const SERVICE_COMPARISON_CITIES = [
 function getFiltersFromSearch(
   searchParams: URLSearchParams,
 ): InsightFilterValues {
+  const requestedWilayah = searchParams.get("wilayah");
+  const wilayah =
+    requestedWilayah && isIndonesianProvince(requestedWilayah)
+      ? requestedWilayah
+      : DEFAULT_FILTERS.wilayah;
+  const requestedFokus = searchParams.get("fokus");
+  const fokusOptions = getRegencyOptions(wilayah);
+  const fokus =
+    requestedFokus === null
+      ? wilayah === DEFAULT_FILTERS.wilayah
+        ? DEFAULT_FILTERS.fokus
+        : ALL_REGENCIES
+      : requestedFokus === ALL_REGENCIES ||
+          fokusOptions.includes(requestedFokus)
+        ? requestedFokus
+        : ALL_REGENCIES;
+
   return {
-    wilayah: searchParams.get("wilayah") ?? DEFAULT_FILTERS.wilayah,
-    fokus: searchParams.get("fokus") ?? DEFAULT_FILTERS.fokus,
+    wilayah,
+    fokus,
     periode: searchParams.get("periode") ?? DEFAULT_FILTERS.periode,
     topik: searchParams.get("topik") ?? DEFAULT_FILTERS.topik,
   };
@@ -36,14 +57,10 @@ function getFiltersFromSearch(
 
 function NoDataNotice({ children }: { children: string }) {
   return (
-    <div className="border-border bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-5">
+    <div className="border-border bg-card rounded-xl border p-5">
       <p role="status" className="text-muted-foreground text-sm">
         {children}
       </p>
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground text-xs">Simulasi</span>
-        <SourceBadge source="SIMULATED" label="Data contoh" />
-      </div>
     </div>
   );
 }
@@ -92,7 +109,6 @@ export function InsightDashboard() {
             >
               Sekilas, apa yang berubah?
             </h2>
-            <SourceBadge source="SIMULATED" label="Data contoh" />
           </div>
           <NoDataNotice>
             Ringkasan sekilas simulasi tersedia untuk Kota Bandung, Jawa Barat,
