@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 
 type FaqItem = {
   question: string;
@@ -42,12 +41,12 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
                 className="dark:text-foreground flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left font-semibold text-[#17263b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 dark:focus-visible:outline-sky-300"
               >
                 {question}
-                <ChevronDown
+                <span
                   aria-hidden="true"
-                  className={`size-5 shrink-0 text-blue-700 transition-transform duration-300 motion-reduce:transition-none dark:text-sky-300 ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
-                />
+                  className="size-5 shrink-0 text-center text-xl leading-5 text-blue-700 dark:text-sky-300"
+                >
+                  {isOpen ? "-" : "+"}
+                </span>
               </button>
             </h3>
             <div
@@ -59,9 +58,11 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
                 isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
               }`}
             >
-              <p className="dark:text-muted-foreground min-h-0 overflow-hidden pb-4 leading-7 text-slate-700">
-                {answer}
-              </p>
+              <div className="min-h-0 overflow-hidden">
+                <p className="dark:text-muted-foreground pb-4 leading-7 text-slate-700">
+                  {answer}
+                </p>
+              </div>
             </div>
           </article>
         );
