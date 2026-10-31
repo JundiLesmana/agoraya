@@ -55,6 +55,7 @@ describe("AboutPage", () => {
       "Terbuka untuk publik, tetap menghormati privasi",
       "Kenali sebelum menjelajahi",
       "Mulai dari rasa ingin tahu.Lanjutkan dengan peran Anda.",
+      "Data Transparan, Layanan Lebih Baik, Masa Depan Lebih Cerah",
     ];
     const headings = screen.getAllByRole("heading", { level: 2 });
     const renderedOrder = headings.map((heading) => heading.textContent);
@@ -133,12 +134,7 @@ describe("AboutPage", () => {
     ).toBe("/tracking");
     expect(
       screen
-        .getByRole("link", { name: /Jelajahi Data Pemerintah/i })
-        .getAttribute("href"),
-    ).toBe("/data");
-    expect(
-      screen
-        .getByRole("link", { name: /Lihat Layanan Publik/i })
+        .getByRole("link", { name: /Mulai Sekarang/i })
         .getAttribute("href"),
     ).toBe("/tracking");
   });
@@ -155,9 +151,20 @@ describe("AboutPage", () => {
 
     expect(firstQuestion.getAttribute("aria-expanded")).toBe("true");
     expect(secondQuestion.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      firstQuestion.querySelector('[aria-hidden="true"]')?.textContent,
+    ).toBe("-");
     fireEvent.click(firstQuestion);
     expect(firstQuestion.getAttribute("aria-expanded")).toBe("false");
     expect(secondQuestion.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      firstQuestion.querySelector('[aria-hidden="true"]')?.textContent,
+    ).toBe("+");
+    fireEvent.click(firstQuestion);
+    expect(firstQuestion.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      firstQuestion.querySelector('[aria-hidden="true"]')?.textContent,
+    ).toBe("-");
   });
 
   it("exposes structured data and page metadata", () => {
