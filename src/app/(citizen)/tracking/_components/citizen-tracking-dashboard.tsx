@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
-import { SourceBadge } from '@/components/source-badges/source-badge';
 import { ServiceSpaceNavigation } from '@/components/service-space-navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -148,7 +147,6 @@ function SummaryCards() {
         <h2 id="summary-heading" className="text-lg font-semibold tracking-tight">
           Ringkasan pengajuan Anda
         </h2>
-        <SourceBadge source="SIMULATED" label="Data simulasi" />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {summaries.map(({ label, value, description, Icon, color }) => (
@@ -156,12 +154,6 @@ function SummaryCards() {
             <CardContent className="space-y-2 p-0">
               <div className="flex items-center justify-between gap-2">
                 <Icon className={cn('size-4', color)} aria-hidden="true" />
-                <SourceBadge
-                  source="SIMULATED"
-                  label="Simulasi"
-                  withIcon={false}
-                  className="px-1.5 py-0.5 text-[10px]"
-                />
               </div>
               <div>
                 <p className="text-2xl font-bold leading-none tracking-tight">{value}</p>
@@ -230,10 +222,9 @@ function ApplicationList({
           <div>
             <h2 className="text-lg font-semibold">Pengajuan saya</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              4 pengajuan · 3 kategori layanan · data contoh milik akun Anda
+              4 pengajuan · 3 kategori layanan
             </p>
           </div>
-          <SourceBadge source="SIMULATED" label="Data simulasi" />
         </div>
 
         <form onSubmit={onTrackingSearch} noValidate className="space-y-2">
@@ -413,7 +404,6 @@ function ApplicationDetails({
           <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
             Detail pengajuan terpilih
           </p>
-          <SourceBadge source="SIMULATED" label="Data simulasi" />
         </div>
 
         <div>
@@ -731,21 +721,43 @@ export function CitizenTrackingDashboard() {
   return (
     <div className="pb-12">
       <section className="border-b border-border bg-sky-50 dark:bg-sky-950/30">
-        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
-          <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
-            Beranda &gt; Layanan Publik &gt; Pelacakan
+        <div className="hero-enter mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-4 text-xs text-muted-foreground"
+          >
+            <ol className="flex flex-wrap items-center gap-1">
+              <li>
+                <Link href="/" className="hover:text-primary">
+                  Beranda
+                </Link>
+              </li>
+              <li aria-hidden="true" className="select-none">
+                {" > "}
+              </li>
+              <li>
+                <Link href="/tracking" className="hover:text-primary">
+                  Layanan Publik
+                </Link>
+              </li>
+              <li aria-hidden="true" className="select-none">
+                {" > "}
+              </li>
+              <li aria-current="page" className="text-primary font-medium">
+                Ruang Warga
+              </li>
+            </ol>
           </nav>
-          <div className="mt-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              <h1 className="text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
                 Ruang Warga
               </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-4 max-w-2xl text-base leading-7">
                 Pantau pengaduan, perizinan, dan bantuan sosial. Setiap langkahnya lebih jelas.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <SourceBadge source="SIMULATED" label="Contoh data warga" />
               <Button asChild>
                 <Link href="/citizen/apply">
                   Ajukan layanan <ArrowRight className="size-4" aria-hidden="true" />

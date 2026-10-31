@@ -6,7 +6,6 @@ import {
   Info,
   Wallet,
 } from 'lucide-react';
-import { SourceBadge } from '@/components/source-badges';
 
 const METHODOLOGY_ITEMS = [
   {
@@ -87,7 +86,6 @@ export function InsightMethodology() {
                 <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
                   <Icon className="size-5" aria-hidden="true" />
                 </span>
-                <SourceBadge source="SIMULATED" label="Simulasi" />
               </div>
               <h3 className="text-foreground text-base font-semibold">
                 {title}

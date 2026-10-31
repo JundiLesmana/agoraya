@@ -306,11 +306,11 @@ export function ProjectDashboard() {
 
   return (
     <>
-      <header className="rounded-xl bg-sky-50 px-5 py-6 dark:bg-sky-950/30 sm:px-7">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+      <header className="hero-enter rounded-xl bg-sky-50 px-5 py-6 dark:bg-sky-950/30 sm:px-7">
+        <h1 className="text-3xl leading-tight font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
           Pantau proyek daerah
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-4 text-base leading-7 text-muted-foreground">
           Telusuri progres, anggaran, dan tahapan pembangunan di Jawa Barat.
         </p>
       </header>

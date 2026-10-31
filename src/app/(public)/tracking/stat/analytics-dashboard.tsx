@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
-import { SourceBadge } from "@/components/source-badges";
+import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import {
   Card,
   CardContent,
@@ -90,7 +90,6 @@ function MetricCard({
           <TrendIcon aria-hidden="true" className="size-3.5" />
           {Math.abs(changePercent).toLocaleString("id-ID")}%
         </span>
-        <SourceBadge source="SIMULATED" label="Simulasi" />
       </CardContent>
     </Card>
   );
@@ -113,7 +112,6 @@ function ChartCard({
             <CardTitle className="text-base">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <SourceBadge source="SIMULATED" />
         </div>
       </CardHeader>
       <CardContent className="min-w-0">{children}</CardContent>
@@ -313,55 +311,53 @@ export function AnalyticsDashboard() {
 
   return (
     <>
-      <section
-        className="bg-sky-50 py-10 sm:py-12 dark:bg-slate-950/70"
-      >
+      <section className="bg-sky-50 dark:bg-slate-950/70">
         <header
-          className="border-border/80 mx-auto flex max-w-7xl flex-col gap-5 border-b px-4 pb-6 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8"
+          className="hero-enter mx-auto flex max-w-7xl flex-col gap-5 px-4 py-7 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:px-8 lg:py-9"
         >
           <div className="min-w-0">
             <nav
               aria-label="Breadcrumb"
-              className="text-muted-foreground text-xs"
+              className="text-muted-foreground mb-4 text-xs"
             >
-              <Link className="hover:text-foreground hover:underline" href="/">
-                Beranda
-              </Link>
-              {" > "}
-              <Link
-                className="hover:text-foreground hover:underline"
-                href="/tracking"
-              >
-                Layanan Publik
-              </Link>
-              {" > "}
-              <Link
-                className="hover:text-foreground hover:underline"
-                href="/tracking"
-              >
-                Pelacakan
-              </Link>
-              {" > "}
-              <span aria-current="page" className="text-foreground">
-                Statistik
-              </span>
+              <ol className="flex flex-wrap items-center gap-1">
+                <li>
+                  <Link className="hover:text-primary" href="/">
+                    Beranda
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="select-none">
+                  {" > "}
+                </li>
+                <li>
+                  <Link className="hover:text-primary" href="/tracking">
+                    Layanan Publik
+                  </Link>
+                </li>
+                <li aria-hidden="true" className="select-none">
+                  {" > "}
+                </li>
+                <li>
+                  <Link
+                    className="text-primary font-medium hover:underline"
+                    href="/tracking"
+                  >
+                    Ruang Statistik
+                  </Link>
+                </li>
+              </ol>
             </nav>
-            <p className="text-primary mt-4 text-xs font-semibold tracking-[0.16em] uppercase">
-              Statistik layanan publik
-            </p>
-            <h1 className="text-foreground mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Analitik laporan
+            <h1 className="text-foreground mt-4 text-3xl leading-tight font-bold tracking-tight sm:text-4xl">
+              Ruang Statistik
             </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:text-base">
+            <p className="text-muted-foreground mt-4 text-base leading-7">
               Ringkasan agregat tentang laporan, waktu penyelesaian, dan
               pengalaman warga di berbagai wilayah.
             </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <SourceBadge source="SIMULATED" label="Pratinjau data simulasi" />
-            <p className="text-muted-foreground text-xs">
-              Contoh agregat publik · tanpa data individu
-            </p>
+            <ServiceSpaceNavigation
+              activeSpace="statistics"
+              statisticsHref="/tracking/stat"
+            />
           </div>
         </header>
       </section>
@@ -476,7 +472,6 @@ export function AnalyticsDashboard() {
                     {snapshot.periodLabel} · {snapshot.regionLabel}
                   </p>
                 </div>
-                <SourceBadge source="SIMULATED" label="Data simulasi agregat" />
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <MetricCard
@@ -659,7 +654,6 @@ export function AnalyticsDashboard() {
                       Diurutkan dari rata-rata waktu penyelesaian terlama
                     </CardDescription>
                   </div>
-                  <SourceBadge source="SIMULATED" />
                 </div>
               </CardHeader>
               <CardContent>

@@ -23,10 +23,6 @@ export function InfoBanner({
     >
       <span className="font-semibold">Seluruh angka</span>
       <span>·</span>
-      <span>Data contoh</span>
-      <span>·</span>
-      <span>Simulasi</span>
-      <span className="hidden sm:inline">·</span>
       <span className="hidden sm:inline font-semibold">{wilayah}</span>
       <span className="hidden sm:inline">· {periode}</span>
       <span className="hidden sm:inline">· {topik}</span>

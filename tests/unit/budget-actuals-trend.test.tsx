@@ -36,7 +36,11 @@ describe("BudgetActualsTrend", () => {
         name: "Anggaran naik, bagaimana realisasinya?",
       }),
     ).toBeTruthy();
-    expect(screen.getByText("Kota Bandung · 2020-2024 · Data contoh")).toBeTruthy();
+    expect(screen.getByText("Kota Bandung · 2020-2024")).toBeTruthy();
+    expect(screen.queryByText("Data contoh", { exact: true })).toBeNull();
+    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
+      0,
+    );
     expect(screen.getByText("90% anggaran terealisasi pada 2024.")).toBeTruthy();
     expect(
       screen.getByText(/Naik 80% dibanding realisasi 2020 \(Rp1,5 triliun\)/),

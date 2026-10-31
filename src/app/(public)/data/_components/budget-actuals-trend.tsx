@@ -13,7 +13,6 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import { Info, RefreshCw } from "lucide-react";
-import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -158,7 +157,6 @@ export function BudgetActualsTrend() {
             <p className="text-primary text-xs font-semibold uppercase tracking-wide">
               Anggaran daerah
             </p>
-            <SourceBadge source="SIMULATED" label="Data contoh" />
           </div>
           <div>
             <h2
@@ -168,7 +166,7 @@ export function BudgetActualsTrend() {
               Anggaran naik, bagaimana realisasinya?
             </h2>
             <CardDescription className="mt-2">
-              {trend.wilayah} · {trend.periode} · Data contoh
+              {trend.wilayah} · {trend.periode}
             </CardDescription>
           </div>
           <p className="text-muted-foreground text-xs">

@@ -21,7 +21,10 @@ describe("SummaryKpiCards", () => {
     expect(screen.getByText("156 / 240")).toBeTruthy();
     expect(screen.getByText("65% dari seluruh proyek")).toBeTruthy();
     expect(screen.getByText("27 daerah")).toBeTruthy();
-    expect(screen.getAllByText("Simulasi")).toHaveLength(4);
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
+    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
+      0,
+    );
   });
 
   it("renders accessible metric descriptions", () => {

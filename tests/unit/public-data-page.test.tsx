@@ -20,12 +20,13 @@ describe("PublicDataPage", () => {
         .getByRole("link", { name: "Data Pemerintah" })
         .getAttribute("href"),
     ).toBe("/data");
-    expect(
-      within(breadcrumb).getByText("Ringkasan").getAttribute("aria-current"),
-    ).toBe("page");
+    const currentBreadcrumb = within(breadcrumb).getByText("Ringkasan");
+    expect(currentBreadcrumb.getAttribute("aria-current")).toBe("page");
+    expect(currentBreadcrumb.className).toContain("text-primary");
     const summaryTitle = screen.getByRole("heading", {
       name: "Data Pemerintah",
     });
+    expect(summaryTitle.closest(".hero-enter")).toBeTruthy();
     expect(
       breadcrumb.compareDocumentPosition(summaryTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -36,8 +37,36 @@ describe("PublicDataPage", () => {
     });
     const summaryFilter = screen
       .getByRole("heading", { name: "Jelajahi data" })
-      .closest('[data-slot="card"]');
+      .closest('[data-slot="card"]') as HTMLElement | null;
     if (!summaryFilter) throw new Error("Ringkasan filter card was not found");
+    const summaryRegionSelect = within(summaryFilter).getByRole("combobox", {
+      name: "Wilayah",
+    }) as HTMLSelectElement;
+    const summaryRegions = Array.from(summaryRegionSelect.options);
+    const summaryYearOptions = Array.from(
+      (
+        within(summaryFilter).getByRole("combobox", {
+          name: "Tahun anggaran",
+        }) as HTMLSelectElement
+      ).options,
+    ).map((option) => option.value);
+    expect(summaryYearOptions).toEqual([
+      "2025",
+      "2024",
+      "2023",
+      "2022",
+      "2021",
+      "2020",
+    ]);
+    expect(
+      summaryRegions.filter((option) => option.label.startsWith("Provinsi ")),
+    ).toHaveLength(38);
+    expect(summaryRegions.map((option) => option.label)).toContain(
+      "Kabupaten Bogor",
+    );
+    expect(
+      within(summaryFilter).getByRole("button", { name: "Terapkan filter" }),
+    ).toBeTruthy();
     expect(
       categoryNavigation.compareDocumentPosition(summaryFilter) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -110,13 +139,14 @@ describe("PublicDataPage", () => {
         .getByRole("link", { name: "Data Pemerintah" })
         .getAttribute("href"),
     ).toBe("/data");
-    expect(
-      within(breadcrumb).getByText("Anggaran").getAttribute("aria-current"),
-    ).toBe("page");
+    const currentBreadcrumb = within(breadcrumb).getByText("Anggaran");
+    expect(currentBreadcrumb.getAttribute("aria-current")).toBe("page");
+    expect(currentBreadcrumb.className).toContain("text-primary");
     const budgetTitle = screen.getByRole("heading", {
       level: 1,
       name: "Anggaran & realisasi APBD",
     });
+    expect(budgetTitle.closest(".hero-enter")).toBeTruthy();
     expect(
       breadcrumb.compareDocumentPosition(budgetTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -127,8 +157,33 @@ describe("PublicDataPage", () => {
     });
     const budgetFilter = screen
       .getByRole("heading", { name: "Jelajahi anggaran" })
-      .closest('[data-slot="card"]');
+      .closest('[data-slot="card"]') as HTMLElement | null;
     if (!budgetFilter) throw new Error("Anggaran filter card was not found");
+    const budgetRegions = Array.from(
+      (
+        within(budgetFilter).getByRole("combobox", {
+          name: "Wilayah",
+        }) as HTMLSelectElement
+      ).options,
+    );
+    expect(
+      budgetRegions.filter((option) => option.label.startsWith("Provinsi ")),
+    ).toHaveLength(38);
+    expect(
+      Array.from(
+        (
+          within(budgetFilter).getByRole("combobox", {
+            name: "Tahun anggaran",
+          }) as HTMLSelectElement
+        ).options,
+      ).map((option) => option.value),
+    ).toEqual(["2025", "2024", "2023", "2022", "2021", "2020"]);
+    expect(budgetRegions.map((option) => option.label)).toContain(
+      "Kota Bandung",
+    );
+    expect(
+      within(budgetFilter).getByRole("button", { name: "Terapkan filter" }),
+    ).toBeTruthy();
     expect(
       categoryNavigation.compareDocumentPosition(budgetFilter) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -176,11 +231,32 @@ describe("PublicDataPage", () => {
       screen.getByRole("heading", { name: "Pantau proyek daerah" }),
     ).toBeTruthy();
     expect(
+      screen.getByRole("heading", { name: "Pantau proyek daerah" }).closest(
+        ".hero-enter",
+      ),
+    ).toBeTruthy();
+    expect(
       screen.getByRole("combobox", { name: "Sektor proyek" }),
     ).toBeTruthy();
     expect(
       screen.getByRole("combobox", { name: "Status proyek" }),
     ).toBeTruthy();
+    expect(
+      Array.from(
+        (
+          screen.getByRole("combobox", {
+            name: "Periode kumulatif",
+          }) as HTMLSelectElement
+        ).options,
+      ).map((option) => option.value),
+    ).toContain("2020-q1");
+    expect(
+      (
+        screen.getByRole("combobox", {
+          name: "Periode kumulatif",
+        }) as HTMLSelectElement
+      ).options,
+    ).toHaveLength(24);
     expect(screen.getByText("Progres penyelesaian")).toBeTruthy();
     expect(screen.getByText("Penyelesaian per sektor")).toBeTruthy();
 
@@ -218,6 +294,18 @@ describe("PublicDataPage", () => {
       screen.getAllByText(/Kabupaten Bogor · 2024 · s\.d\. Triwulan II/),
     ).toHaveLength(2);
     expect(screen.getByText(/Januari – Jun 2024/)).toBeTruthy();
+  });
+
+  it("allows selecting a province outside the original regional options", () => {
+    render(<PublicBudgetPage />);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wilayah" }), {
+      target: { value: "provinsi-aceh" },
+    });
+
+    expect(screen.getAllByText(/Provinsi Aceh · 2025/).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("filters and sorts project rows and opens project details", () => {

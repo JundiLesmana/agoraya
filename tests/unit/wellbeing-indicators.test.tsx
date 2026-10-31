@@ -41,14 +41,17 @@ describe("WellbeingIndicators", () => {
       }),
     ).toBeTruthy();
 
-    const favorableDeltas = table.querySelectorAll(".text-emerald-700");
+    const favorableDeltas = document.querySelectorAll(".text-emerald-700");
     expect(favorableDeltas).toHaveLength(4);
+    expect(screen.getAllByRole("article")).toHaveLength(4);
+    expect(screen.getAllByRole("meter")).toHaveLength(8);
     expect(
       screen.getByText(
         "Empat indikator bergerak membaik. Perubahan ini belum membuktikan dampak anggaran. Setiap indikator membutuhkan waktu berbeda.",
       ),
     ).toBeTruthy();
-    expect(screen.getAllByText("Data contoh").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Data contoh")).toBeNull();
+    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
     expect(screen.getByText("Simulasi sosial-ekonomi Agoraya")).toBeTruthy();
   });
 

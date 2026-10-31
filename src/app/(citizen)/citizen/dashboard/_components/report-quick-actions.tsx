@@ -87,7 +87,7 @@ export function ReportQuickActions({
       >
         <nav
           aria-label="Breadcrumb"
-          className="text-muted-foreground mx-auto max-w-7xl px-4 py-3 text-xs sm:px-6 lg:px-8"
+          className="text-muted-foreground mx-auto max-w-7xl py-3 text-xs"
         >
           Beranda <span className="mx-2">›</span>{" "}
           <span className="font-medium text-blue-700 dark:text-blue-400">
