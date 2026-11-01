@@ -1,0 +1,223 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import EducationApplicationPage from "@/app/(citizen)/citizen/apply/education/page";
+import { EDUCATION_SERVICE_CATEGORY } from "@/app/(citizen)/citizen/apply/_components/education-service-data";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("EducationApplicationPage", () => {
+  it("shows education service choices, disclaimers, and the help center", () => {
+    render(<EducationApplicationPage />);
+
+    expect(screen.getByRole("radio", { name: "Bantuan biaya" })).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "Administrasi siswa" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "Konsultasi pendidikan" }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByText(EDUCATION_SERVICE_CATEGORY.disclaimer).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(EDUCATION_SERVICE_CATEGORY.infoBox)).toBeTruthy();
+    expect(screen.getByText("Dinas Pendidikan")).toBeTruthy();
+
+    const helpLink = screen.getByRole("link", {
+      name: "Butuh bantuan mengisi?",
+    });
+    expect(helpLink.getAttribute("href")).toBe(
+      "/citizen/reporting#report-faq-title",
+    );
+    expect(screen.getAllByText(/08\.00–16\.00/).length).toBeGreaterThan(0);
+  });
+
+  it("shows education-specific details for the selected assistance service", () => {
+    render(<EducationApplicationPage />);
+
+    fireEvent.click(screen.getByLabelText("Bantuan biaya"));
+
+    expect(screen.getByRole("heading", { name: "Data pemohon" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", {
+        name: "Data siswa dan kebutuhan pendidikan",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: /Kontak notifikasi/ }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Kecamatan domisili *" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: /Ceritakan kebutuhan pendidikan/ }),
+    ).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy();
+
+    const applicantHeading = screen.getByRole("heading", {
+      name: "Data pemohon",
+    });
+    const studentHeading = screen.getByRole("heading", {
+      name: "Data siswa dan kebutuhan pendidikan",
+    });
+    expect(
+      Boolean(
+        applicantHeading.compareDocumentPosition(studentHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+  }, 15_000);
+
+  it("shows administration-specific fields and mutasi copy", () => {
+    render(<EducationApplicationPage />);
+
+    fireEvent.click(screen.getByLabelText("Administrasi siswa"));
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Data Siswa, Sekolah & Kebutuhan Administrasi",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: /Judul pengajuan/ }),
+    ).toHaveProperty(
+      "value",
+      "Permohonan Surat Keterangan Pindah / Mutasi Siswa",
+    );
+    expect(screen.getByRole("textbox", { name: /Nama sekolah/ })).toBeTruthy();
+    const grade = screen.getByRole("combobox", {
+      name: "Jenjang / kelas *",
+    });
+    fireEvent.change(grade, { target: { value: "SMP / Kelas VII" } });
+    expect(grade).toHaveProperty("value", "SMP / Kelas VII");
+    expect(
+      screen.getByPlaceholderText(/Jelaskan kebutuhan administrasi siswa/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Perlindungan data:/)).toBeTruthy();
+  }, 15_000);
+
+  it("shows consultation questions, school context, and privacy guidance", () => {
+    render(<EducationApplicationPage />);
+
+    fireEvent.click(screen.getByLabelText("Konsultasi pendidikan"));
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Data Siswa & Pertanyaan Konsultasi",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("textbox", { name: /Judul pengajuan/ }),
+    ).toHaveProperty("value", "Konsultasi Pilihan Belajar & Dokumen Masuk SMP");
+    expect(
+      screen.getByPlaceholderText(
+        /Ceritakan hal yang ingin ditanyakan, misalnya pilihan belajar/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Jenjang / kelas *" }),
+    ).toBeTruthy();
+    expect(screen.getByText("0 / 1000 karakter")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Dokumen yang dapat disiapkan" }),
+    ).toBeTruthy();
+    expect(screen.getByText(/Privasi Data & Integrasi:/)).toBeTruthy();
+
+    const questions = screen.getByPlaceholderText(
+      /Ceritakan hal yang ingin ditanyakan/,
+    );
+    fireEvent.change(questions, {
+      target: { value: "Pilihan belajar dan dokumen masuk SMP." },
+    });
+    expect(screen.getByText("38 / 1000 karakter")).toBeTruthy();
+  }, 15_000);
+
+  it("shows a read-only review and follow-up preferences before the privacy check", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: "Uraian atau catatan terdeteksi memuat NISN.",
+        }),
+      }),
+    );
+    render(<EducationApplicationPage />);
+
+    fireEvent.click(screen.getByLabelText("Bantuan biaya"));
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama pemohon/ }), {
+      target: { value: "Budi" },
+    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: /Kontak notifikasi/ }),
+      { target: { value: "budi@example.id" } },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /Kecamatan domisili/ }),
+      { target: { value: "Kecamatan Melati" } },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /Kelurahan \/ Desa/ }),
+      { target: { value: "Kelurahan Melati" } },
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama siswa/ }), {
+      target: { value: "Siti" },
+    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /Hubungan pemohon/ }),
+      { target: { value: "Orang tua / wali" } },
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama sekolah/ }), {
+      target: { value: "SD Negeri Melati" },
+    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: /Jenjang pendidikan/ }),
+      { target: { value: "SD / MI" } },
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: /^Kelas/ }), {
+      target: { value: "Kelas IV" },
+    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: /Ceritakan kebutuhan pendidikan/ }),
+      { target: { value: "Membutuhkan perlengkapan sekolah." } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
+
+    expect(screen.getByText("Langkah 4 dari 5")).toBeTruthy();
+    expect(screen.getByText("Data pemohon dan siswa")).toBeTruthy();
+    expect(screen.getByText("Siti")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ubah data" })).toBeTruthy();
+    expect(
+      screen.getByText(/Data pribadi hanya digunakan oleh instansi terkait/),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
+    expect(screen.getByText("Langkah 5 dari 5")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Preferensi tindak lanjut" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Jalur pembaruan" }),
+    ).toHaveProperty("value", "Notifikasi akun + email");
+    expect(
+      screen.getByRole("combobox", { name: "Waktu dapat dihubungi" }),
+    ).toHaveProperty("value", "Hari kerja, 08.00-16.00");
+
+    fireEvent.change(screen.getByRole("textbox", { name: /Catatan/ }), {
+      target: { value: "NISN 1234567890" },
+    });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /Kirim pengajuan/ }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("NISN");
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/education-applications/privacy-check",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(
+      screen.queryByText("Pengajuan pendidikan berhasil disimulasikan"),
+    ).toBeNull();
+  }, 15_000);
+});
