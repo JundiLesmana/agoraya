@@ -54,6 +54,13 @@ export type EducationApplicationPayload =
       };
     };
 
+export type EducationApplicationServiceType = EducationApplicationPayload["serviceType"];
+
+export type EducationApplicationPayloadByServiceType<T extends EducationApplicationServiceType> = Extract<
+  EducationApplicationPayload,
+  { serviceType: T }
+>;
+
 export type EducationApplicationServiceKey =
   | "education:bantuan-biaya"
   | "education:administrasi-siswa"

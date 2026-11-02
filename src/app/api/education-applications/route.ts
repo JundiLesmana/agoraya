@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type {
+  EducationApplicationPayload,
+  EducationApplicationPayloadByServiceType,
+} from "@/lib/education-applications/types";
 
 const sharedSchema = z.strictObject({
   category: z.literal("education"),
@@ -66,6 +70,14 @@ const educationApplicationSchema = z.union([
   konsultasiSchema,
 ]);
 
+const payloadValidators: {
+  [K in EducationApplicationPayload["serviceType"]]: z.ZodType<EducationApplicationPayloadByServiceType<K>>;
+} = {
+  BantuanBiaya: bantuanSchema,
+  AdministrasiSiswa: administrasiSchema,
+  KonsultasiPendidikan: konsultasiSchema,
+};
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = educationApplicationSchema.safeParse(body);
@@ -73,7 +85,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload layanan pendidikan tidak valid." }, { status: 400 });
   }
 
-  const routeKey = `education:${parsed.data.serviceId}`;
-  return NextResponse.json({ valid: true, routeKey, received: parsed.data });
-}
+  const serviceValidator = payloadValidators[parsed.data.serviceType];
+  const serviceParsed = serviceValidator.safeParse(parsed.data);
+  if (!serviceParsed.success) {
+    return NextResponse.json({ error: "Payload layanan pendidikan tidak valid." }, { status: 400 });
+  }
 
+  const routeKey = `education:${serviceParsed.data.serviceId}`;
+  return NextResponse.json({ valid: true, routeKey, received: serviceParsed.data });
+}

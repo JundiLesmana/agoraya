@@ -162,6 +162,12 @@ function DetailForm({
   const isBantuanBiaya = service?.type === "BantuanBiaya";
   const isAdministrasiSiswa = service?.type === "AdministrasiSiswa";
   const isKonsultasiPendidikan = service?.type === "KonsultasiPendidikan";
+  const consultationTopics = [
+    "Pilihan sekolah dan jenjang lanjutan",
+    "Dokumen masuk sekolah",
+    "Adaptasi belajar dan kebutuhan siswa",
+    "Jalur layanan dan prosedur konsultasi",
+  ];
 
   return (
     <section aria-labelledby="details-heading" className="space-y-5">
@@ -224,13 +230,34 @@ function DetailForm({
       </div>
 
       <div className="border-border border-t pt-5">
-        <h2 className="text-lg font-semibold">
-          {isAdministrasiSiswa
-            ? "Data Siswa, Sekolah & Kebutuhan Administrasi"
-            : isKonsultasiPendidikan
-              ? "Data Siswa & Pertanyaan Konsultasi"
-              : "Data siswa dan kebutuhan pendidikan"}
-        </h2>
+          <h2 className="text-lg font-semibold">
+            {isAdministrasiSiswa
+              ? "Data Siswa, Sekolah & Kebutuhan Administrasi"
+              : isKonsultasiPendidikan
+                ? "Data Siswa & Pertanyaan Konsultasi"
+                : "Data siswa dan kebutuhan pendidikan"}
+          </h2>
+          {isKonsultasiPendidikan ? (
+            <div className="border-border bg-muted/20 mt-3 rounded-xl border p-4 text-sm">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="text-primary mt-0.5 size-5 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="font-semibold">Langkah 2: isi detail konsultasi</p>
+                  <p className="text-muted-foreground mt-1">
+                    Lengkapi data pemohon dan tuliskan kebutuhan konsultasi agar tim
+                    pendidikan menerima data yang tepat.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {consultationTopics.map((topic) => (
+                  <div key={topic} className="bg-background rounded-lg border px-3 py-2 text-xs">
+                    {topic}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block space-y-1.5 text-sm sm:col-span-2">
             <span className="font-medium">Judul pengajuan *</span>
@@ -353,11 +380,11 @@ function DetailForm({
             </>
           )}
           <label className="block space-y-1.5 text-sm sm:col-span-2">
-            <span className="font-medium">
+              <span className="font-medium">
               {isBantuanBiaya
                 ? "Ceritakan kebutuhan pendidikan *"
                 : isKonsultasiPendidikan
-                  ? "Ceritakan kebutuhan pendidikan *"
+                  ? "Ceritakan kebutuhan konsultasi *"
                   : "Ceritakan kebutuhan layanan pendidikan *"}
             </span>
             <Textarea
@@ -371,7 +398,7 @@ function DetailForm({
                 isAdministrasiSiswa
                   ? "Jelaskan kebutuhan administrasi siswa, misalnya pengurusan surat rekomendasi mutasi dan dokumen pendukung."
                   : isKonsultasiPendidikan
-                    ? "Ceritakan hal yang ingin ditanyakan, misalnya pilihan belajar, dokumen masuk sekolah, atau adaptasi belajar."
+                    ? "Ceritakan topik konsultasi, misalnya pilihan belajar, dokumen masuk sekolah, atau adaptasi belajar."
                     : "Jelaskan kebutuhan siswa dan bantuan yang diperlukan."
               }
             />
@@ -388,7 +415,7 @@ function DetailForm({
                 ? "Jangan tuliskan NISN, NIK siswa, atau informasi sensitif perbankan di kolom uraian."
                 : isKonsultasiPendidikan
                   ? "Jangan tuliskan NISN, NIK siswa, nomor rekening, atau informasi sensitif di kolom uraian terbuka."
-                  : "Jangan tuliskan NIK, NIK siswa, atau informasi sensitif di kolom uraian."}
+                : "Jangan tuliskan NIK, NIK siswa, atau informasi sensitif di kolom uraian."}
             </span>
           </label>
         </div>
@@ -612,6 +639,41 @@ function DocumentUploader({
               <strong>Unggah data pribadi anak</strong> hanya untuk dokumen yang
               diperlukan. Jangan menuliskan NIK, NISN, atau informasi sensitif pada
               kolom uraian.
+            </p>
+          </div>
+        </div>
+      ) : service?.type === "KonsultasiPendidikan" ? (
+        <div className="space-y-4">
+          <div className="border-primary/15 bg-primary/5 rounded-xl border p-4 text-sm">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="text-primary mt-0.5 size-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Lampiran konsultasi pendidikan</p>
+                <p className="text-muted-foreground mt-1">
+                  Lampirkan dokumen pendukung yang relevan agar konsultasi dapat
+                  diteruskan ke CMS dengan data yang tepat.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["Bukti identitas siswa", "Akta, kartu keluarga, atau kartu pelajar."],
+              ["Dokumen sekolah", "Rapor, surat keterangan aktif, atau surat rekomendasi."],
+              ["Catatan pertanyaan", "Ringkasan masalah atau topik yang ingin dibahas."],
+              ["Berkas pendukung lain", "Boleh opsional bila memang dibutuhkan."],
+            ].map(([title, description]) => (
+              <div key={title} className="border-border rounded-xl border p-4">
+                <p className="font-semibold">{title}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-border bg-background/80 rounded-xl border border-dashed p-4 text-sm">
+            <p className="font-medium">Unggah berkas konsultasi</p>
+            <p className="text-muted-foreground mt-1">
+              Gunakan PDF, JPG, atau PNG. Maksimal 5 MB per berkas dan pastikan
+              isi dokumen terbaca.
             </p>
           </div>
         </div>
