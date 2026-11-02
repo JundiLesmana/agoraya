@@ -383,9 +383,11 @@ function DetailForm({
               <span className="font-medium">
               {isBantuanBiaya
                 ? "Ceritakan kebutuhan pendidikan *"
-                : isKonsultasiPendidikan
-                  ? "Ceritakan kebutuhan konsultasi *"
-                  : "Ceritakan kebutuhan layanan pendidikan *"}
+                : isAdministrasiSiswa
+                  ? "Ceritakan kebutuhan administrasi siswa *"
+                  : isKonsultasiPendidikan
+                    ? "Ceritakan kebutuhan konsultasi *"
+                    : "Ceritakan kebutuhan layanan pendidikan *"}
             </span>
             <Textarea
               value={details.detailKebutuhan}
@@ -398,7 +400,7 @@ function DetailForm({
                 isAdministrasiSiswa
                   ? "Jelaskan kebutuhan administrasi siswa, misalnya pengurusan surat rekomendasi mutasi dan dokumen pendukung."
                   : isKonsultasiPendidikan
-                    ? "Ceritakan topik konsultasi, misalnya pilihan belajar, dokumen masuk sekolah, atau adaptasi belajar."
+                    ? "Ceritakan hal yang ingin ditanyakan, misalnya pilihan belajar, dokumen masuk sekolah, atau adaptasi belajar."
                     : "Jelaskan kebutuhan siswa dan bantuan yang diperlukan."
               }
             />
@@ -871,14 +873,23 @@ function ReviewSummary({
             <dt className="text-muted-foreground text-xs">Nama sekolah</dt>
             <dd className="mt-1 font-medium">{details.namaSekolah}</dd>
           </div>
-          <div>
-            <dt className="text-muted-foreground text-xs">Jenjang pendidikan</dt>
-            <dd className="mt-1 font-medium">{details.jenjang}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground text-xs">Kelas</dt>
-            <dd className="mt-1 font-medium">{details.kelas}</dd>
-          </div>
+          {(details.jenjangKelas && (service.type === "AdministrasiSiswa" || service.type === "KonsultasiPendidikan")) ? (
+            <div>
+              <dt className="text-muted-foreground text-xs">Jenjang / kelas</dt>
+              <dd className="mt-1 font-medium">{details.jenjangKelas}</dd>
+            </div>
+          ) : (
+            <>
+              <div>
+                <dt className="text-muted-foreground text-xs">Jenjang pendidikan</dt>
+                <dd className="mt-1 font-medium">{details.jenjang}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Kelas</dt>
+                <dd className="mt-1 font-medium">{details.kelas}</dd>
+              </div>
+            </>
+          )}
           <div className="sm:col-span-2">
             <dt className="text-muted-foreground text-xs">Detail kebutuhan</dt>
             <dd className="mt-1 font-medium whitespace-pre-wrap">{details.detailKebutuhan || "Belum diisi"}</dd>
@@ -1223,6 +1234,24 @@ export default function EducationApplicationPage() {
             detailKebutuhan: details.detailKebutuhan,
           },
         };
+      }
+
+      const privacyResponse = await fetch("/api/education-applications/privacy-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kebutuhan: details.detailKebutuhan,
+          catatan: followUpNote,
+        }),
+      });
+
+      const privacyResult: { error?: string; valid?: boolean } = await privacyResponse.json();
+      if (!privacyResponse.ok || !privacyResult.valid) {
+        setFormError(
+          privacyResult.error ??
+            "Validasi privasi gagal. Periksa kembali uraian dan catatan Anda.",
+        );
+        return;
       }
 
       const response = await fetch("/api/education-applications", {
