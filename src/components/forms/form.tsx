@@ -12,7 +12,6 @@ import type { z } from 'zod';
 import { cn } from '@/lib/utils';
 
 export interface FormProps<TSchema extends z.ZodType> {
-  schema: TSchema;
   defaultValues: DefaultValues<z.input<TSchema>>;
   onSubmit: SubmitHandler<z.input<TSchema>>;
   className?: string;
@@ -22,7 +21,6 @@ export interface FormProps<TSchema extends z.ZodType> {
 }
 
 export function Form<TSchema extends z.ZodType>({
-  schema,
   defaultValues,
   onSubmit,
   className,

@@ -59,6 +59,7 @@ const CATEGORIES = [
   "Perizinan",
   "Bansos",
   "Kesehatan",
+  "Pendidikan",
 ] as const;
 
 type CategoryFilter = (typeof CATEGORIES)[number];
@@ -993,25 +994,35 @@ export function ServiceApplicationWizard() {
                       Kembali
                     </Button>
                     {step < 4 ? (
-                      <Button
-                        type="button"
-                        disabled={step === 1 && !selectedService}
-                        onClick={() => {
-                          setFormError("");
-                          if (step === 2) {
-                            continueFromDetails();
-                          } else {
-                            setStep((current) => Math.min(4, current + 1));
-                          }
-                        }}
-                      >
-                        {step === 1
-                          ? "Pilih layanan"
-                          : step === 2
-                            ? "Lanjut ke dokumen"
-                            : "Tinjau pengajuan"}
-                        <ArrowRight className="size-4" aria-hidden="true" />
-                      </Button>
+                      step === 1 &&
+                      selectedService?.category === "Pendidikan" ? (
+                        <Button asChild>
+                          <Link href="/citizen/apply/education">
+                            Pilih layanan
+                            <ArrowRight className="size-4" aria-hidden="true" />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          disabled={step === 1 && !selectedService}
+                          onClick={() => {
+                            setFormError("");
+                            if (step === 2) {
+                              continueFromDetails();
+                            } else {
+                              setStep((current) => Math.min(4, current + 1));
+                            }
+                          }}
+                        >
+                          {step === 1
+                            ? "Pilih layanan"
+                            : step === 2
+                              ? "Lanjut ke dokumen"
+                              : "Tinjau pengajuan"}
+                          <ArrowRight className="size-4" aria-hidden="true" />
+                        </Button>
+                      )
                     ) : null}
                   </div>
                   {step === 4 ? (

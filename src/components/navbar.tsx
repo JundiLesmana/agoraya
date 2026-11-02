@@ -32,8 +32,6 @@ function isNavigationItemActive(pathname: string, href: string) {
 function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const logoSrc =
-    theme === "dark" ? "/logo/logo-dark.svg" : "/logo/logo-light.svg";
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 

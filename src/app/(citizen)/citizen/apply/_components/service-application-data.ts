@@ -1,4 +1,5 @@
-export type ServiceCategory = "Pengaduan" | "Perizinan" | "Bansos" | "Kesehatan";
+export type ServiceCategory =
+  "Pengaduan" | "Perizinan" | "Bansos" | "Kesehatan" | "Pendidikan";
 
 export interface PublicService {
   id: string;
@@ -6,7 +7,7 @@ export interface PublicService {
   description: string;
   category: ServiceCategory;
   agency: string;
-  prefix: "PGD" | "IZN" | "BSL" | "KSE";
+  prefix: "PGD" | "IZN" | "BSL" | "KSE" | "EDU";
 }
 
 // TODO(#86): replace this simulated catalog with data from the public-services API.
@@ -23,9 +24,9 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
     id: "education-aid",
     name: "Pendidikan",
     description: "Ajukan bantuan pendidikan bagi warga yang memenuhi kriteria.",
-    category: "Bansos",
-    agency: "Dinas Sosial",
-    prefix: "BSL",
+    category: "Pendidikan",
+    agency: "Dinas Pendidikan",
+    prefix: "EDU",
   },
   {
     id: "social-aid",
