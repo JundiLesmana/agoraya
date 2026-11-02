@@ -152,7 +152,7 @@ export function LoginForm() {
         </Link>
         <span aria-hidden="true"> · </span>
         <Link
-          href="/register"
+          href="/register-citizen"
           className="font-semibold text-[#1265c9] transition-colors hover:text-[#0f4fa0]"
         >
           Daftar akun warga
