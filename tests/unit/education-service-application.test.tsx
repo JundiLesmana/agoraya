@@ -119,6 +119,48 @@ describe("EducationApplicationPage", () => {
     ).toBeTruthy();
   }, 15000);
 
+  it("navigates administrasi siswa to the review step with the attachment flow intact", async () => {
+    render(<EducationApplicationPage />);
+
+    fireEvent.click(screen.getByLabelText("Administrasi siswa"));
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama pemohon/ }), {
+      target: { value: "Siti" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Kontak notifikasi/ }), {
+      target: { value: "siti@example.com" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Kecamatan domisili *" }), {
+      target: { value: "Kecamatan Melati" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /Kelurahan \/ Desa/ }), {
+      target: { value: "Kelurahan Melati" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama siswa/ }), {
+      target: { value: "Rina" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /Hubungan pemohon/ }), {
+      target: { value: "Orang tua / wali" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Nama sekolah/ }), {
+      target: { value: "SMP Negeri 1 Melati" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "Jenjang / kelas *" }), {
+      target: { value: "SMP / Kelas VIII" },
+    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: /Ceritakan kebutuhan administrasi siswa/ }),
+      { target: { value: "Meminta surat mutasi ke sekolah tujuan." } },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
+
+    expect(screen.getByText("Langkah 4 dari 4")).toBeTruthy();
+    expect(screen.getByText("Periksa kembali pengajuan Anda")).toBeTruthy();
+    expect(screen.getByText("Lampiran")).toBeTruthy();
+    expect(screen.getByText("SMP / Kelas VIII")).toBeTruthy();
+  }, 15000);
+
   it("validates privacy, blocks NIK-like data, and shows success state", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,

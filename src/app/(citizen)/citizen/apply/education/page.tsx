@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SourceBadge } from "@/components/source-badges/source-badge";
 import { WizardLayout, type WizardStep } from "@/components/wizard-layout";
+import type { EducationApplicationPayload } from "@/lib/education-applications/types";
 import {
   EDUCATION_SERVICE_CATEGORY,
   type EducationServiceOption,
@@ -41,6 +42,7 @@ type EducationApplicationDetails = {
   jenjang: string;
   kelas: string;
   detailKebutuhan: string;
+  jenjangKelas: string;
 };
 
 const INITIAL_DETAILS: EducationApplicationDetails = {
@@ -55,6 +57,7 @@ const INITIAL_DETAILS: EducationApplicationDetails = {
   jenjang: "",
   kelas: "",
   detailKebutuhan: "",
+  jenjangKelas: "",
 };
 
 const JENJANG_OPTIONS = [
@@ -113,6 +116,37 @@ const CONSULTATION_GRADE_OPTIONS = [
   "SMA / Kelas XI",
   "SMA / Kelas XII",
 ];
+
+const ADMINISTRATION_ATTACHMENT_REQUIREMENTS = [
+  {
+    key: "kk",
+    title: "Kartu Keluarga (KK)",
+    description: "Pastikan nama siswa dan hubungan keluarga terlihat jelas.",
+    optional: false,
+  },
+  {
+    key: "rapor",
+    title: "Rapor / Surat keterangan aktif sekolah asal",
+    description: "Lampirkan rapor atau surat keterangan aktif dari sekolah asal.",
+    optional: false,
+  },
+  {
+    key: "suratPermohonan",
+    title: "Surat permohonan orang tua / wali",
+    description:
+      "Lampirkan surat permohonan pindah / mutasi siswa yang terbaca.",
+    optional: false,
+  },
+  {
+    key: "pengantarMutasi",
+    title: "Dokumen pengantar mutasi (bila ada)",
+    description:
+      "Tambahkan dokumen pengantar jika tersedia; dapat dilewati bila belum ada.",
+    optional: true,
+  },
+] as const;
+
+type AdministrationAttachmentState = Record<string, File[]>;
 
 function DetailForm({
   details,
@@ -443,11 +477,20 @@ function DocumentUploader({
   onFiles,
   onRemove,
   error,
+  service,
+  administrationAttachments,
+  onAdministrationAttachmentFiles,
 }: {
   files: File[];
   onFiles: (files: FileList | File[]) => void;
   onRemove: (file: File) => void;
   error: string;
+  service: EducationServiceOption | null;
+  administrationAttachments: AdministrationAttachmentState;
+  onAdministrationAttachmentFiles: (
+    key: string,
+    files: FileList | File[]
+  ) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -455,14 +498,124 @@ function DocumentUploader({
   return (
     <section aria-labelledby="document-heading" className="space-y-4">
       <div>
-        <h2 id="document-heading" className="text-lg font-semibold">
-          Lampiran Dokumen
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="document-heading" className="text-lg font-semibold">
+            {service?.type === "AdministrasiSiswa"
+              ? "Lampiran administrasi siswa"
+              : "Lampiran Dokumen"}
+          </h2>
+          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+            Langkah 3 dari 4
+          </span>
+        </div>
         <p className="text-muted-foreground mt-1 text-sm">
-          Unggah dokumen pendukung (Kartu Keluarga, Surat keterangan aktif
-          sekolah, dll.). Format PDF/JPG, maksimal 5 MB per berkas.
+          {service?.type === "AdministrasiSiswa"
+            ? "Lengkapi dokumen pendukung untuk permohonan pindah / mutasi siswa. Pengajuan Anda belum dikirim."
+            : "Unggah dokumen pendukung (Kartu Keluarga, Surat keterangan aktif sekolah, dll.). Format PDF/JPG, maksimal 5 MB per berkas."}
         </p>
       </div>
+      {service?.type === "AdministrasiSiswa" ? (
+        <div className="border-primary/20 bg-primary/5 rounded-xl border p-4 text-sm">
+          <p className="font-medium">Sebelum mengunggah</p>
+          <p className="text-muted-foreground mt-1">
+            Gunakan PDF, JPG, atau PNG; maksimal 10 MB per berkas. Pastikan seluruh
+            halaman yang diperlukan terlihat, tulisan terbaca, dan berkas tidak
+            terkunci atau dilindungi kata sandi.
+          </p>
+          <p className="text-muted-foreground mt-2">
+            Jika dokumen lebih dari satu halaman, gabungkan menjadi satu PDF.
+          </p>
+        </div>
+      ) : null}
+      {service?.type === "AdministrasiSiswa" ? (
+        <div className="space-y-3">
+          {ADMINISTRATION_ATTACHMENT_REQUIREMENTS.map((requirement) => (
+            <div
+              key={requirement.key}
+              className="border-border rounded-xl border p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold">{requirement.key}</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {requirement.description}
+                  </p>
+                </div>
+                {requirement.optional ? (
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    Opsional
+                  </span>
+                ) : null}
+              </div>
+              <div className="border-border bg-background/80 mt-4 flex flex-col gap-3 rounded-xl border border-dashed p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium">Seret berkas ke sini atau pilih berkas</p>
+                  <p className="text-muted-foreground text-xs">
+                    PDF, JPG, PNG. Maks. 10 MB · 1 berkas
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => inputRef.current?.click()}
+                >
+                  Pilih berkas
+                </Button>
+              </div>
+              <div className="mt-3">
+                {administrationAttachments[requirement.key]?.length ? (
+                  <div className="border-primary/30 bg-primary/5 flex items-center justify-between rounded-xl border p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-full text-xs font-bold">
+                        ✓
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {administrationAttachments[requirement.key].length} berkas berhasil diunggah
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {administrationAttachments[requirement.key]
+                            .map((file) => file.name)
+                            .join(", ")}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                      Selesai
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground mt-2 text-xs">Belum diunggah</p>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  className="sr-only"
+                  aria-label={`Pilih berkas untuk ${requirement.key}`}
+                  onChange={(event) => {
+                    if (event.currentTarget.files) {
+                      onAdministrationAttachmentFiles(
+                        requirement.key,
+                        event.currentTarget.files,
+                      );
+                    }
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+          <div className="border-primary/20 bg-primary/5 rounded-xl border p-4 text-sm">
+            <ShieldCheck className="text-primary mb-2 size-5" aria-hidden="true" />
+            <p>
+              <strong>Unggah data pribadi anak</strong> hanya untuk dokumen yang
+              diperlukan. Jangan menuliskan NIK, NISN, atau informasi sensitif pada
+              kolom uraian.
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div
         onDragOver={(event) => {
           event.preventDefault();
@@ -558,6 +711,7 @@ function ReviewSummary({
   service,
   details,
   files,
+  uploadedFiles,
   notificationChannel,
   contactTime,
   followUpNote,
@@ -574,6 +728,11 @@ function ReviewSummary({
   service: EducationServiceOption;
   details: EducationApplicationDetails;
   files: File[];
+  uploadedFiles?: {
+    title: string;
+    files: File[];
+    optional?: boolean;
+  }[];
   notificationChannel: string;
   contactTime: string;
   followUpNote: string;
@@ -669,12 +828,32 @@ function ReviewSummary({
             Ubah lampiran
           </Button>
         </div>
-        <dl className="border-border rounded-xl border p-4">
-          <div className="sm:col-span-2">
-            <dt className="text-muted-foreground text-xs">Dokumen ({files.length})</dt>
-            <dd className="mt-1 font-medium">{files.length ? files.map((file) => file.name).join(", ") : "Tidak ada dokumen"}</dd>
+        {service.type === "AdministrasiSiswa" && uploadedFiles ? (
+          <div className="space-y-3">
+            {uploadedFiles.map((item) => (
+              <dl key={item.title} className="border-border rounded-xl border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="font-medium">{item.title}</dt>
+                  {item.optional ? (
+                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                      Opsional
+                    </span>
+                  ) : null}
+                </div>
+                <dd className="text-muted-foreground mt-2 text-sm">
+                  {item.files.length ? item.files.map((file) => file.name).join(", ") : "Belum diunggah"}
+                </dd>
+              </dl>
+            ))}
           </div>
-        </dl>
+        ) : (
+          <dl className="border-border rounded-xl border p-4">
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground text-xs">Dokumen ({files.length})</dt>
+              <dd className="mt-1 font-medium">{files.length ? files.map((file) => file.name).join(", ") : "Tidak ada dokumen"}</dd>
+            </div>
+          </dl>
+        )}
       </section>
 
       <section aria-labelledby="preferences-review-heading" className="space-y-4">
@@ -777,6 +956,8 @@ export default function EducationApplicationPage() {
   const [details, setDetails] =
     useState<EducationApplicationDetails>(INITIAL_DETAILS);
   const [files, setFiles] = useState<File[]>([]);
+  const [administrationAttachments, setAdministrationAttachments] =
+    useState<AdministrationAttachmentState>({});
   const [fileError, setFileError] = useState("");
   const [formError, setFormError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -823,7 +1004,12 @@ export default function EducationApplicationPage() {
 
   function updateAdministrationGrade(value: string) {
     const [jenjang = "", kelas = ""] = value.split(" / ");
-    setDetails((current) => ({ ...current, jenjang, kelas }));
+    setDetails((current) => ({
+      ...current,
+      jenjang,
+      kelas,
+      jenjangKelas: value,
+    }));
     setFormError("");
   }
 
@@ -843,6 +1029,34 @@ export default function EducationApplicationPage() {
       setFileError("");
     }
     if (rejected.length) setFileError(rejected.join(" "));
+  }
+
+  function addAdministrationAttachmentFiles(
+    key: string,
+    incomingFiles: FileList | File[],
+  ) {
+    const requirement = ADMINISTRATION_ATTACHMENT_REQUIREMENTS.find(
+      (item) => item.key === key,
+    );
+    if (!requirement) return;
+    const safeKey = requirement.key as keyof AdministrationAttachmentState;
+    const accepted: File[] = [];
+    Array.from(incomingFiles).forEach((file) => {
+      const sizeMB = file.size / (1024 * 1024);
+      if (sizeMB <= 10) accepted.push(file);
+      else setFileError(`${file.name}: melebihi batas 10 MB`);
+    });
+
+    if (accepted.length) {
+      setAdministrationAttachments((current) => {
+        const currentFiles = current[safeKey] ?? [];
+        return {
+          ...current,
+          [safeKey]: [...currentFiles, ...accepted],
+        };
+      });
+      setFileError("");
+    }
   }
 
   function continueFromDetails() {
@@ -894,15 +1108,65 @@ export default function EducationApplicationPage() {
     setIsSubmitting(true);
     setFormError("");
     try {
-      const response = await fetch(
-        "/api/education-applications/privacy-check",
-        {
+      let payload: EducationApplicationPayload;
+      if (selectedService.type === "BantuanBiaya") {
+        payload = {
+              category: "education",
+              serviceType: "BantuanBiaya",
+              serviceId: "bantuan-biaya",
+              data: {
+                namaPemohon: details.namaPemohon,
+                kontakNotifikasi: details.kontakNotifikasi,
+                kecamatan: details.kecamatan,
+                kelurahan: details.kelurahan,
+                judulPengajuan: details.judulPengajuan,
+                detailKebutuhan: details.detailKebutuhan,
+                jenjang: details.jenjang,
+                kelas: details.kelas,
+              },
+            };
+      } else if (selectedService.type === "AdministrasiSiswa") {
+        payload = {
+              category: "education",
+              serviceType: "AdministrasiSiswa",
+              serviceId: "administrasi-siswa",
+              data: {
+                namaPemohon: details.namaPemohon,
+                kontakNotifikasi: details.kontakNotifikasi,
+                kecamatan: details.kecamatan,
+                kelurahan: details.kelurahan,
+                judulPengajuan: details.judulPengajuan,
+                namaSiswa: details.namaSiswa,
+                hubungan: details.hubungan,
+                namaSekolah: details.namaSekolah,
+                jenjangKelas: details.jenjangKelas,
+                detailKebutuhan: details.detailKebutuhan,
+              },
+            };
+      } else {
+        payload = {
+          category: "education",
+          serviceType: "KonsultasiPendidikan",
+          serviceId: "konsultasi-pendidikan",
+          data: {
+            namaPemohon: details.namaPemohon,
+            kontakNotifikasi: details.kontakNotifikasi,
+            kecamatan: details.kecamatan,
+            kelurahan: details.kelurahan,
+            judulPengajuan: details.judulPengajuan,
+            namaSiswa: details.namaSiswa,
+            hubungan: details.hubungan,
+            namaSekolah: details.namaSekolah,
+            jenjangKelas: details.jenjangKelas,
+            detailKebutuhan: details.detailKebutuhan,
+          },
+        };
+      }
+
+      const response = await fetch("/api/education-applications", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            kebutuhan: details.detailKebutuhan,
-            catatan: followUpNote,
-          }),
+          body: JSON.stringify(payload),
         },
       );
       const result: { error?: string; valid?: boolean } = await response.json();
@@ -1142,6 +1406,11 @@ export default function EducationApplicationPage() {
                       )
                     }
                     error={fileError}
+                    service={selectedService}
+                    administrationAttachments={administrationAttachments}
+                    onAdministrationAttachmentFiles={
+                      addAdministrationAttachmentFiles
+                    }
                   />
                 ) : null}
                 {isStep4 && selectedService ? (
@@ -1273,7 +1542,3 @@ export default function EducationApplicationPage() {
     </div>
   );
 }
-
-
-
-
