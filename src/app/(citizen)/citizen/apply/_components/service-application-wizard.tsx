@@ -57,7 +57,7 @@ const CATEGORIES = [
   "Semua kategori",
   "Pengaduan",
   "Perizinan",
-  "Bansos",
+  "Sosial",
   "Kesehatan",
   "Pendidikan",
 ] as const;
@@ -80,7 +80,7 @@ function getDetailsError(
     return "Masukkan alamat email dengan format yang benar.";
   if (!details.description.trim()) return "Ceritakan detail pengajuan Anda.";
 
-  if (service.category === "Bansos" && !isValidNik(details.nik)) {
+  if ((service.category === "Bansos" || service.category === "Sosial") && !isValidNik(details.nik)) {
     return "NIK harus terdiri dari 16 angka.";
   }
   if (service.category === "Perizinan" && !details.businessName.trim()) {
@@ -95,7 +95,7 @@ function getDetailsError(
   if (service.category !== "Bansos" && !details.location.trim()) {
     return "Alamat atau lokasi wajib diisi.";
   }
-  if (service.category === "Bansos" && !details.aidType.trim()) {
+  if ((service.category === "Bansos" || service.category === "Sosial") && !details.aidType.trim()) {
     return "Jenis bantuan wajib dipilih.";
   }
   return null;
@@ -381,7 +381,7 @@ function ServiceSpecificFields({
   nikError: string | null;
 }) {
   const isPermit = service.category === "Perizinan";
-  const isAid = service.category === "Bansos";
+  const isAid = service.category === "Bansos" || service.category === "Sosial";
   const locationLabel = isPermit
     ? "Alamat usaha"
     : "Alamat atau lokasi kejadian";
@@ -720,7 +720,7 @@ function ReviewSummary({
           </dd>
         </div>
       </dl>
-      {service.category === "Bansos" ? (
+      {service.category === "Bansos" || service.category === "Sosial" ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
           NIK tidak ditampilkan lagi di ringkasan ini. Ini hanya simulasi; data
           tidak disimpan atau dikirim.
@@ -775,7 +775,7 @@ export function ServiceApplicationWizard() {
   const [draftNotice, setDraftNotice] = React.useState("");
 
   const nikError =
-    selectedService?.category === "Bansos" &&
+    (selectedService?.category === "Bansos" || selectedService?.category === "Sosial") &&
     nikTouched &&
     details.nik.length > 0 &&
     !isValidNik(details.nik)
@@ -995,9 +995,15 @@ export function ServiceApplicationWizard() {
                     </Button>
                     {step < 4 ? (
                       step === 1 &&
-                      selectedService?.category === "Pendidikan" ? (
+                      (selectedService?.route ||
+                        selectedService?.category === "Pendidikan") ? (
                         <Button asChild>
-                          <Link href="/citizen/apply/education">
+                          <Link
+                            href={
+                              selectedService.route ??
+                              "/citizen/apply/education"
+                            }
+                          >
                             Pilih layanan
                             <ArrowRight className="size-4" aria-hidden="true" />
                           </Link>
