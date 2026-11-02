@@ -26,7 +26,7 @@ describe("ServiceApplicationWizard", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Cari layanan" }), {
       target: { value: "pendidikan" },
     });
-    expect(screen.getByText("Pendidikan")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Pendidikan/ })).toBeTruthy();
     expect(screen.queryByText("Perizinan")).toBeNull();
     fireEvent.change(screen.getByRole("textbox", { name: "Cari layanan" }), {
       target: { value: "" },
@@ -38,7 +38,19 @@ describe("ServiceApplicationWizard", () => {
       },
     );
     expect(screen.getByRole("button", { name: /Perizinan/ })).toBeTruthy();
-    expect(screen.queryByText("Pendidikan")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Pendidikan/ })).toBeNull();
+  });
+
+  it("opens the education-specific wizard after choosing Pendidikan", () => {
+    render(<ServiceApplicationWizard />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Pendidikan/ }));
+
+    const continueLink = screen.getByRole("link", { name: "Pilih layanan" });
+    expect(continueLink.getAttribute("href")).toBe("/citizen/apply/education");
+    expect(
+      screen.getByRole("button", { name: /Pendidikan/ }).textContent,
+    ).toContain("Dinas Pendidikan");
   });
 
   it("walks through details, document upload, review, and simulated success", () => {
