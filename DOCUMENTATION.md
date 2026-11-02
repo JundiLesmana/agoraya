@@ -1,7 +1,7 @@
 # DOCUMENTATION.md — Agoraya
 
 > Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform Agoraya.
-> Terakhir diperbarui: 2026-10-20
+> Terakhir diperbarui: 2026-11-02
 
 ---
 
@@ -572,7 +572,8 @@ report_escalations      -- Escalation history
 -- CMS
 cms_records             -- Content records (Maker-Checker)
 cms_review_history      -- Review audit trail
-cms_datasets            -- Open data datasets
+datasets                -- Published dataset metadata and full-text search index
+dataset_resources       -- Dataset files/API links (one-to-many)
 
 -- Services
 service_requests        -- Pengajuan layanan
@@ -598,6 +599,14 @@ audit_hash_chain        -- Hash chain verification
 tenants                 -- Instansi/organisasi
 tenant_memberships      -- User-tenant assignments
 ```
+
+Katalog metadata menggunakan migrasi `0006_dataset_metadata_catalog.sql`.
+Kolom `datasets.search_vector` adalah `tsvector` terhitung dengan indeks GIN;
+filter kata kunci, kategori, format resource, dan instansi dijalankan di
+PostgreSQL sebelum pagination. `data_dictionary` menyimpan deskripsi struktur
+kolom, sedangkan setiap file atau endpoint akses disimpan sebagai
+`dataset_resources`. Contoh awal yang dimasukkan oleh `pnpm db:seed` diberi
+label simulasi.
 
 ### 4.2 Row-Level Security (RLS)
 
@@ -768,9 +777,17 @@ export async function authorize(request: Request, config: {
 | Reports | `/api/reports/*` | CRUD laporan warga |
 | CMS | `/api/cms/*` | Content management |
 | Analytics | `/api/analytics/*` | Data agregat publik |
+| Dataset catalog | `/api/asn/datasets` | Pencarian/filter server-side dan pagination katalog |
 | Services | `/api/services/*` | Pengajuan & perizinan |
 | Admin | `/api/admin/*` | Admin operations |
 | Chatbot | `/api/chatbot/*` | AI chatbot queries |
+
+`GET /api/asn/datasets` menerima `search`, `category`, `format`, `agency`,
+`sort` (`relevance`, `recent`, `downloads`), dan `page`. Detail dibaca melalui
+`GET /api/asn/datasets/{slug}`; respons detail menyediakan properti JSON-LD
+`schema.org/Dataset` (`name`, `description`, `creator`, `license`, `distribution`,
+dan `variableMeasured`) untuk interoperabilitas/harvesting. Katalog publik
+bersifat baca-saja; belum ada endpoint edit.
 
 ---
 
@@ -1013,7 +1030,7 @@ pnpm dev
 | `pnpm db:migrate` | Apply pending migrations (use `DATABASE_URL_UNPOOLED` for DDL) |
 | `pnpm db:push` | Push schema directly to DB (development only, no versioning) |
 | `pnpm db:studio` | Open Drizzle Studio to inspect data |
-| `pnpm db:seed` | Seed BPS snapshots + demo scenario (idempotent) |
+| `pnpm db:seed` | Seed BPS snapshots, demo scenario, and dataset catalog (idempotent) |
 | `pnpm db:reset` | Truncate all data tables then re-seed (clean demo state) |
 | `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
 
