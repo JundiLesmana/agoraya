@@ -105,7 +105,7 @@ function createPayload(
     return {
       category: "social",
       serviceType: service.type,
-      serviceId: service.id,
+      serviceId: "kebutuhan-dasar",
       data: {
         ...baseData,
         jenisKebutuhan: details.jenisKebutuhan,
@@ -118,7 +118,7 @@ function createPayload(
     return {
       category: "social",
       serviceType: service.type,
-      serviceId: service.id,
+      serviceId: "dukungan-keluarga",
       data: {
         ...baseData,
         jenisDukungan: details.jenisDukungan,
@@ -130,7 +130,7 @@ function createPayload(
   return {
     category: "social",
     serviceType: service.type,
-    serviceId: service.id,
+    serviceId: "bantuan-darurat",
     data: {
       ...baseData,
       jenisDarurat: details.jenisDarurat,
@@ -706,4 +706,3 @@ export default function SocialApplicationPage() {
     </div>
   );
 }
-
