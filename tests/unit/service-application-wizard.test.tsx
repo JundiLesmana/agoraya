@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ServiceApplicationWizard } from "@/app/(citizen)/citizen/apply/_components/service-application-wizard";
 
@@ -53,95 +53,23 @@ describe("ServiceApplicationWizard", () => {
     ).toContain("Dinas Pendidikan");
   });
 
-  it("walks through details, document upload, review, and simulated success", () => {
+  it("opens the permit-specific wizard after choosing Perizinan", () => {
     render(<ServiceApplicationWizard />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /Perizinan/ }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Pilih layanan" }));
-    expect(screen.getByRole("heading", { name: "Data & Detail" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Perizinan/ }));
+
     expect(
-      screen.getByRole("textbox", { name: "Nama pemohon" }),
-    ).toHaveProperty("value", "Budi Santoso (SIMULATED)");
-    const emailField = screen.getByRole("textbox", { name: "Email" });
-    fireEvent.change(emailField, { target: { value: "invalid-email" } });
-    expect(screen.getByRole("alert").textContent).toContain(
-      "format yang benar",
-    );
-    fireEvent.change(emailField, {
-      target: { value: "warga.simulasi@example.test" },
-    });
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Nama usaha" }), {
-      target: { value: "Warung Makmur" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Jenis izin" }), {
-      target: { value: "Perizinan" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Alamat usaha" }), {
-      target: { value: "Jl. Melati" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Tujuan pengajuan" }), {
-      target: {
-        value: "Mengurus perizinan untuk warung kopi.",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Lanjut ke dokumen" }));
-
-    const document = new File(["sample"], "foto.jpg", { type: "image/jpeg" });
-    fireEvent.change(screen.getByLabelText("Pilih dokumen pendukung"), {
-      target: { files: [document] },
-    });
-    expect(screen.getByText("foto.jpg")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Tinjau pengajuan" }));
-
-    const review = screen.getByRole("region", {
-      name: "Periksa kembali pengajuan Anda",
-    });
-    expect(within(review).getByText("Warung Makmur")).toBeTruthy();
-    expect(within(review).getByText("foto.jpg")).toBeTruthy();
-    fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Kirim simulasi" }));
-
-    expect(screen.getByText("Pengajuan berhasil disimulasikan")).toBeTruthy();
-    expect(
-      screen
-        .getByRole("link", { name: /Lacak Pengajuan/ })
-        .getAttribute("href"),
-    ).toBe("/tracking");
+      screen.getByRole("link", { name: "Pilih layanan" }).getAttribute("href"),
+    ).toBe("/citizen/apply/permit");
   });
 
-  it("rejects unsupported document formats in the upload step", () => {
+  it("keeps the existing social-specific route", () => {
     render(<ServiceApplicationWizard />);
-    fireEvent.click(
-      screen.getByRole("button", { name: /Perizinan/ }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Pilih layanan" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Nama usaha" }), {
-      target: { value: "Warung Makmur" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Jenis izin" }), {
-      target: { value: "Perizinan" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Alamat usaha" }), {
-      target: { value: "Jl. Melati" },
-    });
-    fireEvent.change(screen.getByRole("textbox", { name: "Tujuan pengajuan" }), {
-      target: { value: "Mengurus perizinan untuk warung kopi." },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Lanjut ke dokumen" }));
 
-    fireEvent.change(screen.getByLabelText("Pilih dokumen pendukung"), {
-      target: {
-        files: [
-          new File(["bad"], "payload.exe", {
-            type: "application/octet-stream",
-          }),
-        ],
-      },
-    });
-    expect(screen.getByRole("alert").textContent).toContain("PDF atau JPG");
-    expect(screen.queryByText("payload.exe")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Sosial/ }));
+
+    expect(
+      screen.getByRole("link", { name: "Pilih layanan" }).getAttribute("href"),
+    ).toBe("/citizen/apply/social");
   });
 });

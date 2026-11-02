@@ -25,6 +25,7 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
     category: "Perizinan",
     agency: "Dinas Penanaman Modal dan PTSP",
     prefix: "IZN",
+    route: "/citizen/apply/permit",
   },
   {
     id: "education-aid",
