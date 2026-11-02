@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 
 const NAV_ITEMS = [

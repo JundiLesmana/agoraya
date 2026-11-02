@@ -885,7 +885,7 @@ export default function EducationApplicationPage() {
     return `EDU-${date}-${suffix}`;
   }
 
-  async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
+  async function submitApplication(event: React.FormEvent) {
     event.preventDefault();
     if (!confirmed || !selectedService) {
       setFormError("Centang pernyataan kebenaran sebelum melanjutkan.");
