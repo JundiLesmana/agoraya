@@ -1,5 +1,5 @@
 import { index, integer, pgTable, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
-import { userStatusEnum, bpsSourceEnum } from "./enums";
+import { userStatusEnum } from "./enums";
 
 export const auditColumns = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
