@@ -1297,7 +1297,7 @@ export default function EducationApplicationPage() {
               <li aria-hidden="true">&gt;</li>
               <li>
                 <Link
-                  href="/layanan-publik"
+                  href="citizen/apply"
                   className="hover:text-foreground hover:underline"
                 >
                   Layanan Publik

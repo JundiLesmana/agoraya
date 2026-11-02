@@ -72,4 +72,14 @@ describe("ServiceApplicationWizard", () => {
       screen.getByRole("link", { name: "Pilih layanan" }).getAttribute("href"),
     ).toBe("/citizen/apply/social");
   });
+
+  it("opens the health-specific flow after choosing Kesehatan", () => {
+    render(<ServiceApplicationWizard />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Kesehatan/ }));
+
+    expect(
+      screen.getByRole("link", { name: "Pilih layanan" }).getAttribute("href"),
+    ).toBe("/citizen/apply/health");
+  });
 });

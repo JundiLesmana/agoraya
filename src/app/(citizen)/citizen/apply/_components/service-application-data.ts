@@ -51,6 +51,7 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
     category: "Kesehatan",
     agency: "Dinas Kesehatan",
     prefix: "KSE",
+    route: "/citizen/apply/health",
   },
 ];
 

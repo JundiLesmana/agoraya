@@ -284,7 +284,7 @@ export default function PermitApplicationPage() {
               </li>
               <li aria-hidden="true">›</li>
               <li>
-                <Link href="/layanan-publik">Layanan Publik</Link>
+                <Link href="/citizen/apply">Layanan Publik</Link>
               </li>
               <li aria-hidden="true">›</li>
               <li aria-current="page">Perizinan</li>

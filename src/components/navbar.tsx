@@ -137,7 +137,6 @@ function Navbar() {
           <div className="border-border flex items-center justify-between border-b pb-3">
             <div>
               <p className="text-sm font-semibold">Agoraya</p>
-              <p className="text-muted-foreground text-xs">SatuData.id</p>
             </div>
             <div className="border-border inline-flex rounded-full border p-1">
               <button
