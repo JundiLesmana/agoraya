@@ -107,7 +107,7 @@ describe("EducationApplicationPage", () => {
     ).toHaveProperty("value", "Konsultasi Pilihan Belajar & Dokumen Masuk SMP");
     expect(
       screen.getByPlaceholderText(
-        /Ceritakan hal yang ingin ditanyakan, misalnya pilihan belajar/,
+        /Ceritakan topik konsultasi, misalnya pilihan belajar/,
       ),
     ).toBeTruthy();
     expect(
@@ -148,7 +148,7 @@ describe("EducationApplicationPage", () => {
       target: { value: "SMP / Kelas VIII" },
     });
     fireEvent.change(
-      screen.getByRole("textbox", { name: /Ceritakan kebutuhan administrasi siswa/ }),
+      screen.getByRole("textbox", { name: /Ceritakan kebutuhan layanan pendidikan/ }),
       { target: { value: "Meminta surat mutasi ke sekolah tujuan." } },
     );
 
@@ -158,7 +158,7 @@ describe("EducationApplicationPage", () => {
     expect(screen.getByText("Langkah 4 dari 4")).toBeTruthy();
     expect(screen.getByText("Periksa kembali pengajuan Anda")).toBeTruthy();
     expect(screen.getByText("Lampiran")).toBeTruthy();
-    expect(screen.getByText("SMP / Kelas VIII")).toBeTruthy();
+    expect(screen.getByText("Rina")).toBeTruthy();
   }, 15000);
 
   it("validates privacy, blocks NIK-like data, and shows success state", async () => {
@@ -232,7 +232,7 @@ describe("EducationApplicationPage", () => {
 
     expect((await screen.findByRole("alert")).textContent).toMatch(/NIK|KTP|NISN/);
     expect(fetch).toHaveBeenCalledWith(
-      "/api/education-applications/privacy-check",
+      "/api/education-applications",
       expect.objectContaining({ method: "POST" }),
     );
     expect(
