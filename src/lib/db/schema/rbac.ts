@@ -1,4 +1,4 @@
-import { foreignKey, index, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar, integer } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, varchar, integer } from "drizzle-orm/pg-core";
 import { auditColumns, tenants, users } from "./foundation";
 
 export const roles = pgTable(

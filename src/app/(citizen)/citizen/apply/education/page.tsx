@@ -740,67 +740,6 @@ function ReviewSummary({
   );
 }
 
-function FollowUpPreferences({
-  channel,
-  contactTime,
-  note,
-  onChannelChange,
-  onContactTimeChange,
-  onNoteChange,
-}: {
-  channel: string;
-  contactTime: string;
-  note: string;
-  onChannelChange: (value: string) => void;
-  onContactTimeChange: (value: string) => void;
-  onNoteChange: (value: string) => void;
-}) {
-  return (
-    <section aria-labelledby="preferences-heading" className="space-y-5">
-      <div>
-        <h2 id="preferences-heading" className="text-xl font-semibold">
-          Preferensi tindak lanjut
-        </h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Pilih cara dan waktu yang nyaman untuk menerima pembaruan pengajuan.
-        </p>
-      </div>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium">Jalur pembaruan</span>
-        <select
-          value={channel}
-          onChange={(event) => onChannelChange(event.target.value)}
-          className="border-input bg-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-        >
-          <option>Notifikasi akun + email</option>
-          <option>Notifikasi akun</option>
-          <option>Email</option>
-        </select>
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium">Waktu dapat dihubungi</span>
-        <select
-          value={contactTime}
-          onChange={(event) => onContactTimeChange(event.target.value)}
-          className="border-input bg-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-        >
-          <option>Hari kerja, 08.00-16.00</option>
-          <option>Hari kerja, 16.00-20.00</option>
-          <option>Akhir pekan, 09.00-12.00</option>
-        </select>
-      </label>
-      <label className="block space-y-1.5 text-sm">
-        <span className="font-medium">Catatan (opsional)</span>
-        <Textarea
-          value={note}
-          onChange={(event) => onNoteChange(event.target.value)}
-          maxLength={2000}
-          placeholder="Tambahkan waktu atau informasi tindak lanjut yang membantu."
-        />
-      </label>
-    </section>
-  );
-}
 function SuccessState({ trackingNumber }: { trackingNumber: string }) {
   return (
     <section className="mx-auto max-w-2xl py-10 text-center">

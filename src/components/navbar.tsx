@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Menu, MoonStar, SunMedium, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 
 const NAV_ITEMS = [
@@ -32,8 +31,6 @@ function isNavigationItemActive(pathname: string, href: string) {
 function Navbar() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
-  const logoSrc =
-    theme === "dark" ? "/logo/logo-dark.svg" : "/logo/logo-light.svg";
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 

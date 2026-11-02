@@ -4,7 +4,6 @@ import * as React from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export type WizardStep =
   "pilih-layanan" | "isi-detail" | "lampiran" | "tinjau-kirim" | "preferensi";
@@ -189,7 +188,7 @@ export function WizardLayout({
     () => ({
       currentStep,
       steps,
-      goToStep: (_step: number) => {
+      goToStep: () => {
         // Intentionally no-op here; parent controls state
       },
       goToNext: onNext ?? (() => {}),

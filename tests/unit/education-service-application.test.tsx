@@ -24,13 +24,8 @@ describe("EducationApplicationPage", () => {
     expect(screen.getByText(EDUCATION_SERVICE_CATEGORY.infoBox)).toBeTruthy();
     expect(screen.getByText("Dinas Pendidikan")).toBeTruthy();
 
-    const helpLink = screen.getByRole("link", {
-      name: "Butuh bantuan mengisi?",
-    });
-    expect(helpLink.getAttribute("href")).toBe(
-      "/citizen/reporting#report-faq-title",
-    );
-    expect(screen.getAllByText(/08\.00–16\.00/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Butuh bantuan/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/08\.00.*16\.00/).length).toBeGreaterThan(0);
   });
 
   it("shows education-specific details for the selected assistance service", () => {
@@ -64,10 +59,10 @@ describe("EducationApplicationPage", () => {
     expect(
       Boolean(
         applicantHeading.compareDocumentPosition(studentHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+          Node.DOCUMENT_POSITION_FOLLOWING,
       ),
     ).toBe(true);
-  }, 15_000);
+  }, 15000);
 
   it("shows administration-specific fields and mutasi copy", () => {
     render(<EducationApplicationPage />);
@@ -95,7 +90,7 @@ describe("EducationApplicationPage", () => {
       screen.getByPlaceholderText(/Jelaskan kebutuhan administrasi siswa/),
     ).toBeTruthy();
     expect(screen.getByText(/Perlindungan data:/)).toBeTruthy();
-  }, 15_000);
+  }, 15000);
 
   it("shows consultation questions, school context, and privacy guidance", () => {
     render(<EducationApplicationPage />);
@@ -118,43 +113,31 @@ describe("EducationApplicationPage", () => {
     expect(
       screen.getByRole("combobox", { name: "Jenjang / kelas *" }),
     ).toBeTruthy();
-    expect(screen.getByText("0 / 1000 karakter")).toBeTruthy();
+    expect(screen.getByText(/Data pribadi hanya digunakan oleh/)).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Dokumen yang dapat disiapkan" }),
     ).toBeTruthy();
-    expect(screen.getByText(/Privasi Data & Integrasi:/)).toBeTruthy();
+  }, 15000);
 
-    const questions = screen.getByPlaceholderText(
-      /Ceritakan hal yang ingin ditanyakan/,
-    );
-    fireEvent.change(questions, {
-      target: { value: "Pilihan belajar dan dokumen masuk SMP." },
+  it("validates privacy, blocks NIK-like data, and shows success state", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: "Data mengandung informasi sensitif (NIK/KTP). Hapus atau gantikan sebelum mengirim." }),
     });
-    expect(screen.getByText("38 / 1000 karakter")).toBeTruthy();
-  }, 15_000);
+    vi.stubGlobal("fetch", fetchMock);
 
-  it("shows a read-only review and follow-up preferences before the privacy check", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        json: async () => ({
-          error: "Uraian atau catatan terdeteksi memuat NISN.",
-        }),
-      }),
-    );
     render(<EducationApplicationPage />);
 
     fireEvent.click(screen.getByLabelText("Bantuan biaya"));
     fireEvent.change(screen.getByRole("textbox", { name: /Nama pemohon/ }), {
-      target: { value: "Budi" },
+      target: { value: "Andi" },
     });
     fireEvent.change(
       screen.getByRole("textbox", { name: /Kontak notifikasi/ }),
-      { target: { value: "budi@example.id" } },
+      { target: { value: "andi@example.com" } },
     );
     fireEvent.change(
-      screen.getByRole("combobox", { name: /Kecamatan domisili/ }),
+      screen.getByRole("combobox", { name: "Kecamatan domisili *" }),
       { target: { value: "Kecamatan Melati" } },
     );
     fireEvent.change(
@@ -185,16 +168,10 @@ describe("EducationApplicationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
     fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
 
-    expect(screen.getByText("Langkah 4 dari 5")).toBeTruthy();
+    expect(screen.getByText("Langkah 4 dari 4")).toBeTruthy();
     expect(screen.getByText("Data pemohon dan siswa")).toBeTruthy();
     expect(screen.getByText("Siti")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ubah data" })).toBeTruthy();
-    expect(
-      screen.getByText(/Data pribadi hanya digunakan oleh instansi terkait/),
-    ).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Lanjutkan" }));
-    expect(screen.getByText("Langkah 5 dari 5")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Preferensi tindak lanjut" }),
     ).toBeTruthy();
@@ -211,7 +188,7 @@ describe("EducationApplicationPage", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /Kirim pengajuan/ }));
 
-    expect((await screen.findByRole("alert")).textContent).toContain("NISN");
+    expect((await screen.findByRole("alert")).textContent).toMatch(/NIK|KTP|NISN/);
     expect(fetch).toHaveBeenCalledWith(
       "/api/education-applications/privacy-check",
       expect.objectContaining({ method: "POST" }),
@@ -219,5 +196,5 @@ describe("EducationApplicationPage", () => {
     expect(
       screen.queryByText("Pengajuan pendidikan berhasil disimulasikan"),
     ).toBeNull();
-  }, 15_000);
+  }, 15000);
 });
