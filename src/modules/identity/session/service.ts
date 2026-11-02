@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { userSessions, users } from '@/modules/identity/db';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
 const SESSION_TTL_HOURS = 24;
@@ -28,7 +28,7 @@ export async function createSession(userId: string): Promise<{ sessionId: string
     expiresAt,
   });
 
-  logger.info('session.created', { userId, sessionId });
+  logger.info('session.created');
 
   return { sessionId, token, expiresAt };
 }
@@ -51,19 +51,19 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     .where(eq(userSessions.tokenHash, tokenHash));
 
   if (!session) {
-    logger.warn('session.invalid', { tokenHash: tokenHash.substring(0, 8) });
+    logger.warn('session.invalid');
     return { valid: false };
   }
 
   if (new Date() > session.expiresAt) {
-    logger.warn('session.expired', { sessionId: session.id, userId: session.userId });
+    logger.warn('session.expired');
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
   const [user] = await database.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
   if (!user || user.status !== 'active') {
-    logger.warn('session.user_inactive', { sessionId: session.id, userId: session.userId });
+    logger.warn('session.user_inactive');
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
@@ -77,7 +77,7 @@ export async function destroySession(token: string): Promise<void> {
   const database = db();
   const tokenHash = hashToken(token);
   await database.delete(userSessions).where(eq(userSessions.tokenHash, tokenHash));
-  logger.info('session.destroyed', { tokenHash: tokenHash.substring(0, 8) });
+  logger.info('session.destroyed');
 }
 
 export async function refreshSession(token: string): Promise<{ valid: boolean; newToken?: string; expiresAt?: Date }> {
