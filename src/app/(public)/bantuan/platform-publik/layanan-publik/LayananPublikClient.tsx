@@ -158,7 +158,7 @@ const MASALAH: MasalahItem[] = [
 const sidebarItems = [
   { title: "Data Pemerintah", icon: Database, href: "/bantuan/platform-publik/data-pemerintah" },
   { title: "Layanan Publik", icon: FileText, href: "/bantuan/platform-publik/layanan-publik" },
-  { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/lapor-warga" },
+  { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/platform-publik/lapor-warga" },
   { title: "Insight", icon: Lightbulb, href: "/bantuan/insight" },
 ];
 
@@ -501,7 +501,7 @@ export default function LayananPublikArticlePage() {
                     ← Data Pemerintah
                   </span>
                 </Link>
-                <Link href="/bantuan/lapor-warga" className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50">
+                <Link href="/bantuan/platform-publik/lapor-warga" className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50">
                   <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-slate-500 group-hover:text-blue-700">
                     Berikutnya
                   </span>
