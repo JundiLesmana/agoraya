@@ -584,6 +584,11 @@ service_letters         -- Surat jadi (generated)
 budget_data             -- Data anggaran
 infrastructure_projects -- Data proyek infrastruktur
 poverty_statistics      -- Statistik kemiskinan
+statistic_operator_assignments -- Scope operator per user, wilayah, dan sektor
+statistic_entries       -- Konteks tahun, metadata, serta status statistik
+statistic_values        -- Nilai aktual per periode statistik
+statistic_value_audit   -- Riwayat nilai lama/baru, aktor, dan waktu
+statistic_entry_documents -- Metadata dokumen pendukung privat
 disaster_reports        -- Data bencana
 
 -- Gamification
@@ -607,6 +612,17 @@ PostgreSQL sebelum pagination. `data_dictionary` menyimpan deskripsi struktur
 kolom, sedangkan setiap file atau endpoint akses disimpan sebagai
 `dataset_resources`. Contoh awal yang dimasukkan oleh `pnpm db:seed` diberi
 label simulasi.
+
+Input indikator statistik menggunakan migrasi
+`0008_statistical_indicator_input.sql`. Sebelum operator dapat mengakses
+`/asn/statistik`, administrator harus membuat baris assignment pada
+`statistic_operator_assignments` untuk kombinasi `tenant_id`, `user_id`,
+`agency_id`, `region_id`, nama wilayah, dan sektor yang diizinkan. API mengambil
+assignment tersebut dari identitas sesi server; `agency_id` tidak diterima dari
+payload browser. Nilai waktu disimpan di `statistic_values`, sementara setiap
+perubahan nilai dicatat append-only di `statistic_value_audit` dan `audit_events`.
+Dokumen PDF/XLS/XLSX disimpan sebagai aset Cloudinary authenticated; konfigurasi
+Cloudinary wajib tersedia untuk unggahan.
 
 ### 4.2 Row-Level Security (RLS)
 
@@ -788,6 +804,17 @@ export async function authorize(request: Request, config: {
 `schema.org/Dataset` (`name`, `description`, `creator`, `license`, `distribution`,
 dan `variableMeasured`) untuk interoperabilitas/harvesting. Katalog publik
 bersifat baca-saja; belum ada endpoint edit.
+
+Workspace input statistik menggunakan `GET /api/asn/statistik` untuk membaca
+assignment operator dan indikator, serta parameter `referenceYear`, `regionId`,
+`sectorId`, dan `indicatorId` untuk membaca satu entri. `POST /api/asn/statistik`
+menerima `multipart/form-data` berisi field `payload` (JSON batch nilai periode
+dan metadata) serta nol atau lebih file `documents`. Server memvalidasi
+assignment, periode, anomali, dan syarat sumber/metodologi sebelum publikasi.
+Dokumen tersimpan dapat diunduh melalui
+`GET /api/asn/statistik/documents/{documentId}` yang memverifikasi assignment dan
+menerbitkan tautan bertanda tangan berumur 15 menit. Data publikasi tanpa
+identitas operator tersedia melalui `GET /api/v1/statistics/published`.
 
 ---
 
