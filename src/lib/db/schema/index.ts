@@ -5,6 +5,7 @@ export * from './reporting';
 export * from './kyc';
 export * from './cms';
 export * from './analytics';
+export * from './datasets';
 
 import * as enums from './enums';
 import * as foundation from './foundation';
@@ -13,6 +14,7 @@ import * as reporting from './reporting';
 import * as kyc from './kyc';
 import * as cms from './cms';
 import * as analytics from './analytics';
+import * as datasets from './datasets';
 
-export const tables = { ...foundation, ...rbac, ...reporting, ...kyc, ...cms, ...analytics } as const;
+export const tables = { ...foundation, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...datasets } as const;
 export { enums };
