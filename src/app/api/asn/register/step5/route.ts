@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await submitAsnRegistration(parsed.data as any);
+    const result = await submitAsnRegistration(parsed.data);
     return NextResponse.json(
       { success: true, ...result },
       { status: 200, headers: { "Cache-Control": "no-store" } },

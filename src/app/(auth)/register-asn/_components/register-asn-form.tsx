@@ -4,7 +4,20 @@ import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Upload, X, FileText, Image as ImageIcon, Edit, CheckCircle } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle,
+  Clipboard,
+  Clock3,
+  Shield,
+  Upload,
+  X,
+  FileText,
+  Image as ImageIcon,
+  Edit,
+} from "lucide-react";
 import Link from "next/link";
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -16,6 +29,270 @@ const ACCEPTED_SELFIE_TYPES = ["image/jpeg", "image/png"];
 interface RegisterAsnFormProps {
   initialStep?: Step;
   onStepChange?: (step: Step, completedSteps: number[]) => void;
+  onSuccess?: (details: RegistrationConfirmationDetails) => void;
+}
+
+export interface RegistrationConfirmationDetails {
+  name: string;
+  email: string;
+  agencyName: string;
+  unitWork: string;
+  status: string;
+}
+
+export function RegisterAsnConfirmation({
+  details,
+}: {
+  details: RegistrationConfirmationDetails;
+}) {
+  const [copyMessage, setCopyMessage] = useState("");
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(details.email);
+      setCopyMessage("Email terdaftar berhasil disalin.");
+    } catch {
+      setCopyMessage(
+        "Tidak dapat menyalin email. Silakan salin secara manual.",
+      );
+    }
+  };
+
+  const statusLabel =
+    details.status === "pending_approval" || details.status === "pending"
+      ? "Menunggu persetujuan"
+      : "Menunggu pemeriksaan";
+
+  return (
+    <main className="flex min-h-screen flex-col bg-[#f8fafc] text-[#192b40]">
+      <header className="shrink-0 border-b border-[#e5ebf1] bg-white">
+        <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between gap-4 px-5 sm:px-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2"
+            aria-label="Agoraya — beranda"
+          >
+            <Image
+              src="/logo/brand.svg"
+              alt=""
+              width={30}
+              height={32}
+              priority
+            />
+            <span className="flex flex-col leading-tight">
+              <span className="text-base font-bold tracking-[-0.04em] text-[#192b40]">
+                Agoraya
+              </span>
+              <span className="mt-0.5 text-[0.58rem] text-[#738397]">
+                Data Publik, Untuk Semua
+              </span>
+            </span>
+          </Link>
+          <nav
+            aria-label="Navigasi bantuan"
+            className="flex items-center gap-4 sm:gap-6"
+          >
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#66788b] transition-colors hover:text-[#1265c9] focus-visible:ring-2 focus-visible:ring-[#1265c9] focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <ArrowLeft aria-hidden="true" className="size-3.5" />
+              <span className="hidden sm:inline">Kembali ke beranda</span>
+              <span className="sm:hidden">Kembali</span>
+            </Link>
+            <Link
+              href="/tentang#faq"
+              className="hidden text-xs font-medium text-[#1265c9] transition-colors hover:text-[#0f4fa0] focus-visible:ring-2 focus-visible:ring-[#1265c9] focus-visible:ring-offset-2 focus-visible:outline-none sm:inline"
+            >
+              Pusat bantuan
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="flex flex-1 justify-center px-4 py-8 sm:px-8 sm:py-10">
+        <section
+          aria-labelledby="registration-confirmation-title"
+          className="my-auto w-full max-w-[575px]"
+        >
+          <div className="mb-5 text-center">
+            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-[#eaf7f1] text-[#16835d]">
+              <Check aria-hidden="true" className="size-6" strokeWidth={2.25} />
+            </div>
+            <p className="text-[0.62rem] font-semibold tracking-[0.08em] text-[#16835d]">
+              PENGAJUAN BERHASIL DIKIRIM
+            </p>
+            <h1
+              id="registration-confirmation-title"
+              className="mt-2 text-[1.55rem] leading-tight font-bold tracking-[-0.035em] text-[#192b40] sm:text-[1.8rem]"
+            >
+              Terima kasih, {details.name}.
+            </h1>
+            <p className="mx-auto mt-2 max-w-[38rem] text-xs leading-5 text-[#65788d] sm:text-sm">
+              Pengajuan Anda sudah diterima. Akun belum aktif dan akses ruang
+              instansi menunggu persetujuan admin.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-[#d5e5fb] bg-[#e2efff] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-medium text-[#62768d]">
+                EMAIL TERDAFTAR
+              </p>
+              <p className="mt-0.5 text-sm font-semibold break-all text-[#1265c9]">
+                {details.email}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={copyEmail}
+              className="shrink-0 justify-start text-[#1265c9] hover:bg-white/70 hover:text-[#0f4fa0] sm:justify-center"
+            >
+              <Clipboard aria-hidden="true" className="size-3.5" />
+              Salin email
+            </Button>
+          </div>
+          <p
+            role="status"
+            aria-live="polite"
+            className="mt-1 min-h-4 text-center text-xs text-[#16835d]"
+          >
+            {copyMessage}
+          </p>
+
+          <section
+            aria-labelledby="next-steps-title"
+            className="mt-3 rounded-lg border border-[#e5ebf1] bg-white px-4 sm:px-5"
+          >
+            <h2
+              id="next-steps-title"
+              className="pt-4 text-sm font-semibold text-[#192b40]"
+            >
+              Langkah berikutnya
+            </h2>
+            <ol className="mt-1 divide-y divide-[#e9eef3]">
+              <li className="flex gap-3 py-3">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#eaf7f1] text-[#16835d]">
+                  <Check aria-hidden="true" className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <h3 className="text-xs font-semibold text-[#192b40]">
+                      Pengajuan diterima
+                    </h3>
+                    <span className="text-[0.6rem] font-medium text-[#16835d]">
+                      Selesai
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[0.67rem] leading-4 text-[#65788d]">
+                    Data dan dokumen pendaftaran telah tercatat untuk ditinjau.
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3 py-3">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e2efff] text-[#1265c9]">
+                  <Clock3 aria-hidden="true" className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <h3 className="text-xs font-semibold text-[#192b40]">
+                      Verifikasi admin kepegawaian
+                    </h3>
+                    <span className="text-[0.6rem] font-medium text-[#1265c9]">
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[0.67rem] leading-4 text-[#65788d]">
+                    Admin instansi akan memeriksa identitas, penempatan, dan
+                    dokumen Anda.
+                  </p>
+                </div>
+              </li>
+              <li className="flex gap-3 py-3">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#e2efff] text-[#1265c9]">
+                  <Shield aria-hidden="true" className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <h3 className="text-xs font-semibold text-[#192b40]">
+                      Aktivasi akses instansi
+                    </h3>
+                    <span className="text-[0.6rem] font-medium text-[#1265c9]">
+                      Belum aktif
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[0.67rem] leading-4 text-[#65788d]">
+                    Setelah disetujui, Anda dapat masuk dengan akun yang
+                    didaftarkan.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </section>
+
+          <dl className="mt-3 grid gap-3 rounded-lg border border-[#e5ebf1] bg-white px-4 py-3 text-xs sm:grid-cols-2 sm:px-5">
+            <div>
+              <dt className="text-[0.62rem] text-[#718196]">Nama pemohon</dt>
+              <dd className="mt-1 font-semibold text-[#192b40]">
+                {details.name}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[0.62rem] text-[#718196]">Unit kerja</dt>
+              <dd className="mt-1 font-semibold text-[#192b40]">
+                {details.unitWork || details.agencyName}
+              </dd>
+            </div>
+          </dl>
+
+          <aside className="mt-3 rounded-lg bg-[#eaf4fb] px-4 py-3 text-[0.67rem] leading-4 text-[#65788d] sm:px-5">
+            <p className="font-semibold text-[#192b40]">
+              Jaga informasi pendaftaran Anda
+            </p>
+            <p className="mt-1">
+              Identitas dan dokumen hanya digunakan untuk verifikasi oleh
+              petugas berwenang, dan tidak ditampilkan kepada publik.
+            </p>
+          </aside>
+
+          <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
+            <Button
+              asChild
+              className="bg-[#1265c9] text-white hover:bg-[#0f4fa0] focus-visible:ring-[#1265c9]"
+            >
+              <Link href="/login">Ke halaman masuk</Link>
+            </Button>
+            <Button
+              variant="outline"
+              asChild
+              className="border-[#d7e1eb] bg-white text-[#1265c9] hover:bg-[#f4f8fc]"
+            >
+              <Link href="/">Kembali ke beranda</Link>
+            </Button>
+          </div>
+
+          <p className="mt-4 text-center text-[0.62rem] leading-4 text-[#718196]">
+            Informasi pendaftaran Anda hanya dapat diperiksa oleh petugas yang
+            berwenang.
+          </p>
+        </section>
+      </div>
+
+      <footer className="shrink-0 border-t border-[#e5ebf1] bg-white">
+        <div className="mx-auto flex min-h-[46px] max-w-[1200px] items-center justify-between gap-4 px-5 text-[0.62rem] text-[#738397] sm:px-8 sm:text-[0.68rem]">
+          <span>© 2026 Agoraya. Semua hak dilindungi.</span>
+          <Link
+            href="/tentang"
+            className="transition-colors hover:text-[#1265c9] focus-visible:ring-2 focus-visible:ring-[#1265c9] focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            Tentang Agoraya
+          </Link>
+        </div>
+      </footer>
+    </main>
+  );
 }
 
 interface UploadedFile {
@@ -24,11 +301,17 @@ interface UploadedFile {
   progress: number;
 }
 
-export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFormProps) {
+export function RegisterAsnForm({
+  initialStep = 1,
+  onStepChange,
+  onSuccess,
+}: RegisterAsnFormProps) {
   const [currentStep, setCurrentStep] = useState<Step>(initialStep);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [confirmationDetails, setConfirmationDetails] =
+    useState<RegistrationConfirmationDetails | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [sameAsKtp, setSameAsKtp] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -131,7 +414,10 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
     setError("");
   }
 
-  function handleFileSelect(e: ChangeEvent<HTMLInputElement>, kind: "ktp" | "skPengangkatan" | "idCard" | "selfie") {
+  function handleFileSelect(
+    e: ChangeEvent<HTMLInputElement>,
+    kind: "ktp" | "skPengangkatan" | "idCard" | "selfie",
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -143,7 +429,8 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
       return;
     }
 
-    const allowed = kind === "selfie" ? ACCEPTED_SELFIE_TYPES : ACCEPTED_DOC_TYPES;
+    const allowed =
+      kind === "selfie" ? ACCEPTED_SELFIE_TYPES : ACCEPTED_DOC_TYPES;
     if (!allowed.includes(file.type)) {
       if (kind === "selfie") {
         setError("Format file tidak valid. Gunakan JPG atau PNG.");
@@ -169,9 +456,12 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
     e.target.value = "";
   }
 
-  function handleRemoveFile(kind: "ktp" | "skPengangkatan" | "idCard" | "selfie") {
-    if (uploadedFiles[kind]?.preview && uploadedFiles[kind]?.file.type.startsWith("image/")) {
-      URL.revokeObjectURL(uploadedFiles[kind]!.preview!);
+  function handleRemoveFile(
+    kind: "ktp" | "skPengangkatan" | "idCard" | "selfie",
+  ) {
+    const entry = uploadedFiles[kind];
+    if (entry?.preview && entry.file.type.startsWith("image/")) {
+      URL.revokeObjectURL(entry.preview);
     }
     setUploadedFiles((prev) => ({ ...prev, [kind]: null }));
     setError("");
@@ -187,7 +477,11 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
   function maskNIK(nik: string): string {
     if (!nik || nik.length < 8) return nik;
-    return nik.substring(0, 2) + "..........".substring(0, 10) + nik.substring(nik.length - 4);
+    return (
+      nik.substring(0, 2) +
+      "..........".substring(0, 10) +
+      nik.substring(nik.length - 4)
+    );
   }
 
   const readFileAsDataUrl = (file: File) =>
@@ -233,7 +527,12 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
     if (currentStep === 1) {
       // Basic validation for step 1
-      if (!form.name?.trim() || !form.nik?.trim() || form.nik.trim().length !== 16 || !/^\d{16}$/.test(form.nik.trim())) {
+      if (
+        !form.name?.trim() ||
+        !form.nik?.trim() ||
+        form.nik.trim().length !== 16 ||
+        !/^\d{16}$/.test(form.nik.trim())
+      ) {
         setError("NIK harus 16 digit angka");
         return;
       }
@@ -241,7 +540,10 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         setError("Tempat dan tanggal lahir wajib diisi");
         return;
       }
-      if (!form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      if (
+        !form.email?.trim() ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+      ) {
         setError("Email tidak valid");
         return;
       }
@@ -257,11 +559,11 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         setError("Konfirmasi password tidak sama");
         return;
       }
-      setCompletedSteps((prev) => prev.includes(1) ? prev : [...prev, 1]);
-      setCurrentStep(2);
-      if (onStepChange) {
-        onStepChange(2, completedSteps.includes(1) ? completedSteps : [...completedSteps, 1]);
-      }
+      const updated = completedSteps.includes(1)
+        ? completedSteps
+        : [...completedSteps, 1];
+      setCompletedSteps(updated);
+      updateStep(2, updated);
       return;
     }
 
@@ -276,7 +578,11 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
           return;
         }
       } else if (form.employmentStatus === "PPPK") {
-        if (!form.pppkNumber || form.pppkNumber.length !== 18 || !/^\d+$/.test(form.pppkNumber)) {
+        if (
+          !form.pppkNumber ||
+          form.pppkNumber.length !== 18 ||
+          !/^\d+$/.test(form.pppkNumber)
+        ) {
           setError("Nomor induk PPPPK harus 18 digit angka");
           return;
         }
@@ -285,11 +591,20 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
           return;
         }
       }
-      if (!form.agencyName || !form.unitWork || !form.field || !form.positionName || !form.officeAddress) {
+      if (
+        !form.agencyName ||
+        !form.unitWork ||
+        !form.field ||
+        !form.positionName ||
+        !form.officeAddress
+      ) {
         setError("Semua field wajib pada step ini harus diisi");
         return;
       }
-      if (form.agencyType === "Instansi daerah" && (!form.provinceTask || !form.regencyTask)) {
+      if (
+        form.agencyType === "Instansi daerah" &&
+        (!form.provinceTask || !form.regencyTask)
+      ) {
         setError("Provinsi dan Kabupaten/Kota wilayah tugas wajib diisi");
         return;
       }
@@ -302,13 +617,22 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
           body: JSON.stringify({
             employmentStatus: form.employmentStatus,
             nip: form.employmentStatus === "PNS" ? form.nip : undefined,
-            pppkNumber: form.employmentStatus === "PPPK" ? form.pppkNumber : undefined,
-            rankGradePns: form.employmentStatus === "PNS" ? form.rankGradePns : undefined,
-            rankGradePppk: form.employmentStatus === "PPPK" ? form.rankGradePppk : undefined,
+            pppkNumber:
+              form.employmentStatus === "PPPK" ? form.pppkNumber : undefined,
+            rankGradePns:
+              form.employmentStatus === "PNS" ? form.rankGradePns : undefined,
+            rankGradePppk:
+              form.employmentStatus === "PPPK" ? form.rankGradePppk : undefined,
             agencyType: form.agencyType,
             agencyName: form.agencyName,
-            provinceTask: form.agencyType === "Instansi daerah" ? form.provinceTask : undefined,
-            regencyTask: form.agencyType === "Instansi daerah" ? form.regencyTask : undefined,
+            provinceTask:
+              form.agencyType === "Instansi daerah"
+                ? form.provinceTask
+                : undefined,
+            regencyTask:
+              form.agencyType === "Instansi daerah"
+                ? form.regencyTask
+                : undefined,
             unitWork: form.unitWork,
             field: form.field,
             positionType: form.positionType,
@@ -348,7 +672,12 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         setError("Kode pos harus 5 digit angka");
         return;
       }
-      if (!form.ktpProvince || !form.ktpRegency || !form.ktpDistrict || !form.ktpVillage) {
+      if (
+        !form.ktpProvince ||
+        !form.ktpRegency ||
+        !form.ktpDistrict ||
+        !form.ktpVillage
+      ) {
         setError("Semua dropdown alamat KTP wajib dipilih");
         return;
       }
@@ -369,7 +698,12 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
           setError("Kode pos domisili harus 5 digit angka");
           return;
         }
-        if (!form.domProvince || !form.domRegency || !form.domDistrict || !form.domVillage) {
+        if (
+          !form.domProvince ||
+          !form.domRegency ||
+          !form.domDistrict ||
+          !form.domVillage
+        ) {
           setError("Semua dropdown alamat domisili wajib dipilih");
           return;
         }
@@ -426,27 +760,21 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         setError("Kartu pegawai / ID card wajib diunggah");
         return;
       }
-      setCompletedSteps((prev) => {
-        const updated = prev.includes(currentStep) ? prev : [...prev, currentStep];
-        setCurrentStep((s) => {
-          const next = (s + 1) as Step;
-          if (onStepChange) onStepChange(next, updated);
-          return next;
-        });
-        return updated;
-      });
+      const updated = completedSteps.includes(currentStep)
+        ? completedSteps
+        : [...completedSteps, currentStep];
+      const next = (currentStep + 1) as Step;
+      setCompletedSteps(updated);
+      updateStep(next, updated);
       return;
     }
 
-    setCompletedSteps((prev) => {
-      const updated = prev.includes(currentStep) ? prev : [...prev, currentStep];
-      setCurrentStep((s) => {
-        const next = (s + 1) as Step;
-        if (onStepChange) onStepChange(next, updated);
-        return next;
-      });
-      return updated;
-    });
+    const updated = completedSteps.includes(currentStep)
+      ? completedSteps
+      : [...completedSteps, currentStep];
+    const next = (currentStep + 1) as Step;
+    setCompletedSteps(updated);
+    updateStep(next, updated);
   }
 
   async function handleFinalSubmit() {
@@ -455,23 +783,30 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
       setError("Anda harus menyetujui pernyataan sebelum mengirim pengajuan.");
       return;
     }
-    if (!uploadedFiles.ktp || !uploadedFiles.skPengangkatan || !uploadedFiles.idCard) {
+    if (
+      !uploadedFiles.ktp ||
+      !uploadedFiles.skPengangkatan ||
+      !uploadedFiles.idCard
+    ) {
       setError("Semua dokumen wajib harus diunggah");
-      setCurrentStep(4);
+      updateStep(4);
       return;
     }
 
     setPending(true);
     setError("");
     try {
-      const [ktpDataUrl, skDataUrl, idCardDataUrl, selfieDataUrl] = await Promise.all([
-        readFileAsDataUrl(uploadedFiles.ktp.file),
-        readFileAsDataUrl(uploadedFiles.skPengangkatan.file),
-        readFileAsDataUrl(uploadedFiles.idCard.file),
-        uploadedFiles.selfie ? readFileAsDataUrl(uploadedFiles.selfie.file) : Promise.resolve(undefined),
-      ]);
+      const [ktpDataUrl, skDataUrl, idCardDataUrl, selfieDataUrl] =
+        await Promise.all([
+          readFileAsDataUrl(uploadedFiles.ktp.file),
+          readFileAsDataUrl(uploadedFiles.skPengangkatan.file),
+          readFileAsDataUrl(uploadedFiles.idCard.file),
+          uploadedFiles.selfie
+            ? readFileAsDataUrl(uploadedFiles.selfie.file)
+            : Promise.resolve(undefined),
+        ]);
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         nik: form.nik.trim(),
         name: form.name.trim(),
         birthPlace: form.birthPlace.trim(),
@@ -484,7 +819,6 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         nip: form.nip.trim() || undefined,
         position: form.positionName.trim(),
         unit: form.unitWork.trim() || undefined,
-        appointmentDate: form.appointmentDate || undefined,
         address: form.ktpAddress.trim(),
         rtRw: form.ktpRt + "/" + form.ktpRw,
         village: form.ktpVillage.trim(),
@@ -519,48 +853,33 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
         return;
       }
 
+      const details: RegistrationConfirmationDetails = {
+        name: form.name.trim(),
+        email:
+          typeof result.data?.email === "string"
+            ? result.data.email
+            : form.email.trim().toLowerCase(),
+        agencyName: form.agencyName.trim(),
+        unitWork: form.unitWork.trim(),
+        status:
+          typeof result.data?.status === "string"
+            ? result.data.status
+            : "pending_approval",
+      };
+      setConfirmationDetails(details);
+      onSuccess?.(details);
       setSuccess(true);
     } catch (e) {
-      setError("Tidak dapat terhubung. Periksa koneksi Anda lalu coba kembali.");
+      setError(
+        "Tidak dapat terhubung. Periksa koneksi Anda lalu coba kembali.",
+      );
     } finally {
       setPending(false);
     }
   }
 
-  if (success) {
-    return (
-      <main className="min-h-screen bg-[#f8fafc] text-[#192b40] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl border border-[#e5ebf1] p-8 shadow-sm text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold mb-2">Pengajuan berhasil dikirim!</h1>
-          <p className="text-sm text-[#5f6f85] mb-6">
-            Terima kasih telah mendaftar. Tim kami akan meninjau pengajuan Anda dalam 1-3 hari kerja.
-          </p>
-          <div className="rounded-lg bg-[#f8fafc] p-4 mb-6 text-left">
-            <p className="text-xs text-[#5f6f85] mb-1">Nomor Pengajuan</p>
-            <p className="font-mono text-sm font-medium">REG-2026-000123</p>
-            <p className="text-xs text-[#5f6f85] mt-3 mb-1">Status</p>
-            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">Menunggu verifikasi</span>
-          </div>
-          <div className="text-left mb-6 space-y-3">
-            <p className="text-sm font-medium">Langkah selanjutnya:</p>
-            <ol className="text-xs text-[#5f6f85] space-y-2 list-decimal list-inside">
-              <li>Cek email Anda untuk link verifikasi. Klik link tersebut dalam 24 jam.</li>
-              <li>Tunggu persetujuan dari admin instansi Anda. Anda akan menerima email notifikasi setelah akun disetujui.</li>
-              <li>Setelah disetujui, Anda dapat login dan mengakses dashboard Agoraya.</li>
-            </ol>
-          </div>
-          <div className="space-y-2">
-            <Button className="w-full">Cek email saya</Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/">Kembali ke beranda</Link>
-            </Button>
-          </div>
-        </div>
-      </main>
-    );
+  if (success && confirmationDetails) {
+    return <RegisterAsnConfirmation details={confirmationDetails} />;
   }
 
   const isStepCompleted = (step: number) => completedSteps.includes(step);
@@ -575,44 +894,105 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="fullName">Nama lengkap *</Label>
-                <Input id="fullName" value={form.name} onChange={(e) => handleChange("name", e.target.value)} placeholder="Masukkan nama lengkap sesuai KTP" required />
-                <p className="text-xs text-[#5f6f85]">Sesuai dengan identitas resmi</p>
+                <Input
+                  id="fullName"
+                  value={form.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  placeholder="Masukkan nama lengkap sesuai KTP"
+                  required
+                />
+                <p className="text-xs text-[#5f6f85]">
+                  Sesuai dengan identitas resmi
+                </p>
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="nik">NIK *</Label>
-                <Input id="nik" value={form.nik} onChange={(e) => handleChange("nik", e.target.value)} placeholder="16 digit NIK" required maxLength={16} />
-                <p className="text-xs text-[#5f6f85]">NIK 16 digit untuk perlindungan dan verifikasi</p>
+                <Input
+                  id="nik"
+                  value={form.nik}
+                  onChange={(e) => handleChange("nik", e.target.value)}
+                  placeholder="16 digit NIK"
+                  required
+                  maxLength={16}
+                />
+                <p className="text-xs text-[#5f6f85]">
+                  NIK 16 digit untuk perlindungan dan verifikasi
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthPlace">Tempat lahir *</Label>
-                <Input id="birthPlace" value={form.birthPlace} onChange={(e) => handleChange("birthPlace", e.target.value)} required />
+                <Input
+                  id="birthPlace"
+                  value={form.birthPlace}
+                  onChange={(e) => handleChange("birthPlace", e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="birthDate">Tanggal lahir *</Label>
-                <Input id="birthDate" type="date" value={form.birthDate} onChange={(e) => handleChange("birthDate", e.target.value)} required />
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={form.birthDate}
+                  onChange={(e) => handleChange("birthDate", e.target.value)}
+                  required
+                />
               </div>
             </div>
           </div>
 
           <div>
-            <h2 className="mb-4 text-lg font-semibold">Kontak & keamanan akun</h2>
+            <h2 className="mb-4 text-lg font-semibold">
+              Kontak & keamanan akun
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="nama@instansi.go.id" required />
+                <Input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="nama@instansi.go.id"
+                  required
+                />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="phone">No HP aktif *</Label>
-                <Input id="phone" value={form.phone} onChange={(e) => handleChange("phone", e.target.value)} placeholder="08xxxxxxxxxx" required />
+                <Input
+                  id="phone"
+                  value={form.phone}
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  placeholder="08xxxxxxxxxx"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
-                <Input id="password" type="password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} placeholder="Minimal 12 karakter" required minLength={12} />
-                <p className="text-xs text-[#5f6f85]">Min 12 karakter, kombinasi huruf, angka, simbol</p>
+                <Input
+                  id="password"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  placeholder="Minimal 12 karakter"
+                  required
+                  minLength={12}
+                />
+                <p className="text-xs text-[#5f6f85]">
+                  Min 12 karakter, kombinasi huruf, angka, simbol
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Konfirmasi password *</Label>
-                <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={(e) => handleChange("confirmPassword", e.target.value)} required />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(e) =>
+                    handleChange("confirmPassword", e.target.value)
+                  }
+                  required
+                />
               </div>
             </div>
           </div>
@@ -621,43 +1001,80 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
       {currentStep === 2 && (
         <>
-          <div className="mb-4">
-            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 2 DARI 5</p>
-            <h2 className="mt-1 text-lg font-semibold">Hubungkan dengan instansi Anda</h2>
-            <p className="text-sm text-[#5f6f85]">Data ini membantu admin mencocokkan penempatan dan menentukan akses yang sesuai.</p>
-          </div>
           <div className="space-y-8">
             <div>
-              <h3 className="mb-4 text-base font-semibold">Status kepegawaian</h3>
+              <h3 className="mb-4 text-base font-semibold">
+                Status kepegawaian
+              </h3>
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Status ASN *</Label>
                 <div className="flex gap-6">
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="employmentStatus" value="PNS" checked={form.employmentStatus === "PNS"} onChange={(e) => handleChange("employmentStatus", e.target.value)} aria-label="PNS" />
+                    <input
+                      type="radio"
+                      name="employmentStatus"
+                      value="PNS"
+                      checked={form.employmentStatus === "PNS"}
+                      onChange={(e) =>
+                        handleChange("employmentStatus", e.target.value)
+                      }
+                      aria-label="PNS"
+                    />
                     <span className="text-sm">PNS</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="employmentStatus" value="PPPK" checked={form.employmentStatus === "PPPK"} onChange={(e) => handleChange("employmentStatus", e.target.value)} aria-label="PPPK" />
+                    <input
+                      type="radio"
+                      name="employmentStatus"
+                      value="PPPK"
+                      checked={form.employmentStatus === "PPPK"}
+                      onChange={(e) =>
+                        handleChange("employmentStatus", e.target.value)
+                      }
+                      aria-label="PPPK"
+                    />
                     <span className="text-sm">PPPK</span>
                   </label>
                 </div>
-                <p className="text-xs text-[#5f6f85]">Isian dan dokumen menyesuaikan status serta kebijakan instansi; bukan daftar kewajiban nasional ASN.</p>
+                <p className="text-xs text-[#5f6f85]">
+                  Isian dan dokumen menyesuaikan status serta kebijakan
+                  instansi; bukan daftar kewajiban nasional ASN.
+                </p>
               </div>
               {form.employmentStatus === "PNS" && (
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="nip">NIP *</Label>
-                    <Input id="nip" value={form.nip} onChange={(e) => handleChange("nip", e.target.value)} placeholder="18 digit angka" maxLength={18} required />
-                    <p className="text-xs text-[#5f6f85]">Untuk PNS. Jika memilih PPPPK, isi Nomor induk PPPPK.</p>
+                    <Input
+                      id="nip"
+                      value={form.nip}
+                      onChange={(e) => handleChange("nip", e.target.value)}
+                      placeholder="18 digit angka"
+                      maxLength={18}
+                      required
+                    />
+                    <p className="text-xs text-[#5f6f85]">
+                      Untuk PNS. Jika memilih PPPPK, isi Nomor induk PPPPK.
+                    </p>
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="rankGradePns">Pangkat/golongan PNS *</Label>
-                    <select id="rankGradePns" value={form.rankGradePns} onChange={(e) => handleChange("rankGradePns", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <select
+                      id="rankGradePns"
+                      value={form.rankGradePns}
+                      onChange={(e) =>
+                        handleChange("rankGradePns", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih pangkat/golongan</option>
                       <option value="Penata/I-C">Penata/I-C</option>
                       <option value="Penata Tk.I/I-d">Penata Tk.I/I-d</option>
                       <option value="Pembina/IV-a">Pembina/IV-a</option>
-                      <option value="Pembina Tk.I/IV-b">Pembina Tk.I/IV-b</option>
+                      <option value="Pembina Tk.I/IV-b">
+                        Pembina Tk.I/IV-b
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -666,12 +1083,33 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="pppkNumber">Nomor induk PPPPK *</Label>
-                    <Input id="pppkNumber" value={form.pppkNumber} onChange={(e) => handleChange("pppkNumber", e.target.value)} placeholder="18 digit angka" maxLength={18} required />
-                    <p className="text-xs text-[#5f6f85]">Untuk PPPPK. Tidak berlaku untuk PNS.</p>
+                    <Input
+                      id="pppkNumber"
+                      value={form.pppkNumber}
+                      onChange={(e) =>
+                        handleChange("pppkNumber", e.target.value)
+                      }
+                      placeholder="18 digit angka"
+                      maxLength={18}
+                      required
+                    />
+                    <p className="text-xs text-[#5f6f85]">
+                      Untuk PPPPK. Tidak berlaku untuk PNS.
+                    </p>
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="rankGradePppk">Pangkat/golongan PPPPK *</Label>
-                    <select id="rankGradePppk" value={form.rankGradePppk} onChange={(e) => handleChange("rankGradePppk", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <Label htmlFor="rankGradePppk">
+                      Pangkat/golongan PPPPK *
+                    </Label>
+                    <select
+                      id="rankGradePppk"
+                      value={form.rankGradePppk}
+                      onChange={(e) =>
+                        handleChange("rankGradePppk", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih pangkat/golongan</option>
                       <option value="Ahli Pertama">Ahli Pertama</option>
                       <option value="Ahli Muda">Ahli Muda</option>
@@ -682,75 +1120,176 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
               )}
             </div>
             <div>
-              <h3 className="mb-4 text-base font-semibold">Instansi & wilayah tugas</h3>
+              <h3 className="mb-4 text-base font-semibold">
+                Instansi & wilayah tugas
+              </h3>
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="agencyType">Jenis instansi *</Label>
-                  <select id="agencyType" value={form.agencyType} onChange={(e) => handleChange("agencyType", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                  <select
+                    id="agencyType"
+                    value={form.agencyType}
+                    onChange={(e) => handleChange("agencyType", e.target.value)}
+                    className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                    required
+                  >
                     <option value="Instansi daerah">Instansi daerah</option>
                     <option value="Instansi pusat">Instansi pusat</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="agencyName">Nama instansi *</Label>
-                  <Input id="agencyName" value={form.agencyName} onChange={(e) => handleChange("agencyName", e.target.value)} placeholder="Pemerintah Kota Contoh" required />
+                  <Input
+                    id="agencyName"
+                    value={form.agencyName}
+                    onChange={(e) => handleChange("agencyName", e.target.value)}
+                    placeholder="Pemerintah Kota Contoh"
+                    required
+                  />
                 </div>
                 {form.agencyType === "Instansi daerah" && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="provinceTask">Provinsi wilayah tugas *</Label>
-                      <select id="provinceTask" value={form.provinceTask} onChange={(e) => handleChange("provinceTask", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                      <Label htmlFor="provinceTask">
+                        Provinsi wilayah tugas *
+                      </Label>
+                      <select
+                        id="provinceTask"
+                        value={form.provinceTask}
+                        onChange={(e) =>
+                          handleChange("provinceTask", e.target.value)
+                        }
+                        className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                        required
+                      >
                         <option value="">Pilih provinsi</option>
                         <option value="Provinsi Contoh">Provinsi Contoh</option>
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="regencyTask">Kabupaten/Kota wilayah tugas *</Label>
-                      <select id="regencyTask" value={form.regencyTask} onChange={(e) => handleChange("regencyTask", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                      <Label htmlFor="regencyTask">
+                        Kabupaten/Kota wilayah tugas *
+                      </Label>
+                      <select
+                        id="regencyTask"
+                        value={form.regencyTask}
+                        onChange={(e) =>
+                          handleChange("regencyTask", e.target.value)
+                        }
+                        className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                        required
+                      >
                         <option value="">Pilih kabupaten/kota</option>
                         <option value="Kota Contoh">Kota Contoh</option>
                       </select>
                     </div>
                   </>
                 )}
-                <p className="text-xs text-[#5f6f85]">Bekerja di instansi pusat? Pilih 'Instansi pusat'. Wilayah daerah tidak diwajibkan; gunakan unit kerja dan lokasi penugasan bila relevan dengan kebijakan instansi.</p>
+                <p className="text-xs text-[#5f6f85]">
+                  Bekerja di instansi pusat? Pilih &apos;Instansi pusat&apos;. Wilayah
+                  daerah tidak diwajibkan; gunakan unit kerja dan lokasi
+                  penugasan bila relevan dengan kebijakan instansi.
+                </p>
                 <div className="space-y-2">
                   <Label htmlFor="unitWork">Unit kerja / OPD *</Label>
-                  <Input id="unitWork" value={form.unitWork} onChange={(e) => handleChange("unitWork", e.target.value)} placeholder="Dinas Komunikasi dan Informatika (contoh)" required />
+                  <Input
+                    id="unitWork"
+                    value={form.unitWork}
+                    onChange={(e) => handleChange("unitWork", e.target.value)}
+                    placeholder="Dinas Komunikasi dan Informatika (contoh)"
+                    required
+                  />
                 </div>
               </div>
             </div>
             <div>
-              <h3 className="mb-4 text-base font-semibold">Bidang, jabatan & kontak kedinasan</h3>
+              <h3 className="mb-4 text-base font-semibold">
+                Bidang, jabatan & kontak kedinasan
+              </h3>
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="field">Bidang *</Label>
-                  <Input id="field" value={form.field} onChange={(e) => handleChange("field", e.target.value)} placeholder="Pengelolaan Data dan Statistik" required />
+                  <Input
+                    id="field"
+                    value={form.field}
+                    onChange={(e) => handleChange("field", e.target.value)}
+                    placeholder="Pengelolaan Data dan Statistik"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="positionType">Jenis jabatan *</Label>
-                  <select id="positionType" value={form.positionType} onChange={(e) => handleChange("positionType", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
-                    <option value="Jabatan fungsional">Jabatan fungsional</option>
-                    <option value="Jabatan struktural">Jabatan struktural</option>
+                  <select
+                    id="positionType"
+                    value={form.positionType}
+                    onChange={(e) =>
+                      handleChange("positionType", e.target.value)
+                    }
+                    className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                    required
+                  >
+                    <option value="Jabatan fungsional">
+                      Jabatan fungsional
+                    </option>
+                    <option value="Jabatan struktural">
+                      Jabatan struktural
+                    </option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="positionName">Nama jabatan *</Label>
-                  <Input id="positionName" value={form.positionName} onChange={(e) => handleChange("positionName", e.target.value)} placeholder="Pranata Komputer Ahli Pertama (contoh)" required />
+                  <Input
+                    id="positionName"
+                    value={form.positionName}
+                    onChange={(e) =>
+                      handleChange("positionName", e.target.value)
+                    }
+                    placeholder="Pranata Komputer Ahli Pertama (contoh)"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="officeAddress">Alamat kantor *</Label>
-                  <Input id="officeAddress" value={form.officeAddress} onChange={(e) => handleChange("officeAddress", e.target.value)} placeholder="Jl. Pelayanan Publik No. 10, Kota Contoh (fiktif)" required />
+                  <Input
+                    id="officeAddress"
+                    value={form.officeAddress}
+                    onChange={(e) =>
+                      handleChange("officeAddress", e.target.value)
+                    }
+                    placeholder="Jl. Pelayanan Publik No. 10, Kota Contoh (fiktif)"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="officialEmail">Email kedinasan (opsional)</Label>
-                  <Input id="officialEmail" type="email" value={form.officialEmail} onChange={(e) => handleChange("officialEmail", e.target.value)} placeholder="r***@instansi.example" />
-                  <p className="text-xs text-[#5f6f85]">Domain .example digunakan khusus sebagai data contoh.</p>
+                  <Label htmlFor="officialEmail">
+                    Email kedinasan (opsional)
+                  </Label>
+                  <Input
+                    id="officialEmail"
+                    type="email"
+                    value={form.officialEmail}
+                    onChange={(e) =>
+                      handleChange("officialEmail", e.target.value)
+                    }
+                    placeholder="r***@instansi.example"
+                  />
+                  <p className="text-xs text-[#5f6f85]">
+                    Domain .example digunakan khusus sebagai data contoh.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="officePhone">Telepon kantor (opsional)</Label>
-                  <Input id="officePhone" value={form.officePhone} onChange={(e) => handleChange("officePhone", e.target.value)} placeholder="021-....1080" />
-                  <p className="text-xs text-[#5f6f85]">Sertakan ekstensi bila diperlukan.</p>
+                  <Input
+                    id="officePhone"
+                    value={form.officePhone}
+                    onChange={(e) =>
+                      handleChange("officePhone", e.target.value)
+                    }
+                    placeholder="021-....1080"
+                  />
+                  <p className="text-xs text-[#5f6f85]">
+                    Sertakan ekstensi bila diperlukan.
+                  </p>
                 </div>
               </div>
             </div>
@@ -760,45 +1299,92 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
       {currentStep === 3 && (
         <>
-          <div className="mb-4">
-            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 3 DARI 5</p>
-            <h2 className="mt-1 text-lg font-semibold">Lengkapi informasi alamat</h2>
-            <p className="text-sm text-[#5f6f85]">Pisahkan alamat sesuai KTP dan tempat tinggal saat ini agar data administrasi tetap akurat.</p>
-          </div>
           <div className="space-y-8">
             <div>
-              <h3 className="mb-2 text-base font-semibold">Alamat sesuai KTP</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Salin alamat yang tercantum pada KTP Anda. Semua alamat pada tampilan ini adalah contoh fiktif.</p>
+              <h3 className="mb-2 text-base font-semibold">
+                Alamat sesuai KTP
+              </h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Salin alamat yang tercantum pada KTP Anda. Semua alamat pada
+                tampilan ini adalah contoh fiktif.
+              </p>
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="ktpAddress">Alamat jalan lengkap *</Label>
-                  <Input id="ktpAddress" value={form.ktpAddress} onChange={(e) => handleChange("ktpAddress", e.target.value)} placeholder="Jl. Melati No.··, Blok A (contoh fiktif)" minLength={10} maxLength={500} required />
+                  <Input
+                    id="ktpAddress"
+                    value={form.ktpAddress}
+                    onChange={(e) => handleChange("ktpAddress", e.target.value)}
+                    placeholder="Jl. Melati No.··, Blok A (contoh fiktif)"
+                    minLength={10}
+                    maxLength={500}
+                    required
+                  />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-4">
                   <div className="space-y-2">
                     <Label htmlFor="ktpRt">RT *</Label>
-                    <Input id="ktpRt" value={form.ktpRt} onChange={(e) => handleChange("ktpRt", e.target.value)} placeholder="001" maxLength={3} required />
+                    <Input
+                      id="ktpRt"
+                      value={form.ktpRt}
+                      onChange={(e) => handleChange("ktpRt", e.target.value)}
+                      placeholder="001"
+                      maxLength={3}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="ktpRw">RW *</Label>
-                    <Input id="ktpRw" value={form.ktpRw} onChange={(e) => handleChange("ktpRw", e.target.value)} placeholder="004" maxLength={3} required />
+                    <Input
+                      id="ktpRw"
+                      value={form.ktpRw}
+                      onChange={(e) => handleChange("ktpRw", e.target.value)}
+                      placeholder="004"
+                      maxLength={3}
+                      required
+                    />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="ktpPostalCode">Kode pos *</Label>
-                    <Input id="ktpPostalCode" value={form.ktpPostalCode} onChange={(e) => handleChange("ktpPostalCode", e.target.value)} placeholder="12···" maxLength={5} required />
+                    <Input
+                      id="ktpPostalCode"
+                      value={form.ktpPostalCode}
+                      onChange={(e) =>
+                        handleChange("ktpPostalCode", e.target.value)
+                      }
+                      placeholder="12···"
+                      maxLength={5}
+                      required
+                    />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="ktpProvince">Provinsi *</Label>
-                    <select id="ktpProvince" value={form.ktpProvince} onChange={(e) => handleChange("ktpProvince", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <select
+                      id="ktpProvince"
+                      value={form.ktpProvince}
+                      onChange={(e) =>
+                        handleChange("ktpProvince", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih provinsi</option>
                       <option value="Provinsi Contoh">Provinsi Contoh</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="ktpRegency">Kabupaten/Kota *</Label>
-                    <select id="ktpRegency" value={form.ktpRegency} onChange={(e) => handleChange("ktpRegency", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <select
+                      id="ktpRegency"
+                      value={form.ktpRegency}
+                      onChange={(e) =>
+                        handleChange("ktpRegency", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih kabupaten/kota</option>
                       <option value="Kota Contoh">Kota Contoh</option>
                     </select>
@@ -807,14 +1393,32 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="ktpDistrict">Kecamatan *</Label>
-                    <select id="ktpDistrict" value={form.ktpDistrict} onChange={(e) => handleChange("ktpDistrict", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <select
+                      id="ktpDistrict"
+                      value={form.ktpDistrict}
+                      onChange={(e) =>
+                        handleChange("ktpDistrict", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih kecamatan</option>
-                      <option value="Kecamatan Harmoni">Kecamatan Harmoni</option>
+                      <option value="Kecamatan Harmoni">
+                        Kecamatan Harmoni
+                      </option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="ktpVillage">Kelurahan/Desa *</Label>
-                    <select id="ktpVillage" value={form.ktpVillage} onChange={(e) => handleChange("ktpVillage", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" required>
+                    <select
+                      id="ktpVillage"
+                      value={form.ktpVillage}
+                      onChange={(e) =>
+                        handleChange("ktpVillage", e.target.value)
+                      }
+                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
+                      required
+                    >
                       <option value="">Pilih kelurahan/desa</option>
                       <option value="Kelurahan Melati">Kelurahan Melati</option>
                     </select>
@@ -824,41 +1428,109 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
             </div>
             <div>
               <h3 className="mb-2 text-base font-semibold">Alamat domisili</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Tempat tinggal Anda saat ini; tidak harus sama dengan alamat KTP.</p>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Tempat tinggal Anda saat ini; tidak harus sama dengan alamat
+                KTP.
+              </p>
               <div className="mb-4 flex items-center gap-2">
-                <input type="checkbox" id="sameAsKtp" checked={sameAsKtp} onChange={(e) => handleSameAsKtpChange(e.target.checked)} className="h-4 w-4 rounded border-gray-300" />
-                <label htmlFor="sameAsKtp" className="text-sm">Alamat domisili sama dengan alamat KTP</label>
+                <input
+                  type="checkbox"
+                  id="sameAsKtp"
+                  checked={sameAsKtp}
+                  onChange={(e) => handleSameAsKtpChange(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="sameAsKtp" className="text-sm">
+                  Alamat domisili sama dengan alamat KTP
+                </label>
               </div>
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="domAddress">Alamat jalan lengkap *</Label>
-                  <Input id="domAddress" value={form.domAddress} onChange={(e) => handleChange("domAddress", e.target.value)} placeholder="Jl. Melati No.··, Blok A (contoh fiktif)" disabled={sameAsKtp} minLength={10} maxLength={500} required className={sameAsKtp ? "bg-gray-50" : ""} />
+                  <Input
+                    id="domAddress"
+                    value={form.domAddress}
+                    onChange={(e) => handleChange("domAddress", e.target.value)}
+                    placeholder="Jl. Melati No.··, Blok A (contoh fiktif)"
+                    disabled={sameAsKtp}
+                    minLength={10}
+                    maxLength={500}
+                    required
+                    className={sameAsKtp ? "bg-gray-50" : ""}
+                  />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-4">
                   <div className="space-y-2">
                     <Label htmlFor="domRt">RT *</Label>
-                    <Input id="domRt" value={form.domRt} onChange={(e) => handleChange("domRt", e.target.value)} placeholder="001" maxLength={3} disabled={sameAsKtp} required className={sameAsKtp ? "bg-gray-50" : ""} />
+                    <Input
+                      id="domRt"
+                      value={form.domRt}
+                      onChange={(e) => handleChange("domRt", e.target.value)}
+                      placeholder="001"
+                      maxLength={3}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="domRw">RW *</Label>
-                    <Input id="domRw" value={form.domRw} onChange={(e) => handleChange("domRw", e.target.value)} placeholder="004" maxLength={3} disabled={sameAsKtp} required className={sameAsKtp ? "bg-gray-50" : ""} />
+                    <Input
+                      id="domRw"
+                      value={form.domRw}
+                      onChange={(e) => handleChange("domRw", e.target.value)}
+                      placeholder="004"
+                      maxLength={3}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
                     <Label htmlFor="domPostalCode">Kode pos *</Label>
-                    <Input id="domPostalCode" value={form.domPostalCode} onChange={(e) => handleChange("domPostalCode", e.target.value)} placeholder="12···" maxLength={5} disabled={sameAsKtp} required className={sameAsKtp ? "bg-gray-50" : ""} />
+                    <Input
+                      id="domPostalCode"
+                      value={form.domPostalCode}
+                      onChange={(e) =>
+                        handleChange("domPostalCode", e.target.value)
+                      }
+                      placeholder="12···"
+                      maxLength={5}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="domProvince">Provinsi *</Label>
-                    <select id="domProvince" value={form.domProvince} onChange={(e) => handleChange("domProvince", e.target.value)} disabled={sameAsKtp} className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`} required>
+                    <select
+                      id="domProvince"
+                      value={form.domProvince}
+                      onChange={(e) =>
+                        handleChange("domProvince", e.target.value)
+                      }
+                      disabled={sameAsKtp}
+                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
                       <option value="">Pilih provinsi</option>
                       <option value="Provinsi Contoh">Provinsi Contoh</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="domRegency">Kabupaten/Kota *</Label>
-                    <select id="domRegency" value={form.domRegency} onChange={(e) => handleChange("domRegency", e.target.value)} disabled={sameAsKtp} className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`} required>
+                    <select
+                      id="domRegency"
+                      value={form.domRegency}
+                      onChange={(e) =>
+                        handleChange("domRegency", e.target.value)
+                      }
+                      disabled={sameAsKtp}
+                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
                       <option value="">Pilih kabupaten/kota</option>
                       <option value="Kota Contoh">Kota Contoh</option>
                     </select>
@@ -867,14 +1539,34 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="domDistrict">Kecamatan *</Label>
-                    <select id="domDistrict" value={form.domDistrict} onChange={(e) => handleChange("domDistrict", e.target.value)} disabled={sameAsKtp} className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`} required>
+                    <select
+                      id="domDistrict"
+                      value={form.domDistrict}
+                      onChange={(e) =>
+                        handleChange("domDistrict", e.target.value)
+                      }
+                      disabled={sameAsKtp}
+                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
                       <option value="">Pilih kecamatan</option>
-                      <option value="Kecamatan Harmoni">Kecamatan Harmoni</option>
+                      <option value="Kecamatan Harmoni">
+                        Kecamatan Harmoni
+                      </option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="domVillage">Kelurahan/Desa *</Label>
-                    <select id="domVillage" value={form.domVillage} onChange={(e) => handleChange("domVillage", e.target.value)} disabled={sameAsKtp} className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`} required>
+                    <select
+                      id="domVillage"
+                      value={form.domVillage}
+                      onChange={(e) =>
+                        handleChange("domVillage", e.target.value)
+                      }
+                      disabled={sameAsKtp}
+                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
                       <option value="">Pilih kelurahan/desa</option>
                       <option value="Kelurahan Melati">Kelurahan Melati</option>
                     </select>
@@ -883,10 +1575,15 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-lg border-l-4 border-[#2563eb] bg-[#f8fafc] p-4">
-              <Shield className="h-5 w-5 text-[#2563eb] mt-0.5" />
+              <Shield className="mt-0.5 h-5 w-5 text-[#2563eb]" />
               <div>
-                <p className="text-sm font-medium text-[#192b40]">Alamat pribadi tidak ditampilkan publik</p>
-                <p className="text-xs text-[#5f6f85] mt-1">Alamat digunakan untuk pemeriksaan administrasi oleh petugas yang berwenang, bukan sebagai informasi profil publik.</p>
+                <p className="text-sm font-medium text-[#192b40]">
+                  Alamat pribadi tidak ditampilkan publik
+                </p>
+                <p className="mt-1 text-xs text-[#5f6f85]">
+                  Alamat digunakan untuk pemeriksaan administrasi oleh petugas
+                  yang berwenang, bukan sebagai informasi profil publik.
+                </p>
               </div>
             </div>
           </div>
@@ -895,163 +1592,299 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
       {currentStep === 4 && (
         <>
-          <div className="mb-4">
-            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 4 DARI 5</p>
-            <h2 className="mt-1 text-lg font-semibold">Unggah dokumen verifikasi</h2>
-            <p className="text-sm text-[#5f6f85]">Dokumen diperlukan untuk memverifikasi identitas dan status kepegawaian Anda. Pastikan file jelas dan tidak buram.</p>
-          </div>
           <div className="space-y-6">
             <div>
               <h3 className="mb-2 text-base font-semibold">KTP *</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.</p>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.
+              </p>
               {uploadedFiles.ktp ? (
                 <div className="rounded-lg border border-[#e5ebf1] p-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-100">
                       {uploadedFiles.ktp.preview ? (
-                        <img src={uploadedFiles.ktp.preview} alt="Preview KTP" className="h-full w-full rounded-lg object-cover" />
+                        <img
+                          src={uploadedFiles.ktp.preview}
+                          alt="Preview KTP"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
                       ) : uploadedFiles.ktp.file.type === "application/pdf" ? (
                         <FileText className="h-8 w-8 text-gray-600" />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-gray-600" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{uploadedFiles.ktp.file.name}</p>
-                      <p className="text-xs text-[#5f6f85]">{formatFileSize(uploadedFiles.ktp.file.size)}</p>
-                      <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full">
-                        <div className="h-1.5 bg-[#2563eb] rounded-full" style={{ width: `${uploadedFiles.ktp.progress}%` }}></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {uploadedFiles.ktp.file.name}
+                      </p>
+                      <p className="text-xs text-[#5f6f85]">
+                        {formatFileSize(uploadedFiles.ktp.file.size)}
+                      </p>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-gray-200">
+                        <div
+                          className="h-1.5 rounded-full bg-[#2563eb]"
+                          style={{ width: `${uploadedFiles.ktp.progress}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveFile("ktp")} aria-label="Hapus file">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile("ktp")}
+                      aria-label="Hapus file"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <label htmlFor="ktpUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
+                <label
+                  htmlFor="ktpUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center transition-colors hover:border-[#2563eb] hover:bg-[#f8fafc]"
+                >
                   <Upload className="mb-2 h-8 w-8 text-[#64748b]" />
-                  <p className="mb-1 text-sm font-medium">Klik untuk upload atau drag & drop file di sini</p>
-                  <p className="text-xs text-[#5f6f85]">Format: JPG, PNG, PDF · Maksimal 5MB</p>
-                  <input type="file" id="ktpUpload" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, "ktp")} />
+                  <p className="mb-1 text-sm font-medium">
+                    Klik untuk upload atau drag & drop file di sini
+                  </p>
+                  <p className="text-xs text-[#5f6f85]">
+                    Format: JPG, PNG, PDF · Maksimal 5MB
+                  </p>
+                  <input
+                    type="file"
+                    id="ktpUpload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleFileSelect(e, "ktp")}
+                  />
                 </label>
               )}
             </div>
 
             <div>
-              <h3 className="mb-2 text-base font-semibold">SK Pengangkatan *</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.</p>
+              <h3 className="mb-2 text-base font-semibold">
+                SK Pengangkatan *
+              </h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.
+              </p>
               {uploadedFiles.skPengangkatan ? (
                 <div className="rounded-lg border border-[#e5ebf1] p-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-100">
                       {uploadedFiles.skPengangkatan.preview ? (
-                        <img src={uploadedFiles.skPengangkatan.preview} alt="Preview SK" className="h-full w-full rounded-lg object-cover" />
-                      ) : uploadedFiles.skPengangkatan.file.type === "application/pdf" ? (
+                        <img
+                          src={uploadedFiles.skPengangkatan.preview}
+                          alt="Preview SK"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                      ) : uploadedFiles.skPengangkatan.file.type ===
+                        "application/pdf" ? (
                         <FileText className="h-8 w-8 text-gray-600" />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-gray-600" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{uploadedFiles.skPengangkatan.file.name}</p>
-                      <p className="text-xs text-[#5f6f85]">{formatFileSize(uploadedFiles.skPengangkatan.file.size)}</p>
-                      <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full">
-                        <div className="h-1.5 bg-[#2563eb] rounded-full" style={{ width: `${uploadedFiles.skPengangkatan.progress}%` }}></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {uploadedFiles.skPengangkatan.file.name}
+                      </p>
+                      <p className="text-xs text-[#5f6f85]">
+                        {formatFileSize(uploadedFiles.skPengangkatan.file.size)}
+                      </p>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-gray-200">
+                        <div
+                          className="h-1.5 rounded-full bg-[#2563eb]"
+                          style={{
+                            width: `${uploadedFiles.skPengangkatan.progress}%`,
+                          }}
+                        ></div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveFile("skPengangkatan")} aria-label="Hapus file">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile("skPengangkatan")}
+                      aria-label="Hapus file"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <label htmlFor="skUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
+                <label
+                  htmlFor="skUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center transition-colors hover:border-[#2563eb] hover:bg-[#f8fafc]"
+                >
                   <Upload className="mb-2 h-8 w-8 text-[#64748b]" />
-                  <p className="mb-1 text-sm font-medium">Klik untuk upload atau drag & drop file di sini</p>
-                  <p className="text-xs text-[#5f6f85]">Format: JPG, PNG, PDF · Maksimal 5MB</p>
-                  <input type="file" id="skUpload" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, "skPengangkatan")} />
+                  <p className="mb-1 text-sm font-medium">
+                    Klik untuk upload atau drag & drop file di sini
+                  </p>
+                  <p className="text-xs text-[#5f6f85]">
+                    Format: JPG, PNG, PDF · Maksimal 5MB
+                  </p>
+                  <input
+                    type="file"
+                    id="skUpload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleFileSelect(e, "skPengangkatan")}
+                  />
                 </label>
               )}
             </div>
 
             <div>
-              <h3 className="mb-2 text-base font-semibold">Kartu pegawai / ID card *</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.</p>
+              <h3 className="mb-2 text-base font-semibold">
+                Kartu pegawai / ID card *
+              </h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Format: JPG, PNG, PDF. Ukuran maksimal: 5MB.
+              </p>
               {uploadedFiles.idCard ? (
                 <div className="rounded-lg border border-[#e5ebf1] p-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-100">
                       {uploadedFiles.idCard.preview ? (
-                        <img src={uploadedFiles.idCard.preview} alt="Preview ID Card" className="h-full w-full rounded-lg object-cover" />
-                      ) : uploadedFiles.idCard.file.type === "application/pdf" ? (
+                        <img
+                          src={uploadedFiles.idCard.preview}
+                          alt="Preview ID Card"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                      ) : uploadedFiles.idCard.file.type ===
+                        "application/pdf" ? (
                         <FileText className="h-8 w-8 text-gray-600" />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-gray-600" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{uploadedFiles.idCard.file.name}</p>
-                      <p className="text-xs text-[#5f6f85]">{formatFileSize(uploadedFiles.idCard.file.size)}</p>
-                      <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full">
-                        <div className="h-1.5 bg-[#2563eb] rounded-full" style={{ width: `${uploadedFiles.idCard.progress}%` }}></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {uploadedFiles.idCard.file.name}
+                      </p>
+                      <p className="text-xs text-[#5f6f85]">
+                        {formatFileSize(uploadedFiles.idCard.file.size)}
+                      </p>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-gray-200">
+                        <div
+                          className="h-1.5 rounded-full bg-[#2563eb]"
+                          style={{ width: `${uploadedFiles.idCard.progress}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveFile("idCard")} aria-label="Hapus file">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile("idCard")}
+                      aria-label="Hapus file"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <label htmlFor="idCardUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
+                <label
+                  htmlFor="idCardUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center transition-colors hover:border-[#2563eb] hover:bg-[#f8fafc]"
+                >
                   <Upload className="mb-2 h-8 w-8 text-[#64748b]" />
-                  <p className="mb-1 text-sm font-medium">Klik untuk upload atau drag & drop file di sini</p>
-                  <p className="text-xs text-[#5f6f85]">Format: JPG, PNG, PDF · Maksimal 5MB</p>
-                  <input type="file" id="idCardUpload" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, "idCard")} />
+                  <p className="mb-1 text-sm font-medium">
+                    Klik untuk upload atau drag & drop file di sini
+                  </p>
+                  <p className="text-xs text-[#5f6f85]">
+                    Format: JPG, PNG, PDF · Maksimal 5MB
+                  </p>
+                  <input
+                    type="file"
+                    id="idCardUpload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => handleFileSelect(e, "idCard")}
+                  />
                 </label>
               )}
             </div>
 
             <div>
-              <h3 className="mb-2 text-base font-semibold">Foto diri dengan KTP (opsional)</h3>
-              <p className="mb-4 text-xs text-[#5f6f85]">Foto diri memegang KTP untuk verifikasi tambahan. Format: JPG, PNG. Ukuran maksimal: 5MB.</p>
+              <h3 className="mb-2 text-base font-semibold">
+                Foto diri dengan KTP (opsional)
+              </h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">
+                Foto diri memegang KTP untuk verifikasi tambahan. Format: JPG,
+                PNG. Ukuran maksimal: 5MB.
+              </p>
               {uploadedFiles.selfie ? (
                 <div className="rounded-lg border border-[#e5ebf1] p-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-100">
                       {uploadedFiles.selfie.preview ? (
-                        <img src={uploadedFiles.selfie.preview} alt="Preview Foto diri" className="h-full w-full rounded-lg object-cover" />
+                        <img
+                          src={uploadedFiles.selfie.preview}
+                          alt="Preview Foto diri"
+                          className="h-full w-full rounded-lg object-cover"
+                        />
                       ) : (
                         <ImageIcon className="h-8 w-8 text-gray-600" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{uploadedFiles.selfie.file.name}</p>
-                      <p className="text-xs text-[#5f6f85]">{formatFileSize(uploadedFiles.selfie.file.size)}</p>
-                      <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full">
-                        <div className="h-1.5 bg-[#2563eb] rounded-full" style={{ width: `${uploadedFiles.selfie.progress}%` }}></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {uploadedFiles.selfie.file.name}
+                      </p>
+                      <p className="text-xs text-[#5f6f85]">
+                        {formatFileSize(uploadedFiles.selfie.file.size)}
+                      </p>
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-gray-200">
+                        <div
+                          className="h-1.5 rounded-full bg-[#2563eb]"
+                          style={{ width: `${uploadedFiles.selfie.progress}%` }}
+                        ></div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => handleRemoveFile("selfie")} aria-label="Hapus file">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveFile("selfie")}
+                      aria-label="Hapus file"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               ) : (
-                <label htmlFor="selfieUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
+                <label
+                  htmlFor="selfieUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center transition-colors hover:border-[#2563eb] hover:bg-[#f8fafc]"
+                >
                   <Upload className="mb-2 h-8 w-8 text-[#64748b]" />
-                  <p className="mb-1 text-sm font-medium">Klik untuk upload atau drag & drop file di sini</p>
-                  <p className="text-xs text-[#5f6f85]">Format: JPG, PNG · Maksimal 5MB</p>
-                  <input type="file" id="selfieUpload" className="hidden" accept=".jpg,.jpeg,.png" onChange={(e) => handleFileSelect(e, "selfie")} />
+                  <p className="mb-1 text-sm font-medium">
+                    Klik untuk upload atau drag & drop file di sini
+                  </p>
+                  <p className="text-xs text-[#5f6f85]">
+                    Format: JPG, PNG · Maksimal 5MB
+                  </p>
+                  <input
+                    type="file"
+                    id="selfieUpload"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png"
+                    onChange={(e) => handleFileSelect(e, "selfie")}
+                  />
                 </label>
               )}
             </div>
 
             <div className="flex items-start gap-3 rounded-lg border-l-4 border-[#2563eb] bg-[#f8fafc] p-4">
-              <Shield className="h-5 w-5 text-[#2563eb] mt-0.5" />
+              <Shield className="mt-0.5 h-5 w-5 text-[#2563eb]" />
               <div>
-                <p className="text-sm font-medium text-[#192b40]">Dokumen pribadi tidak ditampilkan publik</p>
-                <p className="text-xs text-[#5f6f85] mt-1">Dokumen digunakan untuk verifikasi oleh petugas yang berwenang dan disimpan dengan enkripsi. Tidak akan ditampilkan di profil publik atau dibagikan ke pihak ketiga.</p>
+                <p className="text-sm font-medium text-[#192b40]">
+                  Dokumen pribadi tidak ditampilkan publik
+                </p>
+                <p className="mt-1 text-xs text-[#5f6f85]">
+                  Dokumen digunakan untuk verifikasi oleh petugas yang berwenang
+                  dan disimpan dengan enkripsi. Tidak akan ditampilkan di profil
+                  publik atau dibagikan ke pihak ketiga.
+                </p>
               </div>
             </div>
           </div>
@@ -1060,17 +1893,12 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
 
       {currentStep === 5 && (
         <>
-          <div className="mb-4">
-            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 5 DARI 5</p>
-            <h2 className="mt-1 text-lg font-semibold">Tinjau & persetujuan</h2>
-            <p className="text-sm text-[#5f6f85]">Periksa kembali data Anda sebelum mengirim pengajuan. Klik 'Edit' untuk mengubah data di setiap bagian.</p>
-          </div>
           <div className="space-y-4">
             <div className="rounded-lg border border-[#e5ebf1] p-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">Identitas & akun</h3>
-                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(1)}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
+                <Button variant="ghost" size="sm" onClick={() => updateStep(1)}>
+                  <Edit className="mr-1 h-4 w-4" /> Edit
                 </Button>
               </div>
               <div className="space-y-2 text-sm">
@@ -1084,7 +1912,9 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <p className="text-[#5f6f85]">Tempat/Tanggal lahir</p>
-                  <p>{form.birthPlace}, {form.birthDate || "-"}</p>
+                  <p>
+                    {form.birthPlace}, {form.birthDate || "-"}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <p className="text-[#5f6f85]">Email</p>
@@ -1098,10 +1928,10 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
             </div>
 
             <div className="rounded-lg border border-[#e5ebf1] p-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">Instansi & kepegawaian</h3>
-                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(2)}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
+                <Button variant="ghost" size="sm" onClick={() => updateStep(2)}>
+                  <Edit className="mr-1 h-4 w-4" /> Edit
                 </Button>
               </div>
               <div className="space-y-2 text-sm">
@@ -1141,76 +1971,128 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
             </div>
 
             <div className="rounded-lg border border-[#e5ebf1] p-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">Alamat</h3>
-                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(3)}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
+                <Button variant="ghost" size="sm" onClick={() => updateStep(3)}>
+                  <Edit className="mr-1 h-4 w-4" /> Edit
                 </Button>
               </div>
               <div className="space-y-2 text-sm">
                 <div>
-                  <p className="text-[#5f6f85] mb-1">Alamat KTP</p>
-                  <p>{form.ktpAddress}, RT {form.ktpRt}/RW {form.ktpRw}, {form.ktpVillage}, {form.ktpDistrict}, {form.ktpRegency}, {form.ktpProvince} {form.ktpPostalCode}</p>
+                  <p className="mb-1 text-[#5f6f85]">Alamat KTP</p>
+                  <p>
+                    {form.ktpAddress}, RT {form.ktpRt}/RW {form.ktpRw},{" "}
+                    {form.ktpVillage}, {form.ktpDistrict}, {form.ktpRegency},{" "}
+                    {form.ktpProvince} {form.ktpPostalCode}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[#5f6f85] mb-1">Alamat domisili</p>
-                  <p>{sameAsKtp ? "Sama dengan alamat KTP" : `${form.domAddress}, RT ${form.domRt}/RW ${form.domRw}, ${form.domVillage}, ${form.domDistrict}, ${form.domRegency}, ${form.domProvince} ${form.domPostalCode}`}</p>
+                  <p className="mb-1 text-[#5f6f85]">Alamat domisili</p>
+                  <p>
+                    {sameAsKtp
+                      ? "Sama dengan alamat KTP"
+                      : `${form.domAddress}, RT ${form.domRt}/RW ${form.domRw}, ${form.domVillage}, ${form.domDistrict}, ${form.domRegency}, ${form.domProvince} ${form.domPostalCode}`}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="rounded-lg border border-[#e5ebf1] p-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3 flex items-center justify-between">
                 <h3 className="font-semibold">Dokumen</h3>
-                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(4)}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
+                <Button variant="ghost" size="sm" onClick={() => updateStep(4)}>
+                  <Edit className="mr-1 h-4 w-4" /> Edit
                 </Button>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">KTP</p>
-                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.ktp?.file.name} ({uploadedFiles.ktp ? formatFileSize(uploadedFiles.ktp.file.size) : "-"})</p>
+                    <p className="text-xs text-[#5f6f85]">
+                      {uploadedFiles.ktp?.file.name} (
+                      {uploadedFiles.ktp
+                        ? formatFileSize(uploadedFiles.ktp.file.size)
+                        : "-"}
+                      )
+                    </p>
                   </div>
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">SK Pengangkatan</p>
-                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.skPengangkatan?.file.name} ({uploadedFiles.skPengangkatan ? formatFileSize(uploadedFiles.skPengangkatan.file.size) : "-"})</p>
+                    <p className="text-xs text-[#5f6f85]">
+                      {uploadedFiles.skPengangkatan?.file.name} (
+                      {uploadedFiles.skPengangkatan
+                        ? formatFileSize(uploadedFiles.skPengangkatan.file.size)
+                        : "-"}
+                      )
+                    </p>
                   </div>
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Kartu pegawai / ID card</p>
-                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.idCard?.file.name} ({uploadedFiles.idCard ? formatFileSize(uploadedFiles.idCard.file.size) : "-"})</p>
+                    <p className="text-xs text-[#5f6f85]">
+                      {uploadedFiles.idCard?.file.name} (
+                      {uploadedFiles.idCard
+                        ? formatFileSize(uploadedFiles.idCard.file.size)
+                        : "-"}
+                      )
+                    </p>
                   </div>
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Foto diri dengan KTP</p>
-                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.selfie ? `${uploadedFiles.selfie.file.name} (${formatFileSize(uploadedFiles.selfie.file.size)})` : "Tidak diupload"}</p>
+                    <p className="text-xs text-[#5f6f85]">
+                      {uploadedFiles.selfie
+                        ? `${uploadedFiles.selfie.file.name} (${formatFileSize(uploadedFiles.selfie.file.size)})`
+                        : "Tidak diupload"}
+                    </p>
                   </div>
-                  {uploadedFiles.selfie ? <CheckCircle className="h-5 w-5 text-green-600" /> : <span className="text-xs text-[#5f6f85]">-</span>}
+                  {uploadedFiles.selfie ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <span className="text-xs text-[#5f6f85]">-</span>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="rounded-lg border border-[#e5ebf1] p-4">
-              <h3 className="font-semibold mb-3">Pernyataan kebenaran data</h3>
-              <p className="text-sm mb-2">Dengan mengirim pengajuan ini, saya menyatakan bahwa:</p>
-              <ul className="text-sm text-[#5f6f85] space-y-1 mb-4 list-disc list-inside">
-                <li>Seluruh data yang saya isi adalah benar dan sesuai dengan dokumen resmi.</li>
+              <h3 className="mb-3 font-semibold">Pernyataan kebenaran data</h3>
+              <p className="mb-2 text-sm">
+                Dengan mengirim pengajuan ini, saya menyatakan bahwa:
+              </p>
+              <ul className="mb-4 list-inside list-disc space-y-1 text-sm text-[#5f6f85]">
+                <li>
+                  Seluruh data yang saya isi adalah benar dan sesuai dengan
+                  dokumen resmi.
+                </li>
                 <li>Saya bersedia diverifikasi oleh petugas yang berwenang.</li>
-                <li>Saya memahami bahwa data palsu dapat mengakibatkan penolakan atau pencabutan akses.</li>
+                <li>
+                  Saya memahami bahwa data palsu dapat mengakibatkan penolakan
+                  atau pencabutan akses.
+                </li>
                 <li>Saya menyetujui syarat dan ketentuan platform Agoraya.</li>
               </ul>
               <div className="flex items-start gap-2">
-                <input type="checkbox" id="agreeFinal" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setError(""); }} className="mt-1" />
+                <input
+                  type="checkbox"
+                  id="agreeFinal"
+                  checked={agreed}
+                  onChange={(e) => {
+                    setAgreed(e.target.checked);
+                    setError("");
+                  }}
+                  className="mt-1"
+                />
                 <label htmlFor="agreeFinal" className="text-sm">
-                  Saya menyatakan data yang diisi adalah benar dan dapat dipertanggungjawabkan.
+                  Saya menyatakan data yang diisi adalah benar dan dapat
+                  dipertanggungjawabkan.
                 </label>
               </div>
             </div>
@@ -1227,18 +2109,28 @@ export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFo
       <div className="mt-8 flex flex-col gap-3 border-t border-[#e5ebf1] pt-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           {currentStep > 1 && (
-            <Button variant="outline" onClick={() => setCurrentStep((s) => (s - 1) as Step)} disabled={pending}>
+            <Button
+              variant="outline"
+              onClick={() => updateStep((currentStep - 1) as Step)}
+              disabled={pending}
+            >
               Kembali
             </Button>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleSaveDraft} disabled={pending}>
+          <Button
+            variant="outline"
+            onClick={handleSaveDraft}
+            disabled={pending}
+          >
             Simpan draf
           </Button>
           {currentStep < 5 ? (
             <Button onClick={handleNext} disabled={pending}>
-              {pending && (currentStep === 2 || currentStep === 3) ? "Menyimpan..." : "Lanjut →"}
+              {pending && (currentStep === 2 || currentStep === 3)
+                ? "Menyimpan..."
+                : "Lanjut →"}
             </Button>
           ) : (
             <Button onClick={handleFinalSubmit} disabled={pending || !agreed}>
