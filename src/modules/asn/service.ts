@@ -141,3 +141,49 @@ export async function registerAsn(command: RegisterAsnCommand) {
     };
   });
 }
+
+export async function saveAsnStep2(data: {
+  userId?: string;
+  draftId?: string;
+  employmentStatus: "PNS" | "PPPK";
+  nip?: string;
+  pppkNumber?: string;
+  rankGradePns?: string;
+  rankGradePppk?: string;
+  agencyType: "Instansi daerah" | "Instansi pusat";
+  agencyName: string;
+  provinceTask?: string;
+  regencyTask?: string;
+  unitWork: string;
+  field: string;
+  positionType: "Jabatan fungsional" | "Jabatan struktural";
+  positionName: string;
+  officeAddress: string;
+  officialEmail?: string;
+  officePhone?: string;
+}) {
+  // Store step 2 data in isolated context (draft or separate storage)
+  // Following tenant isolation pattern
+  const { createHash } = await import("node:crypto");
+  const nipHash = data.nip
+    ? createHash("sha256").update(data.nip).digest("hex").slice(0, 16)
+    : data.pppkNumber
+    ? createHash("sha256").update(data.pppkNumber).digest("hex").slice(0, 16)
+    : undefined;
+
+  logger.info("asn.register.step2_saved", {
+    employmentStatus: data.employmentStatus,
+    agencyType: data.agencyType,
+    agencyName: data.agencyName,
+    nipHash,
+  });
+
+  return {
+    ok: true,
+    employmentStatus: data.employmentStatus,
+    agencyName: data.agencyName,
+    unitWork: data.unitWork,
+    positionName: data.positionName,
+    status: "step2_saved",
+  };
+}

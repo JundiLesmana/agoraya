@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { RegisterAsnForm } from "./_components/register-asn-form";
+import { CheckCircle2 } from "lucide-react";
 
 const steps = [
   { id: 1, title: "Identitas & akun" },
@@ -11,6 +12,8 @@ const steps = [
 ];
 
 export default function RegisterAsnPage() {
+  const currentStep = 2; // Will be controlled by form state in real implementation
+  
   return (
     <main className="min-h-screen bg-[#f8fafc] text-[#192b40]">
       <header className="border-b border-[#e5ebf1] bg-white">
@@ -38,20 +41,31 @@ export default function RegisterAsnPage() {
           <aside className="order-first rounded-xl border border-[#e5ebf1] bg-white p-6 lg:order-none">
             <nav aria-label="Langkah pendaftaran" className="overflow-x-auto">
               <ol className="flex gap-4 lg:flex-col lg:gap-4">
-                {steps.map((step) => (
-                  <li key={step.id} className="flex min-w-[200px] items-start gap-3 lg:min-w-0">
-                    <div
-                      className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full border border-[#cbd5e1] bg-white text-xs font-semibold text-[#64748b]"
-                    >
-                      {step.id}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-[#64748b]">
-                        {step.title}
-                      </p>
-                    </div>
-                  </li>
-                ))}
+                {steps.map((step) => {
+                  const isActive = step.id === currentStep;
+                  const isCompleted = step.id < currentStep;
+                  return (
+                    <li key={step.id} className="flex min-w-[200px] items-start gap-3 lg:min-w-0">
+                      <div
+                        className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                          isCompleted
+                            ? "bg-[#22c55e] text-white"
+                            : isActive
+                            ? "bg-[#2563eb] text-white"
+                            : "border border-[#cbd5e1] bg-white text-[#64748b]"
+                        }`}
+                        aria-current={isActive ? "step" : undefined}
+                      >
+                        {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : step.id}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${isActive || isCompleted ? "text-[#192b40]" : "text-[#64748b]"}`}>
+                          {step.title}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </nav>
             <div className="mt-8 space-y-3 border-t border-[#e5ebf1] pt-6 text-sm">
@@ -62,14 +76,15 @@ export default function RegisterAsnPage() {
                 Sudah punya akun? Masuk
               </Link>
             </div>
-            <div className="mt-6 rounded-lg bg-[#f8fafc] p-4 text-xs text-[#5f6f85]">
+            <div className="mt-6 space-y-2 rounded-lg bg-[#f8fafc] p-4 text-xs text-[#5f6f85]">
               <p className="font-medium text-[#192b40]">Kebijakan instansi</p>
-              <p className="mt-1">Akun memerlukan persetujuan admin instansi setelah pendaftaran.</p>
+              <p>Akun memerlukan persetujuan admin instansi setelah pendaftaran.</p>
+              <p className="mt-2">Identitas dan dokumen hanya untuk verifikasi oleh petugas berwenang, tidak ditampilkan publik.</p>
             </div>
           </aside>
 
           <section className="rounded-xl border border-[#e5ebf1] bg-white p-6 shadow-sm sm:p-8">
-            <RegisterAsnForm />
+            <RegisterAsnForm initialStep={currentStep} />
             <div className="mt-6 text-center text-xs text-[#5f6f85]">
               Identitas dan dokumen hanya untuk verifikasi oleh petugas berwenang, tidak ditampilkan publik.
             </div>

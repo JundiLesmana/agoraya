@@ -10,8 +10,12 @@ type Step = 1 | 2 | 3 | 4 | 5;
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_DOC_TYPES = ["image/jpeg", "image/png", "application/pdf"];
 
-export function RegisterAsnForm() {
-  const [currentStep, setCurrentStep] = useState<Step>(1);
+interface RegisterAsnFormProps {
+  initialStep?: Step;
+}
+
+export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
+  const [currentStep, setCurrentStep] = useState<Step>(initialStep);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -26,11 +30,24 @@ export function RegisterAsnForm() {
     phone: "",
     password: "",
     confirmPassword: "",
-    agencyName: "",
+    // Step 2
+    employmentStatus: "PNS",
     nip: "",
-    position: "",
-    unit: "",
-    appointmentDate: "",
+    pppkNumber: "",
+    rankGradePns: "",
+    rankGradePppk: "",
+    agencyType: "Instansi daerah",
+    agencyName: "Pemerintah Kota Contoh",
+    provinceTask: "Provinsi Contoh",
+    regencyTask: "Kota Contoh",
+    unitWork: "Dinas Komunikasi dan Informatika (contoh)",
+    field: "Pengelolaan Data dan Statistik",
+    positionType: "Jabatan fungsional",
+    positionName: "Pranata Komputer Ahli Pertama (contoh)",
+    officeAddress: "Jl. Pelayanan Publik No. 10, Kota Contoh (fiktif)",
+    officialEmail: "",
+    officePhone: "",
+    // Step 3
     address: "",
     rtRw: "",
     village: "",
@@ -107,6 +124,82 @@ export function RegisterAsnForm() {
     }
   }
 
+  async function handleNext() {
+    if (pending) return;
+    setError("");
+
+    if (currentStep === 2) {
+      // Validate step 2
+      if (form.employmentStatus === "PNS") {
+        if (!form.nip || form.nip.length !== 18 || !/^\d+$/.test(form.nip)) {
+          setError("NIP harus 18 digit angka");
+          return;
+        }
+        if (!form.rankGradePns) {
+          setError("Pangkat/golongan PNS wajib diisi");
+          return;
+        }
+      } else if (form.employmentStatus === "PPPK") {
+        if (!form.pppkNumber || form.pppkNumber.length !== 18 || !/^\d+$/.test(form.pppkNumber)) {
+          setError("Nomor induk PPPPK harus 18 digit angka");
+          return;
+        }
+        if (!form.rankGradePppk) {
+          setError("Pangkat/golongan PPPPK wajib diisi");
+          return;
+        }
+      }
+      if (!form.agencyName || !form.unitWork || !form.field || !form.positionName || !form.officeAddress) {
+        setError("Semua field wajib pada step ini harus diisi");
+        return;
+      }
+      if (form.agencyType === "Instansi daerah" && (!form.provinceTask || !form.regencyTask)) {
+        setError("Provinsi dan Kabupaten/Kota wilayah tugas wajib diisi");
+        return;
+      }
+
+      setPending(true);
+      try {
+        const response = await fetch("/api/asn/register/step2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employmentStatus: form.employmentStatus,
+            nip: form.employmentStatus === "PNS" ? form.nip : undefined,
+            pppkNumber: form.employmentStatus === "PPPK" ? form.pppkNumber : undefined,
+            rankGradePns: form.employmentStatus === "PNS" ? form.rankGradePns : undefined,
+            rankGradePppk: form.employmentStatus === "PPPK" ? form.rankGradePppk : undefined,
+            agencyType: form.agencyType,
+            agencyName: form.agencyName,
+            provinceTask: form.agencyType === "Instansi daerah" ? form.provinceTask : undefined,
+            regencyTask: form.agencyType === "Instansi daerah" ? form.regencyTask : undefined,
+            unitWork: form.unitWork,
+            field: form.field,
+            positionType: form.positionType,
+            positionName: form.positionName,
+            officeAddress: form.officeAddress,
+            officialEmail: form.officialEmail || undefined,
+            officePhone: form.officePhone || undefined,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          setError(result.error || "Gagal menyimpan data step 2");
+          setPending(false);
+          return;
+        }
+      } catch (e) {
+        setError("Gagal menyimpan data step 2");
+        setPending(false);
+        return;
+      } finally {
+        setPending(false);
+      }
+    }
+
+    setCurrentStep((s) => (s + 1) as Step);
+  }
+
   async function handleSubmit() {
     if (pending) return;
     if (!form.agreement) {
@@ -140,8 +233,8 @@ export function RegisterAsnForm() {
         confirmPassword: form.confirmPassword,
         agencyName: form.agencyName.trim(),
         nip: form.nip.trim() || undefined,
-        position: form.position.trim(),
-        unit: form.unit.trim() || undefined,
+        position: form.positionName.trim(),
+        unit: form.unitWork.trim() || undefined,
         appointmentDate: form.appointmentDate || undefined,
         address: form.address.trim(),
         rtRw: form.rtRw.trim() || undefined,
@@ -174,9 +267,6 @@ export function RegisterAsnForm() {
       const result = await response.json();
       if (!response.ok) {
         setError(result.error || "Pendaftaran gagal");
-        if (result.issues && Array.isArray(result.issues)) {
-          // Could map to specific step, for now just show error
-        }
         return;
       }
 
@@ -259,33 +349,215 @@ export function RegisterAsnForm() {
       )}
 
       {currentStep === 2 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="mb-4 text-lg font-semibold">Instansi & kepegawaian</h2>
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="agency">Nama instansi *</Label>
-                <Input id="agency" value={form.agencyName} onChange={(e) => handleChange("agencyName", e.target.value)} required />
+        <>
+          <div className="mb-4">
+            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 2 DARI 5</p>
+            <h2 className="mt-1 text-lg font-semibold">Hubungkan dengan instansi Anda</h2>
+            <p className="text-sm text-[#5f6f85]">Data ini membantu admin mencocokkan penempatan dan menentukan akses yang sesuai.</p>
+          </div>
+
+          <div className="space-y-8">
+            <div>
+              <h3 className="mb-4 text-base font-semibold">Status kepegawaian</h3>
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Status ASN *</Label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="employmentStatus"
+                      value="PNS"
+                      checked={form.employmentStatus === "PNS"}
+                      onChange={(e) => handleChange("employmentStatus", e.target.value)}
+                      aria-label="PNS"
+                    />
+                    <span className="text-sm">PNS</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="employmentStatus"
+                      value="PPPK"
+                      checked={form.employmentStatus === "PPPK"}
+                      onChange={(e) => handleChange("employmentStatus", e.target.value)}
+                      aria-label="PPPK"
+                    />
+                    <span className="text-sm">PPPK</span>
+                  </label>
+                </div>
+                <p className="text-xs text-[#5f6f85]">
+                  Isian dan dokumen menyesuaikan status serta kebijakan instansi; bukan daftar kewajiban nasional ASN.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nip">NIP</Label>
-                <Input id="nip" value={form.nip} onChange={(e) => handleChange("nip", e.target.value)} />
+
+              {form.employmentStatus === "PNS" && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="nip">NIP *</Label>
+                    <Input
+                      id="nip"
+                      value={form.nip}
+                      onChange={(e) => handleChange("nip", e.target.value)}
+                      placeholder="18 digit angka"
+                      maxLength={18}
+                      required
+                    />
+                    <p className="text-xs text-[#5f6f85]">Untuk PNS. Jika memilih PPPPK, isi Nomor induk PPPPK.</p>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="rankGradePns">Pangkat/golongan PNS *</Label>
+                    <select
+                      id="rankGradePns"
+                      value={form.rankGradePns}
+                      onChange={(e) => handleChange("rankGradePns", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih pangkat/golongan</option>
+                      <option value="Penata/I-C">Penata/I-C</option>
+                      <option value="Penata Tk.I/I-d">Penata Tk.I/I-d</option>
+                      <option value="Pembina/IV-a">Pembina/IV-a</option>
+                      <option value="Pembina Tk.I/IV-b">Pembina Tk.I/IV-b</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {form.employmentStatus === "PPPK" && (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="pppkNumber">Nomor induk PPPPK *</Label>
+                    <Input
+                      id="pppkNumber"
+                      value={form.pppkNumber}
+                      onChange={(e) => handleChange("pppkNumber", e.target.value)}
+                      placeholder="18 digit angka"
+                      maxLength={18}
+                      required
+                    />
+                    <p className="text-xs text-[#5f6f85]">Untuk PPPPK. Tidak berlaku untuk PNS.</p>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="rankGradePppk">Pangkat/golongan PPPPK *</Label>
+                    <select
+                      id="rankGradePppk"
+                      value={form.rankGradePppk}
+                      onChange={(e) => handleChange("rankGradePppk", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih pangkat/golongan</option>
+                      <option value="Ahli Pertama">Ahli Pertama</option>
+                      <option value="Ahli Muda">Ahli Muda</option>
+                      <option value="Ahli Madya">Ahli Madya</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className="mb-4 text-base font-semibold">Instansi & wilayah tugas</h3>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agencyType">Jenis instansi *</Label>
+                  <select
+                    id="agencyType"
+                    value={form.agencyType}
+                    onChange={(e) => handleChange("agencyType", e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    required
+                  >
+                    <option value="Instansi daerah">Instansi daerah</option>
+                    <option value="Instansi pusat">Instansi pusat</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="agencyName">Nama instansi *</Label>
+                  <Input id="agencyName" value={form.agencyName} onChange={(e) => handleChange("agencyName", e.target.value)} placeholder="Pemerintah Kota Contoh" required />
+                </div>
+                {form.agencyType === "Instansi daerah" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="provinceTask">Provinsi wilayah tugas *</Label>
+                      <select
+                        id="provinceTask"
+                        value={form.provinceTask}
+                        onChange={(e) => handleChange("provinceTask", e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        required
+                      >
+                        <option value="">Pilih provinsi</option>
+                        <option value="Provinsi Contoh">Provinsi Contoh</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="regencyTask">Kabupaten/Kota wilayah tugas *</Label>
+                      <select
+                        id="regencyTask"
+                        value={form.regencyTask}
+                        onChange={(e) => handleChange("regencyTask", e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        required
+                      >
+                        <option value="">Pilih kabupaten/kota</option>
+                        <option value="Kota Contoh">Kota Contoh</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+                <p className="text-xs text-[#5f6f85]">
+                  Bekerja di instansi pusat? Pilih 'Instansi pusat'. Wilayah daerah tidak diwajibkan; gunakan unit kerja dan lokasi penugasan bila relevan dengan kebijakan instansi.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="unitWork">Unit kerja / OPD *</Label>
+                  <Input id="unitWork" value={form.unitWork} onChange={(e) => handleChange("unitWork", e.target.value)} placeholder="Dinas Komunikasi dan Informatika (contoh)" required />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">Jabatan *</Label>
-                <Input id="position" value={form.position} onChange={(e) => handleChange("position", e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unit kerja</Label>
-                <Input id="unit" value={form.unit} onChange={(e) => handleChange("unit", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="appointmentDate">Tanggal pengangkatan</Label>
-                <Input id="appointmentDate" type="date" value={form.appointmentDate} onChange={(e) => handleChange("appointmentDate", e.target.value)} />
+            </div>
+
+            <div>
+              <h3 className="mb-4 text-base font-semibold">Bidang, jabatan & kontak kedinasan</h3>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="field">Bidang *</Label>
+                  <Input id="field" value={form.field} onChange={(e) => handleChange("field", e.target.value)} placeholder="Pengelolaan Data dan Statistik" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="positionType">Jenis jabatan *</Label>
+                  <select
+                    id="positionType"
+                    value={form.positionType}
+                    onChange={(e) => handleChange("positionType", e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    required
+                  >
+                    <option value="Jabatan fungsional">Jabatan fungsional</option>
+                    <option value="Jabatan struktural">Jabatan struktural</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="positionName">Nama jabatan *</Label>
+                  <Input id="positionName" value={form.positionName} onChange={(e) => handleChange("positionName", e.target.value)} placeholder="Pranata Komputer Ahli Pertama (contoh)" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="officeAddress">Alamat kantor *</Label>
+                  <Input id="officeAddress" value={form.officeAddress} onChange={(e) => handleChange("officeAddress", e.target.value)} placeholder="Jl. Pelayanan Publik No. 10, Kota Contoh (fiktif)" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="officialEmail">Email kedinasan (opsional)</Label>
+                  <Input id="officialEmail" type="email" value={form.officialEmail} onChange={(e) => handleChange("officialEmail", e.target.value)} placeholder="r***@instansi.example" />
+                  <p className="text-xs text-[#5f6f85]">Domain .example digunakan khusus sebagai data contoh.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="officePhone">Telepon kantor (opsional)</Label>
+                  <Input id="officePhone" value={form.officePhone} onChange={(e) => handleChange("officePhone", e.target.value)} placeholder="021-....1080" />
+                  <p className="text-xs text-[#5f6f85]">Sertakan ekstensi bila diperlukan.</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {currentStep === 3 && (
@@ -392,7 +664,7 @@ export function RegisterAsnForm() {
               </div>
               <div>
                 <p className="mb-1 font-medium">Instansi & kepegawaian</p>
-                <p className="text-[#5f6f85]">Instansi: {form.agencyName || "-"} | Jabatan: {form.position || "-"} | NIP: {form.nip || "-"}</p>
+                <p className="text-[#5f6f85]">Instansi: {form.agencyName || "-"} | Jabatan: {form.positionName || "-"} | Status: {form.employmentStatus}</p>
               </div>
               <div>
                 <p className="mb-1 font-medium">Alamat</p>
@@ -432,8 +704,8 @@ export function RegisterAsnForm() {
             Simpan draf
           </Button>
           {currentStep < 5 ? (
-            <Button onClick={() => setCurrentStep((s) => (s + 1) as Step)} disabled={pending}>
-              Lanjut →
+            <Button onClick={handleNext} disabled={pending}>
+              {pending && currentStep === 2 ? "Menyimpan..." : "Lanjut →"}
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={pending}>
