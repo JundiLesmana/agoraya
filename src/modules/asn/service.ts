@@ -251,3 +251,23 @@ export async function saveAsnStep4(data: {
     status: "step4_saved",
   };
 }
+
+export async function submitAsnRegistration(data: {
+  userId?: string;
+  draftId?: string;
+  agreed: boolean;
+}) {
+  const registrationNumber = `REG-2026-${String(Math.floor(Math.random() * 1000000)).padStart(6, "0")}`;
+  
+  logger.info("asn.register.submitted", {
+    registrationNumber,
+    agreed: data.agreed,
+  });
+
+  return {
+    registration_id: crypto.randomUUID(),
+    registration_number: registrationNumber,
+    status: "pending_verification",
+    submitted_at: new Date().toISOString(),
+  };
+}

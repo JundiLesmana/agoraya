@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { RegisterAsnForm } from "./_components/register-asn-form";
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 
 const steps = [
   { id: 1, title: "Identitas & akun" },
@@ -12,8 +15,14 @@ const steps = [
 ];
 
 export default function RegisterAsnPage() {
-  const currentStep = 4;
-  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  const handleStepChange = (step: number, completed: number[]) => {
+    setCurrentStep(step);
+    setCompletedSteps(completed);
+  };
+
   return (
     <main className="min-h-screen bg-[#f8fafc] text-[#192b40]">
       <header className="border-b border-[#e5ebf1] bg-white">
@@ -37,29 +46,57 @@ export default function RegisterAsnPage() {
           <p className="text-sm text-[#5f6f85] sm:text-base">Lengkapi profil untuk mengajukan akses ke ruang instansi.</p>
         </div>
 
+        <div className="mb-6 overflow-x-auto md:hidden">
+          <nav aria-label="Langkah pendaftaran">
+            <ol className="flex gap-4 min-w-max">
+              {steps.map((step) => {
+                const isCompleted = completedSteps.includes(step.id);
+                const isActive = currentStep === step.id;
+                return (
+                  <li key={step.id} className="flex items-start gap-2">
+                    <div className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
+                      isCompleted 
+                        ? "border-green-600 bg-green-600 text-white" 
+                        : isActive 
+                          ? "border-[#2563eb] bg-[#2563eb] text-white" 
+                          : "border-[#cbd5e1] bg-white text-[#64748b]"
+                    }`}>
+                      {isCompleted ? <Check className="h-4 w-4" /> : step.id}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm whitespace-nowrap ${
+                        isCompleted ? "text-green-700" : isActive ? "text-[#2563eb] font-medium" : "text-[#64748b]"
+                      }`}>{step.title}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-[30%_70%] lg:gap-8">
-          <aside className="order-first rounded-xl border border-[#e5ebf1] bg-white p-6 lg:order-none">
-            <nav aria-label="Langkah pendaftaran" className="overflow-x-auto">
-              <ol className="flex gap-4 lg:flex-col lg:gap-4">
+          <aside className="order-first hidden md:block rounded-xl border border-[#e5ebf1] bg-white p-6 lg:order-none">
+            <nav aria-label="Langkah pendaftaran">
+              <ol className="space-y-4">
                 {steps.map((step) => {
-                  const isActive = step.id === currentStep;
-                  const isCompleted = step.id < currentStep;
+                  const isCompleted = completedSteps.includes(step.id);
+                  const isActive = currentStep === step.id;
                   return (
-                    <li key={step.id} className="flex min-w-[200px] items-start gap-3 lg:min-w-0">
-                      <div
-                        className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                          isCompleted
-                            ? "bg-[#22c55e] text-white"
-                            : isActive
-                            ? "bg-[#2563eb] text-white"
-                            : "border border-[#cbd5e1] bg-white text-[#64748b]"
-                        }`}
-                        aria-current={isActive ? "step" : undefined}
-                      >
-                        {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : step.id}
+                    <li key={step.id} className="flex items-start gap-3">
+                      <div className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
+                        isCompleted 
+                          ? "border-green-600 bg-green-600 text-white" 
+                          : isActive 
+                            ? "border-[#2563eb] bg-[#2563eb] text-white" 
+                            : "border-[#cbd5e1] bg-white text-[#64748b]"
+                      }`}>
+                        {isCompleted ? <Check className="h-4 w-4" /> : step.id}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-medium ${isActive || isCompleted ? "text-[#192b40]" : "text-[#64748b]"}`}>
+                        <p className={`text-sm ${
+                          isCompleted ? "text-green-700 font-medium" : isActive ? "text-[#2563eb] font-medium" : "text-[#64748b]"
+                        }`}>
                           {step.title}
                         </p>
                       </div>
@@ -84,7 +121,7 @@ export default function RegisterAsnPage() {
           </aside>
 
           <section className="rounded-xl border border-[#e5ebf1] bg-white p-6 shadow-sm sm:p-8">
-            <RegisterAsnForm initialStep={currentStep} />
+            <RegisterAsnForm onStepChange={handleStepChange} />
             <div className="mt-6 text-center text-xs text-[#5f6f85]">
               Identitas dan dokumen hanya untuk verifikasi oleh petugas berwenang, tidak ditampilkan publik.
             </div>

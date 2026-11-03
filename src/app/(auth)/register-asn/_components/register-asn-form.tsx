@@ -4,7 +4,8 @@ import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Upload, X, FileText, Image as ImageIcon } from "lucide-react";
+import { Shield, Upload, X, FileText, Image as ImageIcon, Edit, CheckCircle } from "lucide-react";
+import Link from "next/link";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -14,6 +15,7 @@ const ACCEPTED_SELFIE_TYPES = ["image/jpeg", "image/png"];
 
 interface RegisterAsnFormProps {
   initialStep?: Step;
+  onStepChange?: (step: Step, completedSteps: number[]) => void;
 }
 
 interface UploadedFile {
@@ -22,13 +24,23 @@ interface UploadedFile {
   progress: number;
 }
 
-export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
+export function RegisterAsnForm({ initialStep = 1, onStepChange }: RegisterAsnFormProps) {
   const [currentStep, setCurrentStep] = useState<Step>(initialStep);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [sameAsKtp, setSameAsKtp] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  const updateStep = (step: Step, completed?: number[]) => {
+    setCurrentStep(step);
+    const newCompleted = completed !== undefined ? completed : completedSteps;
+    if (onStepChange) {
+      onStepChange(step, newCompleted);
+    }
+  };
 
   const [form, setForm] = useState({
     nik: "",
@@ -173,6 +185,11 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }
 
+  function maskNIK(nik: string): string {
+    if (!nik || nik.length < 8) return nik;
+    return nik.substring(0, 2) + "..........".substring(0, 10) + nik.substring(nik.length - 4);
+  }
+
   const readFileAsDataUrl = (file: File) =>
     new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -213,6 +230,40 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
   async function handleNext() {
     if (pending) return;
     setError("");
+
+    if (currentStep === 1) {
+      // Basic validation for step 1
+      if (!form.name?.trim() || !form.nik?.trim() || form.nik.trim().length !== 16 || !/^\d{16}$/.test(form.nik.trim())) {
+        setError("NIK harus 16 digit angka");
+        return;
+      }
+      if (!form.birthPlace?.trim() || !form.birthDate) {
+        setError("Tempat dan tanggal lahir wajib diisi");
+        return;
+      }
+      if (!form.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+        setError("Email tidak valid");
+        return;
+      }
+      if (!form.phone?.trim()) {
+        setError("No HP wajib diisi");
+        return;
+      }
+      if (!form.password || form.password.length < 12) {
+        setError("Password minimal 12 karakter");
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        setError("Konfirmasi password tidak sama");
+        return;
+      }
+      setCompletedSteps((prev) => prev.includes(1) ? prev : [...prev, 1]);
+      setCurrentStep(2);
+      if (onStepChange) {
+        onStepChange(2, completedSteps.includes(1) ? completedSteps : [...completedSteps, 1]);
+      }
+      return;
+    }
 
     if (currentStep === 2) {
       if (form.employmentStatus === "PNS") {
@@ -375,22 +426,37 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
         setError("Kartu pegawai / ID card wajib diunggah");
         return;
       }
-      setCurrentStep((s) => (s + 1) as Step);
+      setCompletedSteps((prev) => {
+        const updated = prev.includes(currentStep) ? prev : [...prev, currentStep];
+        setCurrentStep((s) => {
+          const next = (s + 1) as Step;
+          if (onStepChange) onStepChange(next, updated);
+          return next;
+        });
+        return updated;
+      });
       return;
     }
 
-    setCurrentStep((s) => (s + 1) as Step);
+    setCompletedSteps((prev) => {
+      const updated = prev.includes(currentStep) ? prev : [...prev, currentStep];
+      setCurrentStep((s) => {
+        const next = (s + 1) as Step;
+        if (onStepChange) onStepChange(next, updated);
+        return next;
+      });
+      return updated;
+    });
   }
 
-  async function handleSubmit() {
+  async function handleFinalSubmit() {
     if (pending) return;
-    if (!form.agreement) {
-      setError("Anda harus menyetujui pernyataan kebenaran data");
-      setCurrentStep(5);
+    if (!agreed) {
+      setError("Anda harus menyetujui pernyataan sebelum mengirim pengajuan.");
       return;
     }
     if (!uploadedFiles.ktp || !uploadedFiles.skPengangkatan || !uploadedFiles.idCard) {
-      setError("KTP, SK Pengangkatan, dan Kartu pegawai / ID card wajib diunggah");
+      setError("Semua dokumen wajib harus diunggah");
       setCurrentStep(4);
       return;
     }
@@ -398,7 +464,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
     setPending(true);
     setError("");
     try {
-      const [ktpDataUrl, skDataUrl, suratDataUrl, selfieDataUrl] = await Promise.all([
+      const [ktpDataUrl, skDataUrl, idCardDataUrl, selfieDataUrl] = await Promise.all([
         readFileAsDataUrl(uploadedFiles.ktp.file),
         readFileAsDataUrl(uploadedFiles.skPengangkatan.file),
         readFileAsDataUrl(uploadedFiles.idCard.file),
@@ -463,20 +529,42 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
 
   if (success) {
     return (
-      <div className="space-y-4 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-          <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+      <main className="min-h-screen bg-[#f8fafc] text-[#192b40] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl border border-[#e5ebf1] p-8 shadow-sm text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Pengajuan berhasil dikirim!</h1>
+          <p className="text-sm text-[#5f6f85] mb-6">
+            Terima kasih telah mendaftar. Tim kami akan meninjau pengajuan Anda dalam 1-3 hari kerja.
+          </p>
+          <div className="rounded-lg bg-[#f8fafc] p-4 mb-6 text-left">
+            <p className="text-xs text-[#5f6f85] mb-1">Nomor Pengajuan</p>
+            <p className="font-mono text-sm font-medium">REG-2026-000123</p>
+            <p className="text-xs text-[#5f6f85] mt-3 mb-1">Status</p>
+            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">Menunggu verifikasi</span>
+          </div>
+          <div className="text-left mb-6 space-y-3">
+            <p className="text-sm font-medium">Langkah selanjutnya:</p>
+            <ol className="text-xs text-[#5f6f85] space-y-2 list-decimal list-inside">
+              <li>Cek email Anda untuk link verifikasi. Klik link tersebut dalam 24 jam.</li>
+              <li>Tunggu persetujuan dari admin instansi Anda. Anda akan menerima email notifikasi setelah akun disetujui.</li>
+              <li>Setelah disetujui, Anda dapat login dan mengakses dashboard Agoraya.</li>
+            </ol>
+          </div>
+          <div className="space-y-2">
+            <Button className="w-full">Cek email saya</Button>
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/">Kembali ke beranda</Link>
+            </Button>
+          </div>
         </div>
-        <h2 className="text-xl font-semibold">Pengajuan berhasil dikirim</h2>
-        <p className="text-sm text-[#5f6f85]">
-          Pendaftaran berhasil. Akun Anda masih memerlukan persetujuan admin instansi sebelum dapat mengakses dashboard.
-        </p>
-        <p className="text-xs text-[#5f6f85]">Silakan periksa email untuk informasi lebih lanjut.</p>
-      </div>
+      </main>
     );
   }
+
+  const isStepCompleted = (step: number) => completedSteps.includes(step);
+  const isStepActive = (step: number) => currentStep === step;
 
   return (
     <div className="space-y-6">
@@ -895,7 +983,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
                   <div className="flex items-center gap-4">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-gray-100">
                       {uploadedFiles.idCard.preview ? (
-                        <img src={uploadedFiles.idCard.preview} alt="Preview Kartu pegawai / ID card" className="h-full w-full rounded-lg object-cover" />
+                        <img src={uploadedFiles.idCard.preview} alt="Preview ID Card" className="h-full w-full rounded-lg object-cover" />
                       ) : uploadedFiles.idCard.file.type === "application/pdf" ? (
                         <FileText className="h-8 w-8 text-gray-600" />
                       ) : (
@@ -915,11 +1003,11 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
                   </div>
                 </div>
               ) : (
-                <label htmlFor="suratUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
+                <label htmlFor="idCardUpload" className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#cbd5e1] p-8 text-center hover:border-[#2563eb] hover:bg-[#f8fafc] transition-colors">
                   <Upload className="mb-2 h-8 w-8 text-[#64748b]" />
                   <p className="mb-1 text-sm font-medium">Klik untuk upload atau drag & drop file di sini</p>
                   <p className="text-xs text-[#5f6f85]">Format: JPG, PNG, PDF · Maksimal 5MB</p>
-                  <input type="file" id="suratUpload" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, "idCard")} />
+                  <input type="file" id="idCardUpload" className="hidden" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileSelect(e, "idCard")} />
                 </label>
               )}
             </div>
@@ -971,42 +1059,163 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
       )}
 
       {currentStep === 5 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="mb-4 text-lg font-semibold">Tinjau & persetujuan</h2>
-            <p className="mb-6 text-sm text-[#5f6f85]">Periksa kembali data yang akan diajukan</p>
-            <div className="space-y-4 rounded-lg bg-[#f8fafc] p-4 text-sm">
-              <div>
-                <p className="mb-1 font-medium">Identitas pribadi</p>
-                <p className="text-[#5f6f85]">Nama: {form.name || "-"} | NIK: {form.nik ? "************" + form.nik.slice(-4) : "-"} | TTL: {form.birthPlace}, {form.birthDate || "-"}</p>
+        <>
+          <div className="mb-4">
+            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 5 DARI 5</p>
+            <h2 className="mt-1 text-lg font-semibold">Tinjau & persetujuan</h2>
+            <p className="text-sm text-[#5f6f85]">Periksa kembali data Anda sebelum mengirim pengajuan. Klik 'Edit' untuk mengubah data di setiap bagian.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-[#e5ebf1] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Identitas & akun</h3>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(1)}>
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
               </div>
-              <div>
-                <p className="mb-1 font-medium">Kontak & akun</p>
-                <p className="text-[#5f6f85]">Email: {form.email || "-"} | No HP: {form.phone || "-"}</p>
-              </div>
-              <div>
-                <p className="mb-1 font-medium">Instansi & kepegawaian</p>
-                <p className="text-[#5f6f85]">Instansi: {form.agencyName || "-"} | Jabatan: {form.positionName || "-"} | Status: {form.employmentStatus}</p>
-              </div>
-              <div>
-                <p className="mb-1 font-medium">Alamat KTP</p>
-                <p className="text-[#5f6f85]">{form.ktpAddress}, RT {form.ktpRt}/RW {form.ktpRw}, {form.ktpVillage}, {form.ktpDistrict}, {form.ktpRegency}, {form.ktpProvince} {form.ktpPostalCode}</p>
-              </div>
-              <div>
-                <p className="mb-1 font-medium">Alamat Domisili</p>
-                <p className="text-[#5f6f85]">{sameAsKtp ? "Sama dengan alamat KTP" : `${form.domAddress}, RT ${form.domRt}/RW ${form.domRw}, ${form.domVillage}, ${form.domDistrict}, ${form.domRegency}, ${form.domProvince} ${form.domPostalCode}`}</p>
-              </div>
-              <div>
-                <p className="mb-1 font-medium">Dokumen</p>
-                <p className="text-[#5f6f85]">KTP: {uploadedFiles.ktp?.file.name ? "✓ " + uploadedFiles.ktp.file.name : "-"} | SK Pengangkatan: {uploadedFiles.skPengangkatan?.file.name ? "✓ " + uploadedFiles.skPengangkatan.file.name : "-"} | Kartu pegawai / ID card: {uploadedFiles.idCard?.file.name ? "✓ " + uploadedFiles.idCard.file.name : "-"} | Foto diri: {uploadedFiles.selfie?.file.name ? "✓ " + uploadedFiles.selfie.file.name : "Tidak diunggah"}</p>
+              <div className="space-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Nama lengkap</p>
+                  <p>{form.name || "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">NIK</p>
+                  <p>{form.nik ? maskNIK(form.nik) : "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Tempat/Tanggal lahir</p>
+                  <p>{form.birthPlace}, {form.birthDate || "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Email</p>
+                  <p>{form.email || "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">No HP</p>
+                  <p>{form.phone || "-"}</p>
+                </div>
               </div>
             </div>
-            <div className="mt-6 flex items-start gap-3 rounded-lg border border-[#e5ebf1] p-4">
-              <input type="checkbox" id="agree" checked={form.agreement} onChange={(e) => handleChange("agreement", e.target.checked)} className="mt-1" />
-              <label htmlFor="agree" className="text-sm">Saya menyatakan data yang diisi adalah benar dan bersedia untuk diverifikasi.</label>
+
+            <div className="rounded-lg border border-[#e5ebf1] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Instansi & kepegawaian</h3>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(2)}>
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Status ASN</p>
+                  <p>{form.employmentStatus}</p>
+                </div>
+                {form.employmentStatus === "PNS" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <p className="text-[#5f6f85]">NIP</p>
+                    <p>{form.nip ? maskNIK(form.nip) : "-"}</p>
+                  </div>
+                )}
+                {form.employmentStatus === "PPPK" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <p className="text-[#5f6f85]">Nomor induk PPPPK</p>
+                    <p>{form.pppkNumber ? maskNIK(form.pppkNumber) : "-"}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Jenis instansi</p>
+                  <p>{form.agencyType}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Nama instansi</p>
+                  <p>{form.agencyName || "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Unit kerja/OPD</p>
+                  <p>{form.unitWork || "-"}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <p className="text-[#5f6f85]">Jabatan</p>
+                  <p>{form.positionName || "-"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[#e5ebf1] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Alamat</h3>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(3)}>
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <p className="text-[#5f6f85] mb-1">Alamat KTP</p>
+                  <p>{form.ktpAddress}, RT {form.ktpRt}/RW {form.ktpRw}, {form.ktpVillage}, {form.ktpDistrict}, {form.ktpRegency}, {form.ktpProvince} {form.ktpPostalCode}</p>
+                </div>
+                <div>
+                  <p className="text-[#5f6f85] mb-1">Alamat domisili</p>
+                  <p>{sameAsKtp ? "Sama dengan alamat KTP" : `${form.domAddress}, RT ${form.domRt}/RW ${form.domRw}, ${form.domVillage}, ${form.domDistrict}, ${form.domRegency}, ${form.domProvince} ${form.domPostalCode}`}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[#e5ebf1] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Dokumen</h3>
+                <Button variant="ghost" size="sm" onClick={() => setCurrentStep(4)}>
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">KTP</p>
+                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.ktp?.file.name} ({uploadedFiles.ktp ? formatFileSize(uploadedFiles.ktp.file.size) : "-"})</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">SK Pengangkatan</p>
+                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.skPengangkatan?.file.name} ({uploadedFiles.skPengangkatan ? formatFileSize(uploadedFiles.skPengangkatan.file.size) : "-"})</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Kartu pegawai / ID card</p>
+                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.idCard?.file.name} ({uploadedFiles.idCard ? formatFileSize(uploadedFiles.idCard.file.size) : "-"})</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Foto diri dengan KTP</p>
+                    <p className="text-xs text-[#5f6f85]">{uploadedFiles.selfie ? `${uploadedFiles.selfie.file.name} (${formatFileSize(uploadedFiles.selfie.file.size)})` : "Tidak diupload"}</p>
+                  </div>
+                  {uploadedFiles.selfie ? <CheckCircle className="h-5 w-5 text-green-600" /> : <span className="text-xs text-[#5f6f85]">-</span>}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[#e5ebf1] p-4">
+              <h3 className="font-semibold mb-3">Pernyataan kebenaran data</h3>
+              <p className="text-sm mb-2">Dengan mengirim pengajuan ini, saya menyatakan bahwa:</p>
+              <ul className="text-sm text-[#5f6f85] space-y-1 mb-4 list-disc list-inside">
+                <li>Seluruh data yang saya isi adalah benar dan sesuai dengan dokumen resmi.</li>
+                <li>Saya bersedia diverifikasi oleh petugas yang berwenang.</li>
+                <li>Saya memahami bahwa data palsu dapat mengakibatkan penolakan atau pencabutan akses.</li>
+                <li>Saya menyetujui syarat dan ketentuan platform Agoraya.</li>
+              </ul>
+              <div className="flex items-start gap-2">
+                <input type="checkbox" id="agreeFinal" checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setError(""); }} className="mt-1" />
+                <label htmlFor="agreeFinal" className="text-sm">
+                  Saya menyatakan data yang diisi adalah benar dan dapat dipertanggungjawabkan.
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {error && (
@@ -1032,7 +1241,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
               {pending && (currentStep === 2 || currentStep === 3) ? "Menyimpan..." : "Lanjut →"}
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={pending}>
+            <Button onClick={handleFinalSubmit} disabled={pending || !agreed}>
               {pending ? "Mengirim..." : "Kirim pengajuan"}
             </Button>
           )}
