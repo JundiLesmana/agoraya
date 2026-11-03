@@ -16,7 +16,7 @@ const items = [
   },
   {
     title: "Layanan Publik",
-    href: "/bantuan/layanan-publik",
+    href: "/bantuan/platform-publik/layanan-publik",
     description: "Pahami alur layanan dan status pengajuan yang sedang berjalan.",
     icon: FileText,
   },

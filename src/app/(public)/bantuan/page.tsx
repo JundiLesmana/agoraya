@@ -186,7 +186,7 @@ const pillars: Pillar[] = [
 
 const sidebarItems = [
   { title: "Data Pemerintah", icon: Database, href: "/bantuan/platform-publik/data-pemerintah" },
-  { title: "Layanan Publik", icon: FileText, href: "/bantuan/layanan-publik" },
+  { title: "Layanan Publik", icon: FileText, href: "/bantuan/platform-publik/layanan-publik" },
   { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/lapor-warga" },
   { title: "Insight", icon: ChartNoAxesColumnIncreasing, href: "/bantuan/insight" },
 ];
