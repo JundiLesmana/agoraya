@@ -4,6 +4,61 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { LoginForm } from "./_components/login-form";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(action: "request-otp" | "verify-otp") {
+    setBusy(true);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          action === "request-otp"
+            ? { action, identifier: email }
+            : { action, identifier: email, code },
+        ),
+      });
+      const result: unknown = await response.json();
+      const resultMessage =
+        result && typeof result === "object" && "message" in result
+          ? result.message
+          : null;
+      const resultError =
+        result && typeof result === "object" && "error" in result
+          ? result.error
+          : null;
+      if (!response.ok) {
+        throw new Error(
+          typeof resultError === "string" ? resultError : "Login gagal.",
+        );
+      }
+
+      if (action === "request-otp") {
+        setCodeRequested(true);
+        setMessage(
+          typeof resultMessage === "string"
+            ? resultMessage
+            : "Periksa email untuk kode verifikasi.",
+        );
+      } else {
+        router.replace("/asn/project");
+        router.refresh();
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Login gagal.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-[#f8fafc] text-[#192b40]">
       <header className="h-16 shrink-0 border-b border-[#e5ebf1] bg-white">

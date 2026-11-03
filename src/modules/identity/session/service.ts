@@ -7,14 +7,16 @@ import { logger } from '@/lib/logger';
 const SESSION_TTL_HOURS = 24;
 
 function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
-export async function createSession(userId: string): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
+export async function createSession(
+  userId: string,
+): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
   const database = db();
   const token = generateToken();
   const tokenHash = hashToken(token);
@@ -33,7 +35,13 @@ export async function createSession(userId: string): Promise<{ sessionId: string
   return { sessionId, token, expiresAt };
 }
 
-export async function validateSession(token: string): Promise<{ valid: boolean; userId?: string; sessionId?: string; tenantId?: string }> {
+export async function validateSession(token: string): Promise<{
+  valid: boolean;
+  userId?: string;
+  sessionId?: string;
+  tenantId?: string;
+  roles?: string[];
+}> {
   if (!token) {
     return { valid: false };
   }
@@ -68,7 +76,26 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     return { valid: false };
   }
 
-  return { valid: true, userId: session.userId, sessionId: session.id, tenantId: user.tenantId };
+  const activeRoles = await database
+    .select({ key: roles.key })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(
+      and(
+        eq(userRoles.userId, session.userId),
+        eq(roles.tenantId, user.tenantId),
+        isNull(userRoles.revokedAt),
+        or(isNull(userRoles.expiresAt), gt(userRoles.expiresAt, new Date())),
+      ),
+    );
+
+  return {
+    valid: activeRoles.length > 0,
+    userId: session.userId,
+    sessionId: session.id,
+    tenantId: user.tenantId,
+    roles: activeRoles.map((role) => role.key),
+  };
 }
 
 export async function destroySession(token: string): Promise<void> {
@@ -80,7 +107,9 @@ export async function destroySession(token: string): Promise<void> {
   logger.info('session.destroyed');
 }
 
-export async function refreshSession(token: string): Promise<{ valid: boolean; newToken?: string; expiresAt?: Date }> {
+export async function refreshSession(
+  token: string,
+): Promise<{ valid: boolean; newToken?: string; expiresAt?: Date }> {
   const validation = await validateSession(token);
   if (!validation.valid || !validation.userId || !validation.sessionId) {
     return { valid: false };

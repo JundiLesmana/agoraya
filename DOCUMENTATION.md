@@ -1,7 +1,7 @@
 # DOCUMENTATION.md — Agoraya
 
 > Dokumentasi teknis lengkap untuk pengembangan, deployment, dan pemeliharaan platform Agoraya.
-> Terakhir diperbarui: 2026-10-20
+> Terakhir diperbarui: 2026-11-02
 
 ---
 
@@ -572,7 +572,8 @@ report_escalations      -- Escalation history
 -- CMS
 cms_records             -- Content records (Maker-Checker)
 cms_review_history      -- Review audit trail
-cms_datasets            -- Open data datasets
+datasets                -- Published dataset metadata and full-text search index
+dataset_resources       -- Dataset files/API links (one-to-many)
 
 -- Services
 service_requests        -- Pengajuan layanan
@@ -583,6 +584,11 @@ service_letters         -- Surat jadi (generated)
 budget_data             -- Data anggaran
 infrastructure_projects -- Data proyek infrastruktur
 poverty_statistics      -- Statistik kemiskinan
+statistic_operator_assignments -- Scope operator per user, wilayah, dan sektor
+statistic_entries       -- Konteks tahun, metadata, serta status statistik
+statistic_values        -- Nilai aktual per periode statistik
+statistic_value_audit   -- Riwayat nilai lama/baru, aktor, dan waktu
+statistic_entry_documents -- Metadata dokumen pendukung privat
 disaster_reports        -- Data bencana
 
 -- Gamification
@@ -598,6 +604,25 @@ audit_hash_chain        -- Hash chain verification
 tenants                 -- Instansi/organisasi
 tenant_memberships      -- User-tenant assignments
 ```
+
+Katalog metadata menggunakan migrasi `0006_dataset_metadata_catalog.sql`.
+Kolom `datasets.search_vector` adalah `tsvector` terhitung dengan indeks GIN;
+filter kata kunci, kategori, format resource, dan instansi dijalankan di
+PostgreSQL sebelum pagination. `data_dictionary` menyimpan deskripsi struktur
+kolom, sedangkan setiap file atau endpoint akses disimpan sebagai
+`dataset_resources`. Contoh awal yang dimasukkan oleh `pnpm db:seed` diberi
+label simulasi.
+
+Input indikator statistik menggunakan migrasi
+`0008_statistical_indicator_input.sql`. Sebelum operator dapat mengakses
+`/asn/statistik`, administrator harus membuat baris assignment pada
+`statistic_operator_assignments` untuk kombinasi `tenant_id`, `user_id`,
+`agency_id`, `region_id`, nama wilayah, dan sektor yang diizinkan. API mengambil
+assignment tersebut dari identitas sesi server; `agency_id` tidak diterima dari
+payload browser. Nilai waktu disimpan di `statistic_values`, sementara setiap
+perubahan nilai dicatat append-only di `statistic_value_audit` dan `audit_events`.
+Dokumen PDF/XLS/XLSX disimpan sebagai aset Cloudinary authenticated; konfigurasi
+Cloudinary wajib tersedia untuk unggahan.
 
 ### 4.2 Row-Level Security (RLS)
 
@@ -768,9 +793,28 @@ export async function authorize(request: Request, config: {
 | Reports | `/api/reports/*` | CRUD laporan warga |
 | CMS | `/api/cms/*` | Content management |
 | Analytics | `/api/analytics/*` | Data agregat publik |
+| Dataset catalog | `/api/asn/datasets` | Pencarian/filter server-side dan pagination katalog |
 | Services | `/api/services/*` | Pengajuan & perizinan |
 | Admin | `/api/admin/*` | Admin operations |
 | Chatbot | `/api/chatbot/*` | AI chatbot queries |
+
+`GET /api/asn/datasets` menerima `search`, `category`, `format`, `agency`,
+`sort` (`relevance`, `recent`, `downloads`), dan `page`. Detail dibaca melalui
+`GET /api/asn/datasets/{slug}`; respons detail menyediakan properti JSON-LD
+`schema.org/Dataset` (`name`, `description`, `creator`, `license`, `distribution`,
+dan `variableMeasured`) untuk interoperabilitas/harvesting. Katalog publik
+bersifat baca-saja; belum ada endpoint edit.
+
+Workspace input statistik menggunakan `GET /api/asn/statistik` untuk membaca
+assignment operator dan indikator, serta parameter `referenceYear`, `regionId`,
+`sectorId`, dan `indicatorId` untuk membaca satu entri. `POST /api/asn/statistik`
+menerima `multipart/form-data` berisi field `payload` (JSON batch nilai periode
+dan metadata) serta nol atau lebih file `documents`. Server memvalidasi
+assignment, periode, anomali, dan syarat sumber/metodologi sebelum publikasi.
+Dokumen tersimpan dapat diunduh melalui
+`GET /api/asn/statistik/documents/{documentId}` yang memverifikasi assignment dan
+menerbitkan tautan bertanda tangan berumur 15 menit. Data publikasi tanpa
+identitas operator tersedia melalui `GET /api/v1/statistics/published`.
 
 ---
 
@@ -1013,7 +1057,7 @@ pnpm dev
 | `pnpm db:migrate` | Apply pending migrations (use `DATABASE_URL_UNPOOLED` for DDL) |
 | `pnpm db:push` | Push schema directly to DB (development only, no versioning) |
 | `pnpm db:studio` | Open Drizzle Studio to inspect data |
-| `pnpm db:seed` | Seed BPS snapshots + demo scenario (idempotent) |
+| `pnpm db:seed` | Seed BPS snapshots, demo scenario, and dataset catalog (idempotent) |
 | `pnpm db:reset` | Truncate all data tables then re-seed (clean demo state) |
 | `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
 
