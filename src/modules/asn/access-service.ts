@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import {
   and,
   asc,
@@ -28,13 +28,61 @@ import type { ModuleAccessKey } from "@/modules/rbac/module-access";
 import { appendAsnAccessAuditEvent } from "@/modules/audit";
 import { kycRoster } from "@/modules/kyc/db";
 import { asnProfiles, jobPositions, users } from "@/modules/identity/db";
-import type { AsnAccessFilters, UpdateAsnAccessCommand } from "./access-schema";
+import type {
+  AsnAccessFilters,
+  ExecutiveAccessDraftCommand,
+  UpdateAsnAccessCommand,
+} from "./access-schema";
 
 interface AccessState {
   readonly accountStatus: string;
   readonly applicationRoles: readonly { key: string; name: string }[];
   readonly modules: readonly ModuleAccessKey[];
   readonly executiveStatus: "observer" | "not_granted";
+}
+
+interface AsnIdentityRow {
+  readonly userId: string;
+  readonly name: string;
+  readonly email: string;
+  readonly accountStatus: string;
+  readonly nip: string | null;
+  readonly opd: string | null;
+  readonly unit: string | null;
+  readonly position: string | null;
+  readonly emailVerifiedAt: Date | null;
+  readonly kycStatus: string | null;
+}
+
+interface ExecutiveAccessDraftPayload {
+  readonly userId: string;
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly before: {
+    readonly accountStatus: string;
+    readonly applicationRoles: readonly string[];
+    readonly modules: readonly ModuleAccessKey[];
+    readonly executiveStatus: AccessState["executiveStatus"];
+  };
+  readonly after: {
+    readonly accountStatus: string;
+    readonly applicationRoles: readonly string[];
+    readonly modules: readonly ModuleAccessKey[];
+    readonly executiveStatus: AccessState["executiveStatus"];
+  };
+}
+
+const EXECUTIVE_ACCESS_DRAFT_VERSION = 1;
+const EXECUTIVE_ACCESS_DRAFT_TTL_MS = 15 * 60 * 1000;
+
+function getExecutiveAccessDraftSecret(): string {
+  const secret = process.env.AUDIT_HMAC_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("AUDIT_HMAC_SECRET must contain at least 32 characters");
+  }
+  return secret;
 }
 
 function maskEmail(email: string): string {
@@ -50,6 +98,99 @@ function contains(value: string): string {
 function maskNip(nip: string | null): string | null {
   if (!nip) return null;
   return `${"*".repeat(Math.max(0, nip.length - 4))}${nip.slice(-4)}`;
+}
+
+function encodeDraftToken(payload: ExecutiveAccessDraftPayload): string {
+  const serialized = JSON.stringify(payload);
+  const encodedPayload = Buffer.from(serialized, "utf8").toString("base64url");
+  const signature = createHmac("sha256", getExecutiveAccessDraftSecret())
+    .update(`${EXECUTIVE_ACCESS_DRAFT_VERSION}.${encodedPayload}`)
+    .digest("base64url");
+  return `v${EXECUTIVE_ACCESS_DRAFT_VERSION}.${encodedPayload}.${signature}`;
+}
+
+function decodeDraftToken(token: string): ExecutiveAccessDraftPayload {
+  const [version, encodedPayload, signature] = token.split(".");
+  if (
+    version !== `v${EXECUTIVE_ACCESS_DRAFT_VERSION}` ||
+    !encodedPayload ||
+    !signature
+  ) {
+    throw new ValidationError("Draft akses executive tidak valid.");
+  }
+
+  const expectedSignature = createHmac("sha256", getExecutiveAccessDraftSecret())
+    .update(`${EXECUTIVE_ACCESS_DRAFT_VERSION}.${encodedPayload}`)
+    .digest();
+  const providedSignature = Buffer.from(signature, "base64url");
+  if (
+    providedSignature.length !== expectedSignature.length ||
+    !timingSafeEqual(providedSignature, expectedSignature)
+  ) {
+    throw new ValidationError("Draft akses executive tidak valid.");
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
+  } catch {
+    throw new ValidationError("Draft akses executive tidak valid.");
+  }
+
+  if (!payload || typeof payload !== "object") {
+    throw new ValidationError("Draft akses executive tidak valid.");
+  }
+
+  const draft = payload as ExecutiveAccessDraftPayload;
+  if (
+    typeof draft.userId !== "string" ||
+    typeof draft.tenantId !== "string" ||
+    typeof draft.actorId !== "string" ||
+    typeof draft.issuedAt !== "string" ||
+    typeof draft.expiresAt !== "string"
+  ) {
+    throw new ValidationError("Draft akses executive tidak valid.");
+  }
+
+  return draft;
+}
+
+async function getAsnIdentityRow(
+  database: ReturnType<typeof db>,
+  userId: string,
+  tenantId: string,
+): Promise<AsnIdentityRow> {
+  const rows = await database
+    .select({
+      userId: users.id,
+      name: users.name,
+      email: users.email,
+      accountStatus: users.status,
+      nip: asnProfiles.nip,
+      opd: asnProfiles.opdName,
+      unit: asnProfiles.unitName,
+      position: jobPositions.name,
+      emailVerifiedAt: users.emailVerifiedAt,
+      kycStatus: kycRoster.status,
+    })
+    .from(users)
+    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+    .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
+    .leftJoin(
+      kycRoster,
+      and(eq(kycRoster.userId, users.id), eq(kycRoster.tenantId, tenantId)),
+    )
+    .where(
+      and(
+        eq(users.id, userId),
+        eq(users.tenantId, tenantId),
+        eq(asnProfiles.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+  const identity = rows[0];
+  if (!identity) throw new NotFoundError("ASN tidak ditemukan");
+  return identity;
 }
 
 export async function listAsnAccess(
@@ -313,6 +454,218 @@ function parseExecutiveStatus(value: string): AccessState["executiveStatus"] {
   throw new Error("Stored executive access status is invalid");
 }
 
+function serializeAccessState(state: AccessState) {
+  return {
+    accountStatus: state.accountStatus,
+    applicationRoles: state.applicationRoles.map((role) => role.key),
+    modules: [...state.modules].sort(),
+    executiveStatus: state.executiveStatus,
+  };
+}
+
+async function resolveApplicationRoles(
+  database: ReturnType<typeof db>,
+  roleKeys: readonly string[],
+) {
+  if (roleKeys.length === 0) return [];
+  const selectedRoles = await database
+    .select({
+      id: applicationRoles.id,
+      key: applicationRoles.key,
+      name: applicationRoles.name,
+    })
+    .from(applicationRoles)
+    .where(inArray(applicationRoles.key, [...roleKeys]));
+  if (selectedRoles.length !== roleKeys.length) {
+    throw new ValidationError("Peran aplikasi tidak dikenal.");
+  }
+  return selectedRoles.sort((left, right) => left.key.localeCompare(right.key));
+}
+
+export async function getAsnAccessDetail(userId: string, tenantId: string) {
+  const database = db();
+  const [identity, accessState] = await Promise.all([
+    getAsnIdentityRow(database, userId, tenantId),
+    getAccessState(database, userId, tenantId),
+  ]);
+
+  return {
+    id: identity.userId,
+    name: identity.name,
+    emailMasked: maskEmail(identity.email),
+    nipMasked: maskNip(identity.nip),
+    opd: identity.opd,
+    unit: identity.unit,
+    position: identity.position,
+    accountStatus: accessState.accountStatus,
+    applicationRoles: accessState.applicationRoles,
+    modules: accessState.modules,
+    executiveStatus: accessState.executiveStatus,
+    requirements: [
+      {
+        key: "email_verification",
+        status: identity.emailVerifiedAt ? "fulfilled" : "pending",
+        completedAt: identity.emailVerifiedAt?.toISOString() ?? null,
+      },
+      {
+        key: "identity_verification",
+        status:
+          identity.kycStatus === "verified"
+            ? "fulfilled"
+            : (identity.kycStatus ?? "not_submitted"),
+      },
+      {
+        key: "admin_approval",
+        status:
+          accessState.accountStatus === "active"
+            ? "fulfilled"
+            : accessState.accountStatus === "suspended"
+              ? "rejected"
+              : "pending",
+      },
+    ],
+  };
+}
+
+export async function createExecutiveAccessDraft(
+  userId: string,
+  tenantId: string,
+  actorId: string,
+  command: ExecutiveAccessDraftCommand,
+) {
+  const database = db();
+  const [identity, before] = await Promise.all([
+    getAsnIdentityRow(database, userId, tenantId),
+    getAccessState(database, userId, tenantId),
+  ]);
+
+  const nextRoleKeys = [
+    ...new Set(command.applicationRoles ?? before.applicationRoles.map((role) => role.key)),
+  ].sort();
+  const nextModules = [...new Set(command.modules ?? [...before.modules])].sort();
+  const nextExecutiveStatus = command.executiveStatus ?? before.executiveStatus;
+  const nextAccountStatus = command.accountStatus ?? before.accountStatus;
+
+  if (!accountCanReceiveAccess(nextAccountStatus, nextModules, nextExecutiveStatus)) {
+    throw new ConflictError(
+      "Hak akses hanya dapat diberikan setelah akun ASN aktif.",
+    );
+  }
+
+  const selectedRoles = await resolveApplicationRoles(database, nextRoleKeys);
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + EXECUTIVE_ACCESS_DRAFT_TTL_MS);
+  const payload: ExecutiveAccessDraftPayload = {
+    userId,
+    tenantId,
+    actorId,
+    issuedAt: issuedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    before: serializeAccessState(before),
+    after: {
+      accountStatus: nextAccountStatus,
+      applicationRoles: selectedRoles.map((role) => role.key),
+      modules: nextModules,
+      executiveStatus: nextExecutiveStatus,
+    },
+  };
+
+  return {
+    subject: {
+      id: identity.userId,
+      name: identity.name,
+      emailMasked: maskEmail(identity.email),
+      nipMasked: maskNip(identity.nip),
+      opd: identity.opd,
+      unit: identity.unit,
+      position: identity.position,
+    },
+    before: {
+      accountStatus: before.accountStatus,
+      applicationRoles: before.applicationRoles,
+      modules: before.modules,
+      executiveStatus: before.executiveStatus,
+    },
+    after: {
+      accountStatus: nextAccountStatus,
+      applicationRoles: selectedRoles.map(({ key, name }) => ({ key, name })),
+      modules: nextModules,
+      executiveStatus: nextExecutiveStatus,
+    },
+    requirements: [
+      {
+        key: "email_verification",
+        status: identity.emailVerifiedAt ? "fulfilled" : "pending",
+        completedAt: identity.emailVerifiedAt?.toISOString() ?? null,
+      },
+      {
+        key: "identity_verification",
+        status:
+          identity.kycStatus === "verified"
+            ? "fulfilled"
+            : (identity.kycStatus ?? "not_submitted"),
+      },
+      {
+        key: "admin_approval",
+        status:
+          nextAccountStatus === "active"
+            ? "fulfilled"
+            : nextAccountStatus === "suspended"
+              ? "rejected"
+              : "pending",
+      },
+    ],
+    draftToken: encodeDraftToken(payload),
+    issuedAt: payload.issuedAt,
+    expiresAt: payload.expiresAt,
+  };
+}
+
+export async function getExecutiveAccessPreview(
+  userId: string,
+  tenantId: string,
+  actorId: string,
+  draftToken: string,
+) {
+  const draft = decodeDraftToken(draftToken);
+  if (draft.userId !== userId || draft.tenantId !== tenantId || draft.actorId !== actorId) {
+    throw new ValidationError("Draft akses executive tidak cocok dengan permintaan ini.");
+  }
+  if (new Date(draft.expiresAt).getTime() <= Date.now()) {
+    throw new ConflictError("Draft akses executive sudah kedaluwarsa.");
+  }
+
+  const detail = await getAsnAccessDetail(userId, tenantId);
+  const selectedRoles = await resolveApplicationRoles(db(), draft.after.applicationRoles);
+
+  return {
+    subject: {
+      id: detail.id,
+      name: detail.name,
+      emailMasked: detail.emailMasked,
+      nipMasked: detail.nipMasked,
+      opd: detail.opd,
+      unit: detail.unit,
+      position: detail.position,
+    },
+    current: {
+      accountStatus: detail.accountStatus,
+      applicationRoles: detail.applicationRoles,
+      modules: detail.modules,
+      executiveStatus: detail.executiveStatus,
+    },
+    draft: {
+      accountStatus: draft.after.accountStatus,
+      applicationRoles: selectedRoles.map(({ key, name }) => ({ key, name })),
+      modules: draft.after.modules,
+      executiveStatus: draft.after.executiveStatus,
+    },
+    requirements: detail.requirements,
+    issuedAt: draft.issuedAt,
+    expiresAt: draft.expiresAt,
+  };
+}
+
 export async function updateAsnAccess(
   userId: string,
   tenantId: string,
@@ -507,6 +860,27 @@ export async function updateAsnAccess(
       executiveStatus: after.executiveStatus,
       updatedAt: updatedAt.toISOString(),
     };
+  });
+}
+
+export async function confirmExecutiveAccessDraft(
+  userId: string,
+  tenantId: string,
+  actorId: string,
+  draftToken: string,
+) {
+  const draft = decodeDraftToken(draftToken);
+  if (draft.userId !== userId || draft.tenantId !== tenantId || draft.actorId !== actorId) {
+    throw new ValidationError("Draft akses executive tidak cocok dengan permintaan ini.");
+  }
+  if (new Date(draft.expiresAt).getTime() <= Date.now()) {
+    throw new ConflictError("Draft akses executive sudah kedaluwarsa.");
+  }
+
+  return updateAsnAccess(userId, tenantId, actorId, {
+    applicationRoles: [...draft.after.applicationRoles],
+    modules: [...draft.after.modules],
+    executiveStatus: draft.after.executiveStatus,
   });
 }
 
