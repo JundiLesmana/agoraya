@@ -330,10 +330,10 @@ export default function DataPemerintahArticlePage() {
             CMS · Ruang ASN
           </p>
           <div className="space-y-[2px]">
-            <Link
-              href="/bantuan/cms-data-pemerintah"
-              className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-[7px] text-slate-700 hover:bg-slate-100"
-            >
+              <Link
+                href="/bantuan/cms-ruang-asn/cms-data-pemerintah"
+                className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-[7px] text-slate-700 hover:bg-slate-100"
+              >
               <FileText className="h-[9px] w-[9px] text-blue-700" aria-hidden="true" />
               <span className="flex-1">CMS Data Pemerintah</span>
               <ChevronRight className="h-[8px] w-[8px] text-blue-700" aria-hidden="true" />
@@ -502,7 +502,7 @@ export default function DataPemerintahArticlePage() {
 
               <div className="mt-[20px]">
                 <Link
-                  href="/bantuan/cms-data-pemerintah"
+                  href="/bantuan/cms-ruang-asn/cms-data-pemerintah"
                   className="inline-flex items-center gap-[2px] text-[10px] font-medium text-blue-700 hover:underline"
                 >
                   Panduan terkait: CMS Data Pemerintah <ArrowRight className="h-[10px] w-[10px]" />

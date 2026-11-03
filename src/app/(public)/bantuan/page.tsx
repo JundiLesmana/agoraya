@@ -42,7 +42,7 @@ const pillars: Pillar[] = [
     desc: "Baca anggaran, pantau proyek, dan telusuri data daerah.",
     icon: Database,
     publicLink: "/bantuan/platform-publik/data-pemerintah",
-    cmsLink: "/bantuan/cms-data-pemerintah",
+    cmsLink: "/bantuan/cms-ruang-asn/cms-data-pemerintah",
     public: {
       how: [
         "Ringkasan & filter",

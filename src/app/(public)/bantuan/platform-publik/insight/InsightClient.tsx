@@ -545,7 +545,7 @@ export default function InsightArticlePage() {
                   </span>
                 </Link>
                 <Link
-                  href="/bantuan/cms-data-pemerintah"
+                  href="/bantuan/cms-ruang-asn/cms-data-pemerintah"
                   className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50"
                 >
                   <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-slate-500 group-hover:text-blue-700">
