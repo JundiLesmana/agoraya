@@ -1,20 +1,23 @@
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { userSessions, users } from '@/modules/identity/db';
-import { eq, and, gt } from 'drizzle-orm';
+import { roles, userRoles } from '@/lib/db/schema';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
 const SESSION_TTL_HOURS = 24;
 
 function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 function generateToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
-export async function createSession(userId: string): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
+export async function createSession(
+  userId: string,
+): Promise<{ sessionId: string; token: string; expiresAt: Date }> {
   const database = db();
   const token = generateToken();
   const tokenHash = hashToken(token);
@@ -28,12 +31,18 @@ export async function createSession(userId: string): Promise<{ sessionId: string
     expiresAt,
   });
 
-  logger.info('session.created', { userId, sessionId });
+  logger.info('session.created');
 
   return { sessionId, token, expiresAt };
 }
 
-export async function validateSession(token: string): Promise<{ valid: boolean; userId?: string; sessionId?: string; tenantId?: string }> {
+export async function validateSession(token: string): Promise<{
+  valid: boolean;
+  userId?: string;
+  sessionId?: string;
+  tenantId?: string;
+  roles?: string[];
+}> {
   if (!token) {
     return { valid: false };
   }
@@ -51,24 +60,43 @@ export async function validateSession(token: string): Promise<{ valid: boolean; 
     .where(eq(userSessions.tokenHash, tokenHash));
 
   if (!session) {
-    logger.warn('session.invalid', { tokenHash: tokenHash.substring(0, 8) });
+    logger.warn('session.invalid');
     return { valid: false };
   }
 
   if (new Date() > session.expiresAt) {
-    logger.warn('session.expired', { sessionId: session.id, userId: session.userId });
+    logger.warn('session.expired');
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
   const [user] = await database.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
   if (!user || user.status !== 'active') {
-    logger.warn('session.user_inactive', { sessionId: session.id, userId: session.userId });
+    logger.warn('session.user_inactive');
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
-  return { valid: true, userId: session.userId, sessionId: session.id, tenantId: user.tenantId };
+  const activeRoles = await database
+    .select({ key: roles.key })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(
+      and(
+        eq(userRoles.userId, session.userId),
+        eq(roles.tenantId, user.tenantId),
+        isNull(userRoles.revokedAt),
+        or(isNull(userRoles.expiresAt), gt(userRoles.expiresAt, new Date())),
+      ),
+    );
+
+  return {
+    valid: activeRoles.length > 0,
+    userId: session.userId,
+    sessionId: session.id,
+    tenantId: user.tenantId,
+    roles: activeRoles.map((role) => role.key),
+  };
 }
 
 export async function destroySession(token: string): Promise<void> {
@@ -77,10 +105,12 @@ export async function destroySession(token: string): Promise<void> {
   const database = db();
   const tokenHash = hashToken(token);
   await database.delete(userSessions).where(eq(userSessions.tokenHash, tokenHash));
-  logger.info('session.destroyed', { tokenHash: tokenHash.substring(0, 8) });
+  logger.info('session.destroyed');
 }
 
-export async function refreshSession(token: string): Promise<{ valid: boolean; newToken?: string; expiresAt?: Date }> {
+export async function refreshSession(
+  token: string,
+): Promise<{ valid: boolean; newToken?: string; expiresAt?: Date }> {
   const validation = await validateSession(token);
   if (!validation.valid || !validation.userId || !validation.sessionId) {
     return { valid: false };

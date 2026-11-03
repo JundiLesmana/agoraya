@@ -10,12 +10,14 @@
 
 import { getDb } from "../../src/lib/db/index.js";
 import { seedBpsSnapshots } from "./bps-snapshot.js";
+import { seedDatasetCatalog } from "./dataset-catalog.js";
 import { seedDemoScenario } from "./demo-scenario.js";
 
 type DbClient = ReturnType<typeof getDb>;
 
 export async function seedAll(dbx: DbClient = getDb()): Promise<{
   bpsSnapshots: number;
+  datasetCatalog: number;
   tenants: number;
   users: number;
   roles: number;
@@ -25,8 +27,9 @@ export async function seedAll(dbx: DbClient = getDb()): Promise<{
   policies: number;
 }> {
   const bpsCount = await seedBpsSnapshots(dbx);
+  const datasetCatalog = await seedDatasetCatalog(dbx);
   const scenario = await seedDemoScenario(dbx);
-  return { bpsSnapshots: bpsCount, ...scenario };
+  return { bpsSnapshots: bpsCount, datasetCatalog, ...scenario };
 }
 
 async function main(): Promise<void> {
@@ -35,7 +38,8 @@ async function main(): Promise<void> {
     `[db:seed] complete — BPS snapshots: ${result.bpsSnapshots}, ` +
       `tenants: ${result.tenants}, users: ${result.users}, roles: ${result.roles}, ` +
       `permissions: ${result.permissions}, tickets: ${result.tickets}, ` +
-      `policies: ${result.policies}, audit_events: ${result.auditEvents}`,
+      `policies: ${result.policies}, audit_events: ${result.auditEvents}, ` +
+      `dataset_catalog: ${result.datasetCatalog}`,
   );
 }
 

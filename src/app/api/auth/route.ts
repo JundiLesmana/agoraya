@@ -1,5 +1,84 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+import { authenticatePassword } from "@/modules/identity/password/service";
+import { createSession } from "@/modules/identity/session/service";
 
-export async function POST() {
-  return NextResponse.json({ message: 'auth endpoint' });
+const SESSION_COOKIE = "agoraya_session";
+const IDENTIFIER_MAX_LENGTH = 255;
+const PASSWORD_MAX_LENGTH = 256;
+
+export async function POST(request: Request) {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch (error) {
+    logger.error("auth.login_failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    return NextResponse.json(
+      { error: "Periksa kembali NIK/email dan kata sandi Anda." },
+      { status: 400 },
+    );
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return NextResponse.json(
+      { error: "Periksa kembali NIK/email dan kata sandi Anda." },
+      { status: 400 },
+    );
+  }
+
+  const { identifier, password } = payload as Record<string, unknown>;
+  if (
+    typeof identifier !== "string" ||
+    typeof password !== "string" ||
+    identifier.trim().length === 0 ||
+    identifier.length > IDENTIFIER_MAX_LENGTH ||
+    password.length === 0 ||
+    password.length > PASSWORD_MAX_LENGTH
+  ) {
+    return NextResponse.json(
+      { error: "Periksa kembali NIK/email dan kata sandi Anda." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await authenticatePassword(identifier, password);
+    if (!result.authenticated) {
+      return NextResponse.json(
+        {
+          error: result.rateLimited
+            ? "Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit."
+            : "NIK/email atau kata sandi tidak sesuai.",
+        },
+        {
+          status: result.rateLimited ? 429 : 401,
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
+    }
+
+    const session = await createSession(result.userId);
+    const response = NextResponse.json(
+      { ok: true },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+    response.cookies.set(SESSION_COOKIE, session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      expires: session.expiresAt,
+    });
+    return response;
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "Layanan masuk sedang tidak tersedia. Silakan coba beberapa saat lagi.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }
