@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { userSessions, users } from '@/modules/identity/db';
-import { eq } from 'drizzle-orm';
+import { roles, userRoles } from '@/lib/db/schema';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 
 const SESSION_TTL_HOURS = 24;
