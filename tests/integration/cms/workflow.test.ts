@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { CmsService, InMemoryCmsRepository } from "@/modules/cms";
 import type { CmsAuthorizer } from "@/modules/cms";
+import { InMemoryAuditSink } from "@/modules/rbac/audit";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 
 const tenantId = "00000000-0000-0000-0000-000000000001";
@@ -11,12 +12,15 @@ const allow: CmsAuthorizer = { async assertAllowed() {} };
 
 describe("CMS workflow", () => {
   let repository: InMemoryCmsRepository;
+  let audit: InMemoryAuditSink;
   let cms: CmsService;
   beforeEach(() => {
     repository = new InMemoryCmsRepository();
+    audit = new InMemoryAuditSink();
     cms = new CmsService({
       repository,
       authorizer: allow,
+      audit,
       clock: () => new Date("2026-10-21T00:00:00.000Z"),
     });
   });
@@ -167,6 +171,43 @@ describe("CMS workflow", () => {
     ).rejects.toThrow(NotFoundError);
   });
 
+  it("records unified audit entries for CMS mutations", async () => {
+    const item = await create();
+    await cms.update({
+      tenantId,
+      contentId: item.id,
+      actorId: authorId,
+      title: "Updated roadworks",
+      reason: "Correct title",
+    });
+
+    expect(audit.events.map((event) => event.action)).toEqual([
+      "cms.content.created",
+      "cms.content.updated",
+    ]);
+    expect(audit.events[0]).toMatchObject({
+      targetTable: "cms_contents",
+      targetId: item.id,
+      actorId: authorId,
+      metadata: {
+        tenantId,
+        previousStatus: null,
+        nextStatus: "draft",
+      },
+    });
+    expect(audit.events[1]).toMatchObject({
+      targetTable: "cms_contents",
+      targetId: item.id,
+      actorId: authorId,
+      metadata: {
+        tenantId,
+        previousStatus: "draft",
+        nextStatus: "draft",
+        version: 2,
+      },
+    });
+  });
+
   it("does not permit CMS mutation when the injected RBAC authorizer denies it", async () => {
     const denied = new CmsService({
       repository,
@@ -175,6 +216,7 @@ describe("CMS workflow", () => {
           throw new ForbiddenError("CMS action is not permitted");
         },
       },
+      audit,
     });
     await expect(
       denied.create({
