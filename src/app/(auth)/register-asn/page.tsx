@@ -12,7 +12,7 @@ const steps = [
 ];
 
 export default function RegisterAsnPage() {
-  const currentStep = 3;
+  const currentStep = 4;
   
   return (
     <main className="min-h-screen bg-[#f8fafc] text-[#192b40]">

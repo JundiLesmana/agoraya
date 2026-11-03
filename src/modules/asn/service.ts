@@ -221,3 +221,33 @@ export async function saveAsnStep3(data: {
     status: "step3_saved",
   };
 }
+
+export async function saveAsnStep4(data: {
+  userId?: string;
+  draftId?: string;
+  ktpFileName: string;
+  ktpFileSize: number;
+  ktpMimeType: string;
+  skFileName: string;
+  skFileSize: number;
+  skMimeType: string;
+  selfieFileName?: string;
+  selfieFileSize?: number;
+  selfieMimeType?: string;
+}) {
+  logger.info("asn.register.step4_saved", {
+    ktpMimeType: data.ktpMimeType,
+    skMimeType: data.skMimeType,
+    hasSelfie: Boolean(data.selfieFileName),
+  });
+
+  return {
+    ok: true,
+    documents: {
+      ktp: { fileName: data.ktpFileName, fileSize: data.ktpFileSize },
+      sk: { fileName: data.skFileName, fileSize: data.skFileSize },
+      selfie: data.selfieFileName ? { fileName: data.selfieFileName, fileSize: data.selfieFileSize } : null,
+    },
+    status: "step4_saved",
+  };
+}
