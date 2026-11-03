@@ -140,7 +140,7 @@ Fitur berikut menggambarkan cakupan kapabilitas yang dirancang untuk Agoraya.
 
 ### Identity & Auth
 
-- **NIK sebagai Username** — Identitas untuk proses autentikasi warga dan verifikasi sesuai kebutuhan layanan.
+- **Login warga** — Masuk menggunakan NIK atau email terdaftar dan kata sandi. Kata sandi disimpan sebagai hash scrypt; konfigurasi `AUTH_SECRET` minimal 32 karakter diperlukan untuk pembatasan percobaan login. Terapkan migrasi database sebelum menggunakan login. Akun lama belum memiliki hash kata sandi, sehingga kata sandi harus didaftarkan melalui proses enrollment yang tepercaya sebelum akun tersebut dapat masuk.
 - **Manual KYC** — Verifikasi identitas manual untuk mendukung validitas data.
 - **RBAC + ABAC** — Pengaturan akses berdasarkan peran, instansi, jabatan, dan wilayah.
 
