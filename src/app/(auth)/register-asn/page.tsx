@@ -12,7 +12,7 @@ const steps = [
 ];
 
 export default function RegisterAsnPage() {
-  const currentStep = 2; // Will be controlled by form state in real implementation
+  const currentStep = 3;
   
   return (
     <main className="min-h-screen bg-[#f8fafc] text-[#192b40]">

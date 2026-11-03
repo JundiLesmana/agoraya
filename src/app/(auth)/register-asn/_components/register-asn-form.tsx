@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Shield } from "lucide-react";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -20,6 +21,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [sameAsKtp, setSameAsKtp] = useState(false);
 
   const [form, setForm] = useState({
     nik: "",
@@ -47,14 +49,24 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
     officeAddress: "Jl. Pelayanan Publik No. 10, Kota Contoh (fiktif)",
     officialEmail: "",
     officePhone: "",
-    // Step 3
-    address: "",
-    rtRw: "",
-    village: "",
-    district: "",
-    regency: "",
-    province: "",
-    postalCode: "",
+    // Step 3 - Alamat KTP
+    ktpAddress: "Jl. Melati No. 23, Blok A",
+    ktpRt: "001",
+    ktpRw: "004",
+    ktpPostalCode: "12345",
+    ktpProvince: "Provinsi Contoh",
+    ktpRegency: "Kota Contoh",
+    ktpDistrict: "Kecamatan Harmoni",
+    ktpVillage: "Kelurahan Melati",
+    // Step 3 - Alamat Domisili
+    domAddress: "",
+    domRt: "",
+    domRw: "",
+    domPostalCode: "",
+    domProvince: "",
+    domRegency: "",
+    domDistrict: "",
+    domVillage: "",
     agreement: false,
   });
 
@@ -66,6 +78,36 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
 
   function handleChange(field: keyof typeof form, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setError("");
+  }
+
+  function handleSameAsKtpChange(checked: boolean) {
+    setSameAsKtp(checked);
+    if (checked) {
+      setForm((prev) => ({
+        ...prev,
+        domAddress: prev.ktpAddress,
+        domRt: prev.ktpRt,
+        domRw: prev.ktpRw,
+        domPostalCode: prev.ktpPostalCode,
+        domProvince: prev.ktpProvince,
+        domRegency: prev.ktpRegency,
+        domDistrict: prev.ktpDistrict,
+        domVillage: prev.ktpVillage,
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        domAddress: "",
+        domRt: "",
+        domRw: "",
+        domPostalCode: "",
+        domProvince: "",
+        domRegency: "",
+        domDistrict: "",
+        domVillage: "",
+      }));
+    }
     setError("");
   }
 
@@ -105,7 +147,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
         body: JSON.stringify({
           draftId,
           step: currentStep,
-          data: { ...form, files: null },
+          data: { ...form, files: null, sameAsKtp },
         }),
       });
       const result = await response.json();
@@ -129,7 +171,6 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
     setError("");
 
     if (currentStep === 2) {
-      // Validate step 2
       if (form.employmentStatus === "PNS") {
         if (!form.nip || form.nip.length !== 18 || !/^\d+$/.test(form.nip)) {
           setError("NIP harus 18 digit angka");
@@ -195,6 +236,89 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
       } finally {
         setPending(false);
       }
+    } else if (currentStep === 3) {
+      // Validate step 3
+      if (!form.ktpAddress || form.ktpAddress.length < 10) {
+        setError("Alamat jalan sesuai KTP minimal 10 karakter");
+        return;
+      }
+      if (!form.ktpRt || !/^\d{3}$/.test(form.ktpRt)) {
+        setError("RT harus 3 digit angka");
+        return;
+      }
+      if (!form.ktpRw || !/^\d{3}$/.test(form.ktpRw)) {
+        setError("RW harus 3 digit angka");
+        return;
+      }
+      if (!form.ktpPostalCode || !/^\d{5}$/.test(form.ktpPostalCode)) {
+        setError("Kode pos harus 5 digit angka");
+        return;
+      }
+      if (!form.ktpProvince || !form.ktpRegency || !form.ktpDistrict || !form.ktpVillage) {
+        setError("Semua dropdown alamat KTP wajib dipilih");
+        return;
+      }
+      if (!sameAsKtp) {
+        if (!form.domAddress || form.domAddress.length < 10) {
+          setError("Alamat jalan domisili minimal 10 karakter");
+          return;
+        }
+        if (!form.domRt || !/^\d{3}$/.test(form.domRt)) {
+          setError("RT domisili harus 3 digit angka");
+          return;
+        }
+        if (!form.domRw || !/^\d{3}$/.test(form.domRw)) {
+          setError("RW domisili harus 3 digit angka");
+          return;
+        }
+        if (!form.domPostalCode || !/^\d{5}$/.test(form.domPostalCode)) {
+          setError("Kode pos domisili harus 5 digit angka");
+          return;
+        }
+        if (!form.domProvince || !form.domRegency || !form.domDistrict || !form.domVillage) {
+          setError("Semua dropdown alamat domisili wajib dipilih");
+          return;
+        }
+      }
+
+      setPending(true);
+      try {
+        const response = await fetch("/api/asn/register/step3", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ktpAddress: form.ktpAddress,
+            ktpRt: form.ktpRt,
+            ktpRw: form.ktpRw,
+            ktpPostalCode: form.ktpPostalCode,
+            ktpProvince: form.ktpProvince,
+            ktpRegency: form.ktpRegency,
+            ktpDistrict: form.ktpDistrict,
+            ktpVillage: form.ktpVillage,
+            sameAsKtp,
+            domAddress: sameAsKtp ? form.ktpAddress : form.domAddress,
+            domRt: sameAsKtp ? form.ktpRt : form.domRt,
+            domRw: sameAsKtp ? form.ktpRw : form.domRw,
+            domPostalCode: sameAsKtp ? form.ktpPostalCode : form.domPostalCode,
+            domProvince: sameAsKtp ? form.ktpProvince : form.domProvince,
+            domRegency: sameAsKtp ? form.ktpRegency : form.domRegency,
+            domDistrict: sameAsKtp ? form.ktpDistrict : form.domDistrict,
+            domVillage: sameAsKtp ? form.ktpVillage : form.domVillage,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          setError(result.error || "Gagal menyimpan data step 3");
+          setPending(false);
+          return;
+        }
+      } catch (e) {
+        setError("Gagal menyimpan data step 3");
+        setPending(false);
+        return;
+      } finally {
+        setPending(false);
+      }
     }
 
     setCurrentStep((s) => (s + 1) as Step);
@@ -236,13 +360,13 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
         position: form.positionName.trim(),
         unit: form.unitWork.trim() || undefined,
         appointmentDate: form.appointmentDate || undefined,
-        address: form.address.trim(),
-        rtRw: form.rtRw.trim() || undefined,
-        village: form.village.trim(),
-        district: form.district.trim(),
-        regency: form.regency.trim(),
-        province: form.province.trim(),
-        postalCode: form.postalCode.trim() || undefined,
+        address: form.ktpAddress.trim(),
+        rtRw: form.ktpRt + "/" + form.ktpRw,
+        village: form.ktpVillage.trim(),
+        district: form.ktpDistrict.trim(),
+        regency: form.ktpRegency.trim(),
+        province: form.ktpProvince.trim(),
+        postalCode: form.ktpPostalCode.trim(),
         ktp: ktpDataUrl,
         ktpFileName: files.ktp.name,
         ktpMimeType: files.ktp.type,
@@ -561,47 +685,240 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
       )}
 
       {currentStep === 3 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="mb-4 text-lg font-semibold">Alamat</h2>
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Alamat lengkap *</Label>
-                <Input id="address" value={form.address} onChange={(e) => handleChange("address", e.target.value)} required />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+        <>
+          <div className="mb-4">
+            <p className="text-xs font-medium text-[#2563eb]">LANGKAH 3 DARI 5</p>
+            <h2 className="mt-1 text-lg font-semibold">Lengkapi informasi alamat</h2>
+            <p className="text-sm text-[#5f6f85]">Pisahkan alamat sesuai KTP dan tempat tinggal saat ini agar data administrasi tetap akurat.</p>
+          </div>
+
+          <div className="space-y-8">
+            <div>
+              <h3 className="mb-2 text-base font-semibold">Alamat sesuai KTP</h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">Salin alamat yang tercantum pada KTP Anda. Semua alamat pada tampilan ini adalah contoh fiktif.</p>
+              <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="rt">RT/RW</Label>
-                  <Input id="rt" value={form.rtRw} onChange={(e) => handleChange("rtRw", e.target.value)} placeholder="001/002" />
+                  <Label htmlFor="ktpAddress">Alamat jalan lengkap *</Label>
+                  <Input id="ktpAddress" value={form.ktpAddress} onChange={(e) => handleChange("ktpAddress", e.target.value)} placeholder="Jl. Melati No.··, Blok A (contoh fiktif)" minLength={10} maxLength={500} required />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="postalCode">Kode pos</Label>
-                  <Input id="postalCode" value={form.postalCode} onChange={(e) => handleChange("postalCode", e.target.value)} />
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpRt">RT *</Label>
+                    <Input id="ktpRt" value={form.ktpRt} onChange={(e) => handleChange("ktpRt", e.target.value)} placeholder="001" maxLength={3} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpRw">RW *</Label>
+                    <Input id="ktpRw" value={form.ktpRw} onChange={(e) => handleChange("ktpRw", e.target.value)} placeholder="004" maxLength={3} required />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="ktpPostalCode">Kode pos *</Label>
+                    <Input id="ktpPostalCode" value={form.ktpPostalCode} onChange={(e) => handleChange("ktpPostalCode", e.target.value)} placeholder="12···" maxLength={5} required />
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="village">Kelurahan *</Label>
-                  <Input id="village" value={form.village} onChange={(e) => handleChange("village", e.target.value)} required />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpProvince">Provinsi *</Label>
+                    <select
+                      id="ktpProvince"
+                      value={form.ktpProvince}
+                      onChange={(e) => handleChange("ktpProvince", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih provinsi</option>
+                      <option value="Provinsi Contoh">Provinsi Contoh</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpRegency">Kabupaten/Kota *</Label>
+                    <select
+                      id="ktpRegency"
+                      value={form.ktpRegency}
+                      onChange={(e) => handleChange("ktpRegency", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih kabupaten/kota</option>
+                      <option value="Kota Contoh">Kota Contoh</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="district">Kecamatan *</Label>
-                  <Input id="district" value={form.district} onChange={(e) => handleChange("district", e.target.value)} required />
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="regency">Kabupaten/Kota *</Label>
-                  <Input id="regency" value={form.regency} onChange={(e) => handleChange("regency", e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="province">Provinsi *</Label>
-                  <Input id="province" value={form.province} onChange={(e) => handleChange("province", e.target.value)} required />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpDistrict">Kecamatan *</Label>
+                    <select
+                      id="ktpDistrict"
+                      value={form.ktpDistrict}
+                      onChange={(e) => handleChange("ktpDistrict", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih kecamatan</option>
+                      <option value="Kecamatan Harmoni">Kecamatan Harmoni</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="ktpVillage">Kelurahan/Desa *</Label>
+                    <select
+                      id="ktpVillage"
+                      value={form.ktpVillage}
+                      onChange={(e) => handleChange("ktpVillage", e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required
+                    >
+                      <option value="">Pilih kelurahan/desa</option>
+                      <option value="Kelurahan Melati">Kelurahan Melati</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div>
+              <h3 className="mb-2 text-base font-semibold">Alamat domisili</h3>
+              <p className="mb-4 text-xs text-[#5f6f85]">Tempat tinggal Anda saat ini; tidak harus sama dengan alamat KTP.</p>
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="sameAsKtp"
+                  checked={sameAsKtp}
+                  onChange={(e) => handleSameAsKtpChange(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <label htmlFor="sameAsKtp" className="text-sm">
+                  Alamat domisili sama dengan alamat KTP
+                </label>
+              </div>
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="domAddress">Alamat jalan lengkap *</Label>
+                  <Input
+                    id="domAddress"
+                    value={form.domAddress}
+                    onChange={(e) => handleChange("domAddress", e.target.value)}
+                    placeholder="Jl. Melati No.··, Blok A (contoh fiktif)"
+                    disabled={sameAsKtp}
+                    minLength={10}
+                    maxLength={500}
+                    required
+                    className={sameAsKtp ? "bg-gray-50" : ""}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="domRt">RT *</Label>
+                    <Input
+                      id="domRt"
+                      value={form.domRt}
+                      onChange={(e) => handleChange("domRt", e.target.value)}
+                      placeholder="001"
+                      maxLength={3}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="domRw">RW *</Label>
+                    <Input
+                      id="domRw"
+                      value={form.domRw}
+                      onChange={(e) => handleChange("domRw", e.target.value)}
+                      placeholder="004"
+                      maxLength={3}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="domPostalCode">Kode pos *</Label>
+                    <Input
+                      id="domPostalCode"
+                      value={form.domPostalCode}
+                      onChange={(e) => handleChange("domPostalCode", e.target.value)}
+                      placeholder="12···"
+                      maxLength={5}
+                      disabled={sameAsKtp}
+                      required
+                      className={sameAsKtp ? "bg-gray-50" : ""}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="domProvince">Provinsi *</Label>
+                    <select
+                      id="domProvince"
+                      value={form.domProvince}
+                      onChange={(e) => handleChange("domProvince", e.target.value)}
+                      disabled={sameAsKtp}
+                      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
+                      <option value="">Pilih provinsi</option>
+                      <option value="Provinsi Contoh">Provinsi Contoh</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="domRegency">Kabupaten/Kota *</Label>
+                    <select
+                      id="domRegency"
+                      value={form.domRegency}
+                      onChange={(e) => handleChange("domRegency", e.target.value)}
+                      disabled={sameAsKtp}
+                      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
+                      <option value="">Pilih kabupaten/kota</option>
+                      <option value="Kota Contoh">Kota Contoh</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="domDistrict">Kecamatan *</Label>
+                    <select
+                      id="domDistrict"
+                      value={form.domDistrict}
+                      onChange={(e) => handleChange("domDistrict", e.target.value)}
+                      disabled={sameAsKtp}
+                      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
+                      <option value="">Pilih kecamatan</option>
+                      <option value="Kecamatan Harmoni">Kecamatan Harmoni</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="domVillage">Kelurahan/Desa *</Label>
+                    <select
+                      id="domVillage"
+                      value={form.domVillage}
+                      onChange={(e) => handleChange("domVillage", e.target.value)}
+                      disabled={sameAsKtp}
+                      className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${sameAsKtp ? "bg-gray-50" : ""}`}
+                      required
+                    >
+                      <option value="">Pilih kelurahan/desa</option>
+                      <option value="Kelurahan Melati">Kelurahan Melati</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border-l-4 border-[#2563eb] bg-[#f8fafc] p-4">
+              <Shield className="h-5 w-5 text-[#2563eb] mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-[#192b40]">Alamat pribadi tidak ditampilkan publik</p>
+                <p className="text-xs text-[#5f6f85] mt-1">
+                  Alamat digunakan untuk pemeriksaan administrasi oleh petugas yang berwenang, bukan sebagai informasi profil publik.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {currentStep === 4 && (
@@ -667,8 +984,12 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
                 <p className="text-[#5f6f85]">Instansi: {form.agencyName || "-"} | Jabatan: {form.positionName || "-"} | Status: {form.employmentStatus}</p>
               </div>
               <div>
-                <p className="mb-1 font-medium">Alamat</p>
-                <p className="text-[#5f6f85]">{form.address || "-"}, {form.village}, {form.district}, {form.regency}, {form.province}</p>
+                <p className="mb-1 font-medium">Alamat KTP</p>
+                <p className="text-[#5f6f85]">{form.ktpAddress}, RT {form.ktpRt}/RW {form.ktpRw}, {form.ktpVillage}, {form.ktpDistrict}, {form.ktpRegency}, {form.ktpProvince} {form.ktpPostalCode}</p>
+              </div>
+              <div>
+                <p className="mb-1 font-medium">Alamat Domisili</p>
+                <p className="text-[#5f6f85]">{sameAsKtp ? "Sama dengan alamat KTP" : `${form.domAddress}, RT ${form.domRt}/RW ${form.domRw}, ${form.domVillage}, ${form.domDistrict}, ${form.domRegency}, ${form.domProvince} ${form.domPostalCode}`}</p>
               </div>
               <div>
                 <p className="mb-1 font-medium">Dokumen</p>
@@ -705,7 +1026,7 @@ export function RegisterAsnForm({ initialStep = 1 }: RegisterAsnFormProps) {
           </Button>
           {currentStep < 5 ? (
             <Button onClick={handleNext} disabled={pending}>
-              {pending && currentStep === 2 ? "Menyimpan..." : "Lanjut →"}
+              {pending && (currentStep === 2 || currentStep === 3) ? "Menyimpan..." : "Lanjut →"}
             </Button>
           ) : (
             <Button onClick={handleSubmit} disabled={pending}>

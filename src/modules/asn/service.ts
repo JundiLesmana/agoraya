@@ -187,3 +187,37 @@ export async function saveAsnStep2(data: {
     status: "step2_saved",
   };
 }
+
+export async function saveAsnStep3(data: {
+  userId?: string;
+  draftId?: string;
+  ktpAddress: string;
+  ktpRt: string;
+  ktpRw: string;
+  ktpPostalCode: string;
+  ktpProvince: string;
+  ktpRegency: string;
+  ktpDistrict: string;
+  ktpVillage: string;
+  sameAsKtp: boolean;
+  domAddress: string;
+  domRt: string;
+  domRw: string;
+  domPostalCode: string;
+  domProvince: string;
+  domRegency: string;
+  domDistrict: string;
+  domVillage: string;
+}) {
+  logger.info("asn.register.step3_saved", {
+    sameAsKtp: data.sameAsKtp,
+    ktpProvince: data.ktpProvince,
+    ktpRegency: data.ktpRegency,
+  });
+
+  return {
+    ok: true,
+    sameAsKtp: data.sameAsKtp,
+    status: "step3_saved",
+  };
+}
