@@ -1,4 +1,5 @@
 "use client";
+import { HelpSearch } from "@/app/(public)/bantuan/_components/HelpSearch";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +13,7 @@ import {
   Key,
   Lightbulb,
   Megaphone,
-  Search,
+
   ArrowRight,
   Wrench,
 } from "lucide-react";
@@ -193,34 +194,12 @@ const sidebarItems = [
 ];
 
 function SearchBox({ compact = false }: { compact?: boolean }) {
-  return (
-    <div
-      className={`relative flex h-[30px] items-center rounded-md border border-slate-200 bg-white ${
-        compact ? "w-[245px]" : "w-full"
-      }`}
-    >
-      <Search
-        className="ml-2 h-[11px] w-[11px] shrink-0 text-blue-600"
-        aria-hidden="true"
-      />
-      <input
-        aria-label="Cari panduan"
-        className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-[8px] text-slate-700 outline-none placeholder:text-slate-400"
-        placeholder="Cari panduan, topik, atau kendala..."
-      />
-      <button
-        className="h-full px-2 text-[7px] text-slate-500 hover:text-blue-700"
-        type="button"
-      >
-        Cari
-      </button>
-    </div>
-  );
+  return <HelpSearch compact={compact} />;
 }
 
 function StepBadge({ n }: { n: number }) {
   return (
-    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-blue-50 px-1 text-[10px] font-semibold text-blue-700">
+    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-blue-50 px-1 text-sm font-semibold text-blue-700">
       {n}
     </span>
   );
@@ -230,12 +209,12 @@ export default function CMSLaporWargaArticlePage() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white text-slate-800">
-      <header className="fixed inset-x-0 top-0 z-30 flex h-[47px] items-center border-b border-slate-200 bg-white px-4">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 sm:px-6">
         <Link
           href="/"
           aria-label="Agoraya — Beranda"
-          className="flex h-[24px] w-[94px] shrink-0 items-center border-r border-slate-200 pr-2"
+          className="flex h-[24px] w-[94px] shrink-0 items-center border-r border-slate-200 dark:border-slate-800 pr-2"
         >
           <Image
             src="/logo/logo-light.svg"
@@ -246,18 +225,19 @@ export default function CMSLaporWargaArticlePage() {
             className="h-auto w-full"
           />
         </Link>
-        <span className="ml-3 text-[8px] text-slate-600">Pusat bantuan</span>
+<span className="ml-3 text-base font-medium text-slate-600 dark:text-slate-300">Pusat bantuan</span>
         <div className="absolute left-[calc(50%+40px)] hidden -translate-x-1/2 md:block">
           <SearchBox compact />
         </div>
         <Link
           href="/"
-          className="ml-auto inline-flex items-center gap-1 text-[8px] font-medium text-blue-700 hover:underline"
+          className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"
         >
-          Kembali ke platform <ArrowUpRight className="h-[9px] w-[9px]" />
+          <span className="hidden sm:inline">Kembali ke platform</span>{" "}
+          <ArrowUpRight className="h-4 w-4" />
         </Link>
         <button
-          className="ml-4 hidden h-[47px] w-[47px] items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 md:flex"
+          className="ml-2 flex h-10 w-10 items-center justify-center rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100"
           onClick={() => setMobileDrawerOpen(true)}
           aria-label="Buka menu navigasi"
         >
@@ -269,21 +249,21 @@ export default function CMSLaporWargaArticlePage() {
       </header>
 
       <aside
-        className="fixed top-[47px] bottom-0 left-0 hidden w-36 border-r border-slate-200 bg-slate-50 md:block"
+        className="fixed top-14 bottom-0 left-0 hidden w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 md:block"
         aria-label="Navigasi bantuan"
       >
         <nav className="px-[10px] pt-[14px]">
-          <p className="mb-[9px] text-[6px] font-semibold tracking-[0.08em] text-slate-500 uppercase">
+          <p className="mb-[9px] text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-400 uppercase">
             Dokumentasi
           </p>
           <Link
             href="/bantuan"
-            className="flex h-[20px] items-center gap-[6px] rounded bg-blue-100 px-[6px] text-[8px] font-medium text-blue-800"
+            className="flex h-[20px] items-center gap-[6px] rounded bg-blue-100 px-[6px] text-xs font-medium text-blue-800"
           >
             <Home className="h-[9px] w-[9px]" aria-hidden="true" /> Beranda
           </Link>
 
-          <p className="mt-[13px] mb-[5px] text-[6px] font-semibold tracking-[0.06em] text-slate-500 uppercase">
+          <p className="mt-[13px] mb-[5px] text-xs font-semibold tracking-[0.06em] text-slate-500 dark:text-slate-400 uppercase">
             Platform publik
           </p>
           <div className="space-y-[2px]">
@@ -291,7 +271,7 @@ export default function CMSLaporWargaArticlePage() {
               <Link
                 key={title}
                 href={href}
-                className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-[7px] text-slate-700 hover:bg-slate-100"
+                className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-xs text-slate-700 hover:bg-slate-100"
               >
                 <Icon className="h-[9px] w-[9px] text-blue-700" aria-hidden="true" />
                 <span className="flex-1">{title}</span>
@@ -303,14 +283,14 @@ export default function CMSLaporWargaArticlePage() {
             ))}
           </div>
 
-          <p className="mt-[10px] mb-[5px] text-[6px] font-semibold tracking-[0.04em] text-slate-500 uppercase">
+          <p className="mt-[10px] mb-[5px] text-xs font-semibold tracking-[0.04em] text-slate-500 dark:text-slate-400 uppercase">
             CMS · Ruang ASN
           </p>
           <div className="space-y-[2px]">
-            <div className="overflow-hidden rounded-md border border-slate-200">
+            <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
               <Link
                 href="/bantuan/cms-ruang-asn/cms-lapor-warga"
-                className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-[7px] text-slate-700 hover:bg-slate-100"
+                className="flex h-[22px] items-center gap-[6px] rounded px-[6px] text-xs text-slate-700 hover:bg-slate-100"
               >
                 <FileText
                   className="h-[9px] w-[9px] text-blue-700"
@@ -322,9 +302,9 @@ export default function CMSLaporWargaArticlePage() {
                   aria-hidden="true"
                 />
               </Link>
-              <div className="border-t border-slate-100 bg-white/50">
+              <div className="border-t border-slate-100 bg-white dark:bg-slate-950/50">
                 <div className="space-y-0">
-                  <p className="mx-[6px] my-[1px] text-[6px] font-semibold tracking-tighter text-slate-500 uppercase">
+                  <p className="mx-[6px] my-[1px] text-xs font-semibold tracking-tighter text-slate-500 dark:text-slate-400 uppercase">
                     Cara kerja
                   </p>
                   <div className="space-y-[1px]">
@@ -332,10 +312,10 @@ export default function CMSLaporWargaArticlePage() {
                       <Link
                         key={item.id}
                         href={`#${item.id}`}
-                        className={`block rounded py-[2px] pr-[6px] pl-[20px] text-[7px] ${
+                        className={`block rounded py-[2px] pr-[6px] pl-[20px] text-xs ${
                           i === 0
                             ? "bg-[#eef4fb] font-semibold text-blue-700"
-                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-800 dark:text-slate-100"
                         }`}
                         onClick={(e) => {
                           e.preventDefault();
@@ -350,7 +330,7 @@ export default function CMSLaporWargaArticlePage() {
                       </Link>
                     ))}
                   </div>
-                  <p className="mx-[6px] my-[3px] text-[6px] font-semibold tracking-tighter text-slate-500 uppercase">
+                  <p className="mx-[6px] my-[3px] text-xs font-semibold tracking-tighter text-slate-500 dark:text-slate-400 uppercase">
                     Pemecahan masalah
                   </p>
                   <div className="space-y-[1px]">
@@ -358,7 +338,7 @@ export default function CMSLaporWargaArticlePage() {
                       <Link
                         key={item.id}
                         href={`#${item.id}`}
-                        className="block rounded py-[2px] pr-[6px] pl-[20px] text-[7px] text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+                        className="block rounded py-[2px] pr-[6px] pl-[20px] text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-800 dark:text-slate-100"
                         onClick={(e) => {
                           e.preventDefault();
                           const el = document.getElementById(item.id);
@@ -377,16 +357,16 @@ export default function CMSLaporWargaArticlePage() {
             </div>
           </div>
 
-          <div className="mt-[12px] space-y-[7px] border-t border-slate-200 pt-[9px]">
+          <div className="mt-[12px] space-y-[7px] border-t border-slate-200 dark:border-slate-800 pt-[9px]">
             <Link
               href="#akun-privasi"
-              className="block text-[7px] text-slate-500 hover:text-blue-700"
+              className="block text-xs text-slate-500 dark:text-slate-400 hover:text-blue-700"
             >
               Akun & perlindungan privasi
             </Link>
             <Link
               href="#bantuan-lanjutan"
-              className="block text-[7px] text-slate-500 hover:text-blue-700"
+              className="block text-xs text-slate-500 dark:text-slate-400 hover:text-blue-700"
             >
               Menghubungi pengelola
             </Link>
@@ -399,7 +379,7 @@ export default function CMSLaporWargaArticlePage() {
         onClose={() => setMobileDrawerOpen(false)}
       />
 
-      <div className="mx-auto max-w-[1120px] px-4 pt-[70px] pb-8 md:ml-36 md:px-6">
+      <div className="mx-auto max-w-[1120px] px-4 pt-[70px] pb-8 md:ml-64 md:px-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
           <main className="w-full" aria-label="Konten artikel">
             <a href="#main-content" className="sr-only focus:not-sr-only">
@@ -408,7 +388,7 @@ export default function CMSLaporWargaArticlePage() {
 
             <nav
               aria-label="Breadcrumb"
-              className="mb-[16px] text-[10px] text-slate-500"
+              className="mb-[16px] text-sm text-slate-500 dark:text-slate-400"
             >
               <Link
                 href="/bantuan"
@@ -431,18 +411,18 @@ export default function CMSLaporWargaArticlePage() {
 
             <div className="flex flex-col gap-[20px]" id="main-content">
               <div className="flex flex-col gap-[6px]">
-                <span className="inline-flex items-center gap-[4px] rounded-md bg-[#eef4fb] px-[10px] py-[4px] text-[10px] font-semibold tracking-[0.12em] text-blue-700 uppercase">
+                <span className="inline-flex items-center gap-[4px] rounded-md bg-[#eef4fb] px-[10px] py-[4px] text-sm font-semibold tracking-[0.12em] text-blue-700 uppercase">
                   PANDUAN PENGELOLA
                 </span>
-                <h1 className="mt-[4px] text-[42px] leading-[0.96] font-bold tracking-[-0.04em] text-slate-800">
+                <h1 className="mt-3 text-4xl font-bold leading-tight tracking-tight text-slate-800 dark:text-slate-100 sm:text-5xl">
                   CMS Lapor Warga
                 </h1>
-                <p className="mt-[10px] max-w-[700px] text-[15px] leading-[1.7] text-slate-600">
+                <p className="mt-[10px] max-w-[700px] text-[15px] leading-[1.7] text-slate-600 dark:text-slate-300">
                   Periksa fakta, moderasi informasi sensitif, dan arahkan
                   laporan kepada OPD yang tepat sampai penanganan dapat
                   ditinjau warga.
                 </p>
-                <p className="mt-[8px] text-[12px] leading-[1.5] text-slate-500">
+                <p className="mt-[8px] text-[12px] leading-[1.5] text-slate-500 dark:text-slate-400">
                   4 topik cara kerja · 5 pemecahan masalah
                 </p>
               </div>
@@ -461,10 +441,10 @@ export default function CMSLaporWargaArticlePage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                       Sebelum mulai
                     </p>
-                    <p className="mt-[2px] text-[9px] leading-[1.55] text-slate-600">
+                    <p className="mt-[2px] text-sm leading-[1.55] text-slate-600 dark:text-slate-300">
                       Gunakan akun ASN yang memiliki akses ke unit pengelola
                       laporan. Pastikan kewenangan verifikasi, moderasi,
                       disposisi, dan penutupan sebelum bertindak; persetujuan
@@ -480,11 +460,11 @@ export default function CMSLaporWargaArticlePage() {
                     className="h-[14px] w-[14px] shrink-0 text-blue-600"
                     aria-hidden="true"
                   />
-                  <h2 className="text-[14px] font-bold tracking-[-0.02em] text-slate-800">
+                  <h2 className="text-[14px] font-bold tracking-[-0.02em] text-slate-800 dark:text-slate-100">
                     Cara kerja
                   </h2>
                 </div>
-                <p className="mb-[16px] text-[10px] leading-[1.5] text-slate-600">
+                <p className="mb-[16px] text-sm leading-[1.5] text-slate-600 dark:text-slate-300">
                   Ikuti langkah-langkah bernomor untuk setiap fitur. Setiap
                   tahap dilengkapi dengan konteks siapan dan hasil yang dapat
                   diharapkan.
@@ -496,24 +476,24 @@ export default function CMSLaporWargaArticlePage() {
                     id={item.id}
                     className="mb-[20px] scroll-mt-[90px] border-b border-slate-100 pb-[16px] last:mb-0 last:border-0 last:pb-0"
                   >
-                    <h3 className="text-[11px] font-semibold text-slate-800">
+                    <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
                       {item.title}
                     </h3>
-                    <p className="mt-[3px] text-[9px] text-slate-500">
+                    <p className="mt-[3px] text-sm text-slate-500 dark:text-slate-400">
                       Siapkan: {item.siapkan}
                     </p>
                     <ol className="mt-[8px] list-none space-y-[5px] pl-0">
                       {item.steps.map((step) => (
                         <li
                           key={step.n}
-                          className="flex gap-[8px] text-[9px] leading-[1.5] text-slate-600"
+                          className="flex gap-[8px] text-sm leading-[1.5] text-slate-600 dark:text-slate-300"
                         >
                           <StepBadge n={step.n} />
                           <span>{step.text}</span>
                         </li>
                       ))}
                     </ol>
-                    <p className="mt-[8px] inline-flex items-center gap-[2px] text-[9px] font-semibold text-blue-600">
+                    <p className="mt-[8px] inline-flex items-center gap-[2px] text-sm font-semibold text-blue-600">
                       Hasil <span className="text-blue-600">→</span>{" "}
                       {item.hasil}
                     </p>
@@ -532,10 +512,10 @@ export default function CMSLaporWargaArticlePage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-[9px] font-semibold text-slate-800">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                       Penting untuk dipahami
                     </p>
-                    <p className="mt-[2px] text-[9px] leading-[1.55] text-slate-600">
+                    <p className="mt-[2px] text-sm leading-[1.55] text-slate-600 dark:text-slate-300">
                       Lindungi pelapor: identitas rahasia hanya untuk petugas
                       berwenang, sedangkan anonim tidak menyertakan nama/kontak.
                       Jangan mengungkap identitas melalui uraian, lampiran,
@@ -551,11 +531,11 @@ export default function CMSLaporWargaArticlePage() {
                     className="h-[14px] w-[14px] shrink-0 text-blue-600"
                     aria-hidden="true"
                   />
-                  <h2 className="text-[14px] font-bold tracking-[-0.02em] text-slate-800">
+                  <h2 className="text-[14px] font-bold tracking-[-0.02em] text-slate-800 dark:text-slate-100">
                     Pemecahan masalah
                   </h2>
                 </div>
-                <p className="mb-[16px] text-[10px] leading-[1.5] text-slate-600">
+                <p className="mb-[16px] text-sm leading-[1.5] text-slate-600 dark:text-slate-300">
                   Mulai dari gejala yang Anda temui, periksa penyebabnya, lalu
                   eskalasi bila kendala tetap terjadi.
                 </p>
@@ -566,17 +546,17 @@ export default function CMSLaporWargaArticlePage() {
                     id={item.id}
                     className="mb-[20px] scroll-mt-[90px] border-b border-slate-100 pb-[16px] last:mb-0 last:border-0 last:pb-0"
                   >
-                    <h3 className="text-[11px] font-semibold text-slate-800">
+                    <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
                       {item.title}
                     </h3>
-                    <p className="mt-[4px] text-[10px] leading-[1.55] text-slate-600">
-                      <span className="font-semibold text-slate-800">
+                    <p className="mt-[4px] text-sm leading-[1.55] text-slate-600 dark:text-slate-300">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
                         Periksa &amp; atasi.
                       </span>{" "}
                       {item.check}
                     </p>
-                    <p className="mt-[6px] text-[10px] leading-[1.55] text-slate-600">
-                      <span className="font-semibold text-slate-800">
+                    <p className="mt-[6px] text-sm leading-[1.55] text-slate-600 dark:text-slate-300">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">
                         Hubungi pengelola jika:
                       </span>{" "}
                       {item.contact}
@@ -587,18 +567,18 @@ export default function CMSLaporWargaArticlePage() {
 
               <section
                 id="bantuan-lanjutan"
-                className="mt-[8px] rounded-md border border-slate-200 bg-white px-[16px] py-[18px] shadow-sm"
+                className="mt-[8px] rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-[16px] py-[18px] shadow-sm"
               >
-                <h3 className="text-[11px] font-semibold text-slate-800">
+                <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
                   Masih membutuhkan bantuan?
                 </h3>
-                <p className="mt-[4px] text-[10px] leading-[1.6] text-slate-600">
+                <p className="mt-[4px] text-sm leading-[1.6] text-slate-600 dark:text-slate-300">
                   Gunakan kanal bantuan yang tersedia di platform atau
                   instansi. Sertakan ID laporan, pengajuan, dataset, atau
                   artikel yang terkait; waktu kejadian, filter dan periode;
                   serta tangkapan layar yang sudah disamarkan.
                 </p>
-                <p className="mt-[4px] text-[10px] leading-[1.6] text-slate-600">
+                <p className="mt-[4px] text-sm leading-[1.6] text-slate-600 dark:text-slate-300">
                   Jangan kirim kata sandi, OTP, NIK penuh, atau dokumen pribadi
                   melalui saluran publik.
                 </p>
@@ -607,7 +587,7 @@ export default function CMSLaporWargaArticlePage() {
               <div className="mt-[20px]">
                 <Link
                   href="/bantuan/platform-publik/lapor-warga"
-                  className="inline-flex items-center gap-[2px] text-[10px] font-medium text-blue-700 hover:underline"
+                  className="inline-flex items-center gap-[2px] text-sm font-medium text-blue-700 hover:underline"
                 >
                   Panduan terkait: Lapor Warga{" "}
                   <ArrowRight className="h-[10px] w-[10px]" />
@@ -620,37 +600,37 @@ export default function CMSLaporWargaArticlePage() {
               >
                 <Link
                   href="/bantuan/cms-ruang-asn/cms-layanan-publik"
-                  className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50"
+                  className="group flex flex-col gap-[2px] rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-[10px] py-[12px] transition-colors hover:bg-slate-50 dark:bg-slate-900"
                 >
-                  <span className="text-[8px] font-semibold tracking-[0.08em] text-slate-500 uppercase group-hover:text-blue-700">
+                  <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-400 uppercase group-hover:text-blue-700">
                     Sebelumnya
                   </span>
-                  <span className="flex items-center gap-[2px] text-[10px] font-semibold text-slate-800 group-hover:text-blue-700">
+                  <span className="flex items-center gap-[2px] text-sm font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-700">
                     ← CMS Layanan Publik
                   </span>
                 </Link>
                 <Link
                   href="/bantuan/cms-ruang-asn/cms-insight"
-                  className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50"
+                  className="group flex flex-col gap-[2px] rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-[10px] py-[12px] transition-colors hover:bg-slate-50 dark:bg-slate-900"
                 >
-                  <span className="text-[8px] font-semibold tracking-[0.08em] text-slate-500 uppercase group-hover:text-blue-700">
+                  <span className="text-xs font-semibold tracking-[0.08em] text-slate-500 dark:text-slate-400 uppercase group-hover:text-blue-700">
                     Berikutnya
                   </span>
-                  <span className="flex items-center gap-[2px] text-[10px] font-semibold text-slate-800 group-hover:text-blue-700">
+                  <span className="flex items-center gap-[2px] text-sm font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-700">
                     CMS Insight{" "}
                     <ArrowRight className="h-[10px] w-[10px]" />
                   </span>
                 </Link>
               </nav>
 
-              <footer className="mt-[30px] border-t border-slate-200 pt-[12px]">
-                <p className="text-[8px] leading-[1.5] text-slate-500">
+              <footer className="mt-[30px] border-t border-slate-200 dark:border-slate-800 pt-[12px]">
+                <p className="text-xs leading-[1.5] text-slate-500 dark:text-slate-400">
                   Panduan mengikuti rancangan platform dan ketersediaan
                   fitur/hak akses instansi, bukan layanan operasional. Ini
-                  adalah tampilan dokumentasi statis; navigasi dan pencarian
-                  tidak diaktifkan.
+                  adalah panduan dokumentasi; navigasi antarhalaman dan
+                  pencarian panduan tersedia.
                 </p>
-                <div className="mt-[10px] flex items-center justify-between text-[8px] text-slate-600">
+                <div className="mt-[10px] flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                   <span className="font-semibold">
                     Agoraya · Pusat bantuan / Data Publik, Untuk Semua
                   </span>

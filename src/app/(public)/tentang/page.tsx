@@ -250,7 +250,7 @@ export default function AboutPage() {
                 className="h-[46px] rounded-[10px] border-blue-200 bg-white px-5 text-sm font-semibold text-blue-700 shadow-none hover:bg-blue-50 hover:text-blue-800 dark:border-slate-600 dark:bg-slate-900 dark:text-sky-300 dark:hover:bg-slate-800 dark:hover:text-sky-200"
               >
                 <Link
-                  href="/tracking"
+                  href="/bantuan/platform-publik/layanan-publik"
                   aria-label="Cara berpartisipasi di Agoraya"
                 >
                   Cara berpartisipasi
