@@ -145,7 +145,7 @@ export function LoginForm() {
       <p className="pt-0.5 text-center text-[0.68rem] text-[#68798d]">
         Belum punya akun?{" "}
         <Link
-          href="/register"
+          href="/register-asn"
           className="font-semibold text-[#1265c9] transition-colors hover:text-[#0f4fa0]"
         >
           Daftar akun ASN
