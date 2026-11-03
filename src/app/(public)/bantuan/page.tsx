@@ -41,7 +41,7 @@ const pillars: Pillar[] = [
     title: "Data Pemerintah",
     desc: "Baca anggaran, pantau proyek, dan telusuri data daerah.",
     icon: Database,
-    publicLink: "/bantuan/data-pemerintah",
+    publicLink: "/bantuan/platform-publik/data-pemerintah",
     cmsLink: "/bantuan/cms-data-pemerintah",
     public: {
       how: [
@@ -185,7 +185,7 @@ const pillars: Pillar[] = [
 ];
 
 const sidebarItems = [
-  { title: "Data Pemerintah", icon: Database, href: "/bantuan/data-pemerintah" },
+  { title: "Data Pemerintah", icon: Database, href: "/bantuan/platform-publik/data-pemerintah" },
   { title: "Layanan Publik", icon: FileText, href: "/bantuan/layanan-publik" },
   { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/lapor-warga" },
   { title: "Insight", icon: ChartNoAxesColumnIncreasing, href: "/bantuan/insight" },
