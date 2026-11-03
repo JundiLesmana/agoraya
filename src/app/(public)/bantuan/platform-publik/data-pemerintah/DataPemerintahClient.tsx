@@ -169,7 +169,7 @@ const MASALAH: MasalahItem[] = [
 const sidebarItems = [
   { title: "Data Pemerintah", icon: Database, href: "/bantuan/platform-publik/data-pemerintah" },
   { title: "Layanan Publik", icon: FileText, href: "/bantuan/layanan-publik" },
-  { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/lapor-warga" },
+  { title: "Lapor Warga", icon: Megaphone, href: "/bantuan/platform-publik/lapor-warga" },
   { title: "Insight", icon: Lightbulb, href: "/bantuan/insight" },
 ];
 
