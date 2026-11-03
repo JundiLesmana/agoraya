@@ -459,11 +459,9 @@ export function RegisterAsnForm({
   function handleRemoveFile(
     kind: "ktp" | "skPengangkatan" | "idCard" | "selfie",
   ) {
-    if (
-      uploadedFiles[kind]?.preview &&
-      uploadedFiles[kind]?.file.type.startsWith("image/")
-    ) {
-      URL.revokeObjectURL(uploadedFiles[kind]!.preview!);
+    const entry = uploadedFiles[kind];
+    if (entry?.preview && entry.file.type.startsWith("image/")) {
+      URL.revokeObjectURL(entry.preview);
     }
     setUploadedFiles((prev) => ({ ...prev, [kind]: null }));
     setError("");
@@ -808,7 +806,7 @@ export function RegisterAsnForm({
             : Promise.resolve(undefined),
         ]);
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         nik: form.nik.trim(),
         name: form.name.trim(),
         birthPlace: form.birthPlace.trim(),
@@ -821,7 +819,6 @@ export function RegisterAsnForm({
         nip: form.nip.trim() || undefined,
         position: form.positionName.trim(),
         unit: form.unitWork.trim() || undefined,
-        appointmentDate: form.appointmentDate || undefined,
         address: form.ktpAddress.trim(),
         rtRw: form.ktpRt + "/" + form.ktpRw,
         village: form.ktpVillage.trim(),
@@ -1189,7 +1186,7 @@ export function RegisterAsnForm({
                   </>
                 )}
                 <p className="text-xs text-[#5f6f85]">
-                  Bekerja di instansi pusat? Pilih 'Instansi pusat'. Wilayah
+                  Bekerja di instansi pusat? Pilih &apos;Instansi pusat&apos;. Wilayah
                   daerah tidak diwajibkan; gunakan unit kerja dan lokasi
                   penugasan bila relevan dengan kebijakan instansi.
                 </p>

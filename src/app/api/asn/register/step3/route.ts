@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await saveAsnStep3(parsed.data as any);
+    const result = await saveAsnStep3(parsed.data);
     return NextResponse.json(
       { ok: true, data: result },
       { status: 200, headers: { "Cache-Control": "no-store" } },

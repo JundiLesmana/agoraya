@@ -79,7 +79,7 @@ export const registerAsnSchema = z.strictObject({
   selfie: imageDataUrlSchema("Foto diri").optional(),
   selfieFileName: fileNameSchema.optional(),
   selfieMimeType: z.enum(["image/jpeg", "image/png"]).optional(),
-  agreement: z.literal(true, { errorMap: () => ({ message: "Persetujuan wajib dicentang" }) }),
+  agreement: z.literal(true, { message: "Persetujuan wajib dicentang" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Konfirmasi password tidak sama",
   path: ["confirmPassword"],
