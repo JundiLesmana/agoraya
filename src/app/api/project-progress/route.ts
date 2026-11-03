@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentSession } from "@/lib/auth/session";
+import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import {
   getProjectProgress,
   handleSubmit,
@@ -9,7 +9,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
-  const session = await getCurrentSession();
+  const moduleAuthorization = await requireModuleAccess("pst");
+  if (!moduleAuthorization.authorized) return moduleAuthorization.response;
+  const session = moduleAuthorization.session;
   if (
     !session ||
     !session.roles.some((role) => ["asn", "staff"].includes(role))
@@ -40,7 +42,9 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await getCurrentSession();
+  const moduleAuthorization = await requireModuleAccess("pst");
+  if (!moduleAuthorization.authorized) return moduleAuthorization.response;
+  const session = moduleAuthorization.session;
   if (
     !session ||
     !session.roles.some((role) => ["asn", "staff"].includes(role))

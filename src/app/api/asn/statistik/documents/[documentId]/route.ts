@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCurrentSession } from "@/lib/auth/session";
+import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import { logger } from "@/lib/logger";
 import {
   getStatisticDocumentDownloadUrl,
@@ -13,7 +13,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ documentId: string }> },
 ): Promise<Response> {
-  const session = await getCurrentSession();
+  const moduleAuthorization = await requireModuleAccess("insight");
+  if (!moduleAuthorization.authorized) return moduleAuthorization.response;
+  const session = moduleAuthorization.session;
   if (
     !session ||
     !session.roles.some((role) => role === "asn" || role === "staff")

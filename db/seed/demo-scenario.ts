@@ -19,6 +19,7 @@ import { eq } from "drizzle-orm";
 import type * as schema from "../../src/lib/db/schema/index.js";
 import {
   auditEvents,
+  applicationRoles,
   permissions,
   rbacPolicies,
   rolePermissions,
@@ -50,6 +51,21 @@ const PERM_TICKETS_UPDATE = "00000000-0000-0000-0000-000000000052";
 const PERM_TICKETS_VERIFY = "00000000-0000-0000-0000-000000000053";
 const PERM_CMS_READ = "00000000-0000-0000-0000-000000000060";
 const PERM_AUDIT_READ = "00000000-0000-0000-0000-000000000061";
+const APP_ROLE_OPERATOR = "00000000-0000-0000-0000-000000000070";
+const APP_ROLE_VERIFIKATOR = "00000000-0000-0000-0000-000000000071";
+const APP_ROLE_KYC_VERIFIKATOR = "00000000-0000-0000-0000-000000000072";
+const APP_ROLE_CMS_OPERATOR = "00000000-0000-0000-0000-000000000073";
+
+const APPLICATION_ROLE_SEEDS = [
+  { id: APP_ROLE_OPERATOR, key: "operator", name: "Operator" },
+  { id: APP_ROLE_VERIFIKATOR, key: "verifikator", name: "Verifikator" },
+  {
+    id: APP_ROLE_KYC_VERIFIKATOR,
+    key: "kyc_verifikator",
+    name: "Verifikator KYC",
+  },
+  { id: APP_ROLE_CMS_OPERATOR, key: "cms_operator", name: "Operator CMS" },
+];
 
 const USER_ADMIN = "00000000-0000-0000-0000-000000000100";
 const USER_MAKER = "00000000-0000-0000-0000-000000000200";
@@ -266,6 +282,16 @@ export async function seedDemoScenario(
       .insert(permissions)
       .values(p)
       .onConflictDoUpdate({ target: permissions.key, set: p });
+  }
+
+  for (const appRole of APPLICATION_ROLE_SEEDS) {
+    await dbx
+      .insert(applicationRoles)
+      .values(appRole)
+      .onConflictDoUpdate({
+        target: applicationRoles.key,
+        set: { name: appRole.name, updatedAt: now },
+      });
   }
 
   for (const u of USER_SEEDS) {
