@@ -460,7 +460,7 @@ export default function DataPemerintahArticlePage() {
               <section id="pemecahan-masalah" className="mt-[8px]">
                 <div className="mb-[12px] flex items-center gap-[6px]">
                   <h2 className="text-[14px] font-bold tracking-[-0.02em] text-slate-800">
-                    Pemecahan masalah
+                    Pemecahan masalah 
                   </h2>
                 </div>
                 <p className="mb-[16px] text-[10px] leading-[1.5] text-slate-600">
@@ -518,7 +518,7 @@ export default function DataPemerintahArticlePage() {
                     ← Beranda
                   </span>
                 </Link>
-                <Link href="/bantuan/layanan-publik" className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50">
+                <Link href="/bantuan/platform-publik/layanan-publik" className="group flex flex-col gap-[2px] rounded-md border border-slate-200 bg-white px-[10px] py-[12px] transition-colors hover:bg-slate-50">
                   <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-slate-500 group-hover:text-blue-700">
                     Berikutnya
                   </span>
