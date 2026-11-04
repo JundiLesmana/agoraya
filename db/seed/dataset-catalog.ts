@@ -3,7 +3,6 @@ import { datasetResources, datasets } from "../../src/lib/db/schema/index.js";
 
 type DbClient = ReturnType<typeof getDb>;
 
-// TODO(#161): replace these illustrative records with verified agency metadata.
 const SEED_DATASETS = [
   {
     id: "26000000-0000-4000-8000-000000000001",

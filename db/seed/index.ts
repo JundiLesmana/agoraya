@@ -1,13 +1,3 @@
-/**
- * Agoraya — Database seed entry point.
- *
- * Run with: `pnpm db:seed` (runs `tsx db/seed/index.ts`).
- *
- * Seeds BPS snapshots and the demo scenario. Idempotent: safe to run
- * repeatedly. Accepts an optional Drizzle instance so the reset script can
- * reuse a direct (unpooled) connection.
- */
-
 import { getDb } from "../../src/lib/db/index.js";
 import { seedBpsSnapshots } from "./bps-snapshot.js";
 import { seedDatasetCatalog } from "./dataset-catalog.js";

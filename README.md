@@ -217,34 +217,57 @@ Lapisan aplikasi menggunakan pembagian domain, layanan, repository, dan adapter.
 
 - Node.js 22 atau lebih baru (`.nvmrc`)
 - pnpm 9 atau lebih baru
-- PostgreSQL lokal atau database PostgreSQL yang dapat diakses
+- PostgreSQL 16 atau lebih baru yang terpasang dan berjalan secara lokal
+- `psql` dan `createdb` (disediakan paket PostgreSQL)
 
 ### Instalasi
 
 ```bash
 git clone https://github.com/JundiLesmana/agoraya.git
 cd agoraya
-nvm use
+corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env.local
+cp -n .env.example .env.local
 ```
 
-Isi `DATABASE_URL` dan `AUTH_SECRET` di `.env.local` sebelum menjalankan aplikasi atau mengakses fungsi yang memerlukan konfigurasi tersebut. `AUTH_SECRET` harus memiliki setidaknya 32 karakter. Simpan kredensial hanya di environment lokal atau secret manager—jangan commit file `.env.local`.
+Pastikan `node --version` menunjukkan v22 atau lebih baru. Jika menggunakan nvm, jalankan `nvm use` di direktori proyek. `corepack enable` menyiapkan pnpm sesuai versi proyek.
 
-Untuk PostgreSQL lokal, siapkan database dengan `bash scripts/setup-local-db.sh`, lalu jalankan migrasi:
+Di Ubuntu/Debian, pasang dan jalankan PostgreSQL:
 
 ```bash
+sudo apt update
+sudo apt install postgresql postgresql-client
+sudo systemctl enable --now postgresql
+```
+
+Buat role dan database lokal Agoraya:
+
+```bash
+sudo -u postgres bash scripts/setup-local-db.sh
+```
+
+Skrip menyiapkan database `agoraya_local` dan role `agoraya`. `.env.example` sudah berisi URL lokal yang sesuai. Buat secret pengembangan dan salin nilainya ke `AUTH_SECRET` di `.env.local` (minimal 32 karakter):
+
+```bash
+openssl rand -base64 32
+```
+
+Untuk memakai Neon atau database lain, ganti `DATABASE_URL` dan `DATABASE_URL_UNPOOLED` dengan connection string milik database tersebut. Jangan commit `.env.local` atau kredensial database.
+
+Jalankan migrasi dan seed data demo dari terminal Bash yang sama:
+
+```bash
+set -a
+source .env.local
+set +a
 pnpm db:migrate:local
-```
-
-Seed data demo jika diperlukan, lalu mulai server pengembangan:
-
-```bash
 pnpm db:seed
 pnpm dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000). Lihat [.env.example](./.env.example) untuk daftar konfigurasi, termasuk variabel opsional. Variabel berawalan `NEXT_PUBLIC_` dapat terekspos ke browser dan tidak boleh berisi secret.
+Buka [http://localhost:3000](http://localhost:3000). Aplikasi Next.js dan PostgreSQL adalah layanan lokal utama; integrasi Brevo, Cloudinary, BPS, dan provider AI memerlukan kredensial eksternal tersendiri dan bersifat opsional untuk menjalankan aplikasi. Data seed bersifat sintetis. PostgreSQL tetap berjalan sebagai service sistem; periksa statusnya dengan `sudo systemctl status postgresql`.
+
+Untuk panduan database, migrasi, integrasi, dan pemecahan masalah lebih lengkap, lihat [DOCUMENTATION.md — Setup & Konfigurasi](./DOCUMENTATION.md#10-setup--konfigurasi). Variabel berawalan `NEXT_PUBLIC_` dapat terekspos ke browser dan tidak boleh berisi secret.
 
 ## Perintah Pengembangan dan Pengujian
 
@@ -281,232 +304,39 @@ Periksa konfigurasi dan environment yang diperlukan sebelum menjalankan perintah
 
 ```text
 agoraya/
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   │   ├── bug_report.yml
-│   │   ├── feature_request.yml
-│   │   └── task.yml
-│   ├── workflows/
-│   │   └── ci.yml
-│   └── pull_request_template.md
+├── .github/                 # Workflow CI dan template kontribusi
 ├── db/
-│   ├── migrations/
-│   │   ├── 0001_initial_schema.sql
-│   │   ├── 0001_initial_schema.down.sql
-│   │   ├── 0002_rbac_module.sql
-│   │   ├── 0002_rbac_module.down.sql
-│   │   ├── 0003_cms_module.sql
-│   │   ├── 0003_cms_module.down.sql
-│   │   ├── 0004_reporting_module.sql
-│   │   ├── 0004_reporting_module.down.sql
-│   │   ├── 0005_analytics_module.sql
-│   │   └── 0005_analytics_module.down.sql
-│   └── seed/
-│       ├── bps-snapshot.ts
-│       ├── demo-scenario.ts
-│       └── index.ts
-├── public/
-│   ├── data/
-│   │   ├── anggaran-realisasi-apbd.csv
-│   │   ├── indikator-statistik-daerah.csv
-│   │   └── progres-proyek-daerah.csv
-│   ├── datasets/
-│   │   └── progres-proyek-metadata.json
-│   ├── landing/
-│   │   ├── footer-desktop.png
-│   │   ├── footer-mobile.png
-│   │   ├── hero-desktop.png
-│   │   └── hero-mobile.png
-│   └── logo/
-│       ├── logo-dark.svg
-│       └── logo-light.svg
-├── scripts/
-│   ├── export-snapshot.ts
-│   ├── reset-demo.ts
-│   ├── rollback-migration.ts
-│   ├── seed.ts
-│   ├── setup-local-db.sh
-│   └── verify-audit.ts
+│   ├── migrations/          # Migrasi PostgreSQL dan rollback (.down.sql)
+│   └── seed/                # Seed BPS, katalog dataset, dan skenario demo
+├── public/                  # Aset statis, dataset, dan data contoh CSV
+├── scripts/                 # Setup PostgreSQL lokal, seed, reset, dan utilitas
 ├── src/
-│   ├── app/                        # Next.js App Router
-│   │   ├── (admin)/
-│   │   │   ├── admin/page.tsx
-│   │   │   ├── system/page.tsx
-│   │   │   ├── users/page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── (asn)/
-│   │   │   ├── asn/dashboard/page.tsx
-│   │   │   ├── asn/reporting/page.tsx
-│   │   │   ├── data-management/page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── (auth)/
-│   │   │   ├── callback/page.tsx
-│   │   │   ├── forgot-password/page.tsx
-│   │   │   ├── login/page.tsx
-│   │   │   ├── register/page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── (citizen)/
-│   │   │   ├── citizen/apply/page.tsx
-│   │   │   ├── citizen/dashboard/page.tsx
-│   │   │   ├── citizen/reporting/page.tsx
-│   │   │   ├── profile/page.tsx
-│   │   │   ├── tracking/page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── (executive)/
-│   │   │   ├── analytics/page.tsx
-│   │   │   ├── executive/dashboard/
-│   │   │   │   ├── _components/    # Kartu ringkasan dan grafik
-│   │   │   │   ├── error.tsx
-│   │   │   │   ├── loading.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── insights/page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── (public)/
-│   │   │   ├── _components/        # Pencarian utama dan preview dashboard
-│   │   │   ├── anggaran/page.tsx
-│   │   │   ├── insights/page.tsx
-│   │   │   ├── tracking/stat/page.tsx
-│   │   │   ├── data/
-│   │   │   │   ├── _components/    # Katalog, ringkasan, dan tabel proyek
-│   │   │   │   ├── anggaran/page.tsx
-│   │   │   │   ├── project/page.tsx
-│   │   │   │   └── statistik/
-│   │   │   │       ├── _components/
-│   │   │   │       └── page.tsx
-│   │   │   ├── data-pemerintah/proyek/
-│   │   │   │   ├── _components/    # Filter, dashboard, informasi, unduhan
-│   │   │   │   ├── metodologi/page.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── page.tsx
-│   │   │   └── layout.tsx
-│   │   ├── api/
-│   │   │   ├── audit/route.ts
-│   │   │   ├── auth/route.ts
-│   │   │   ├── insight/
-│   │   │   │   ├── anggaran/route.ts
-│   │   │   │   ├── kesejahteraan/route.ts
-│   │   │   │   ├── layanan/route.ts
-│   │   │   │   └── sekilas/route.ts
-│   │   │   ├── v1/stats/
-│   │   │   │   ├── summary/route.ts
-│   │   │   │   └── tracking-summary/route.ts
-│   │   │   ├── cron/analytics/refresh/route.ts
-│   │   │   ├── health/route.ts
-│   │   │   ├── notifications/route.ts
-│   │   │   ├── projects/
-│   │   │   │   ├── route.ts
-│   │   │   │   └── summary/route.ts
-│   │   │   ├── rbac/route.ts
-│   │   │   └── reports/route.ts
-│   │   ├── forbidden/page.tsx
-│   │   └── layout.tsx
-│   ├── components/                 # Komponen UI lintas halaman
-│   │   ├── charts/                 # Grafik dan formatter
-│   │   ├── forms/                  # Field dan formulir bersama
-│   │   ├── map/
-│   │   ├── source-badges/
-│   │   ├── ui/                     # Komponen dasar
-│   │   └── *.tsx                   # Navigasi, footer, filter, ringkasan
-│   ├── lib/                        # Infrastruktur dan helper bersama
-│   │   ├── auth/
-│   │   ├── db/
-│   │   │   └── schema/             # Foundation, RBAC, CMS, KYC, reporting
-│   │   ├── env/
-│   │   ├── errors/
-│   │   ├── idempotency/
-│   │   ├── logger/
-│   │   ├── rbac/
-│   │   ├── result/
-│   │   └── *.ts                    # Currency, project data, summary, utilities
-│   └── modules/                    # Domain, schema, service, repository, dan adapter
-│       ├── ai/
-│       ├── analytics/
-│       │   ├── aggregates/
-│       │   ├── materialized-views/
-│       │   └── suppression/
-│       ├── audit/
-│       ├── cms/
-│       │   ├── risk-review/
-│       │   ├── state-machine/
-│       │   └── versioning/
-│       ├── decision-engine/
-│       ├── identity/
-│       │   ├── otp/
-│       │   ├── providers/
-│       │   │   ├── identity-provider/
-│       │   │   └── mock-dukcapil/
-│       │   └── session/
-│       ├── integrations/
-│       ├── jobs/
-│       ├── kyc/
-│       │   ├── dual-approval/
-│       │   ├── lifecycle/
-│       │   └── roster/
-│       ├── notifications/
-│       ├── rbac/
-│       │   ├── grants/
-│       │   ├── pdp/
-│       │   └── policies/
-│       └── reporting/
-│           ├── dedup/
-│           ├── qc-evidence/
-│           ├── sla/
-│           ├── state-machine/
-│           └── voting/
+│   ├── app/                 # Next.js App Router: halaman dan API routes
+│   ├── components/          # Komponen UI bersama
+│   ├── lib/
+│   │   ├── db/schema/       # Schema Drizzle
+│   │   ├── env/             # Validasi environment
+│   │   └── ...              # Auth, logging, errors, dan helper bersama
+│   ├── modules/             # Domain: analytics, identity, ASN, citizen, CMS,
+│   │                        # dataset, education, KYC, RBAC, reporting, integrasi
+│   └── styles/              # Style global
 ├── tests/
 │   ├── e2e/
-│   │   ├── anggaran-filter.test.ts
-│   │   └── README.md
-│   ├── helpers/
-│   │   ├── setup-react.ts
-│   │   └── test-utils.ts
 │   ├── integration/
-│   │   ├── cms/
-│   │   ├── integrations/
-│   │   ├── kyc/
-│   │   ├── rbac/
-│   │   ├── reporting/
-│   │   └── *.test.ts(x)            # Tes integrasi pada root kategori
 │   ├── load/
 │   ├── security/
-│   │   ├── cms/
-│   │   ├── rbac/
-│   │   └── *.test.ts(x)
 │   └── unit/
-│       ├── analytics/
-│       ├── audit/
-│       ├── cms/
-│       ├── db/
-│       ├── integrations/
-│       ├── jobs/
-│       ├── kyc/
-│       ├── lib/
-│       ├── notifications/
-│       ├── rbac/
-│       ├── reporting/
-│       └── *.test.ts(x)            # Tes halaman, UI, domain, dan utilitas
-├── .env.example                    # Template konfigurasi tanpa secret
-├── .gitignore
-├── .nvmrc
-├── .prettierignore
-├── .prettierrc.json
-├── CONTRIBUTING.md
-├── DOCUMENTATION.md
-├── drizzle.config.ts
-├── drizzle.config.local.ts
-├── eslint.config.mjs
-├── next-env.d.ts
-├── package.json
-├── playwright.config.ts
+├── .env.example             # Template environment untuk PostgreSQL lokal
+├── .nvmrc                   # Versi Node.js proyek
+├── drizzle.config.local.ts  # Konfigurasi Drizzle untuk database lokal
+├── drizzle.config.ts        # Konfigurasi Drizzle berbasis DATABASE_URL_UNPOOLED
+├── package.json             # Script dan dependency aplikasi
 ├── pnpm-lock.yaml
-├── postcss.config.mjs
 ├── README.md
-├── tsconfig.json
-├── vercel.json
-└── vitest.config.ts
+└── DOCUMENTATION.md         # Setup dan dokumentasi teknis lengkap
 ```
 
-Tree ini merangkum seluruh area utama dan subdirektori fitur yang ada. Berkas hasil build/cache, dependency terpasang, serta `.env` lokal tidak ditampilkan. Dokumentasi teknis utama berada di `DOCUMENTATION.md`.
+Database lokal menggunakan PostgreSQL native; `scripts/setup-local-db.sh` menyiapkan role dan database, sedangkan migrasi tersimpan di `db/migrations/`. File build, dependency terpasang, dan `.env.local` tidak ditampilkan dalam struktur ini.
 
 ## Kontribusi dan Dokumentasi
 

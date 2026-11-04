@@ -1,14 +1,3 @@
-/**
- * Agoraya — BPS snapshot seed data.
- *
- * All records are explicitly simulated (sourceLabel = 'SIMULATED') and contain
- * no real government or citizen data. They are used to populate the public
- * statistics dashboard in development/demo environments.
- *
- * Seed is idempotent: re-running updates existing snapshots (matched by
- * dataset + region + year + month) instead of duplicating them.
- */
-
 import { randomUUID } from "crypto";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type * as schema from "../../src/lib/db/schema/index.js";

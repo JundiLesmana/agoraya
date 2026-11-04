@@ -671,11 +671,11 @@ REVOKE UPDATE, DELETE ON audit_logs FROM app_user;
 # Generate migration dari schema changes
 pnpm db:generate
 
-# Jalankan migrations
-pnpm db:migrate
+# Jalankan migrations pada database lokal
+pnpm db:migrate:local
 
 # Buka Drizzle Studio untuk inspect
-pnpm db:studio
+pnpm db:studio:local
 
 # Seed data demo
 pnpm db:seed
@@ -980,35 +980,82 @@ AI Router handles:
 
 ### 10.1 Quick Start
 
+Agoraya adalah **modular monolith**: untuk menjalankannya di laptop cukup
+menyalakan satu aplikasi Next.js dan satu database PostgreSQL. Brevo,
+Cloudinary, BPS API, dan provider AI adalah integrasi eksternal opsional,
+bukan service lokal yang harus dipasang. Fitur yang menggunakan integrasi
+tersebut memerlukan kredensial provider terkait.
+
+Langkah berikut memasang PostgreSQL native sebagai service sistem, tanpa
+Docker. Contoh perintah instalasi ditujukan untuk Ubuntu/Debian.
+
 ```bash
-# 1. Clone
-git clone https://github.com/<org>/agoraya.git
+# 1. Clone repository
+git clone https://github.com/JundiLesmana/agoraya.git
 cd agoraya
 
-# 2. Node version
-nvm use  # Node 22
+# 2. Gunakan Node.js 22+ dan pnpm 9+
+corepack enable
+node --version
+pnpm --version
 
-# 3. Install
+# 3. Install dependency
 pnpm install --frozen-lockfile
 
-# 4. Environment
-cp .env.example .env.local
-# Edit .env.local
+# 4. Buat konfigurasi lokal
+cp -n .env.example .env.local
 
-# 5. Database
-pnpm db:generate
-pnpm db:migrate
-pnpm db:seed  # optional
+# 5. Pasang dan jalankan PostgreSQL
+sudo apt update
+sudo apt install postgresql postgresql-client
+sudo systemctl enable --now postgresql
 
-# 6. Run
+# 6. Buat role dan database Agoraya
+sudo -u postgres bash scripts/setup-local-db.sh
+
+# 7. Buat AUTH_SECRET
+openssl rand -base64 32
+# Salin output ke AUTH_SECRET di .env.local (minimal 32 karakter).
+# DATABASE_URL dan DATABASE_URL_UNPOOLED sudah cocok dengan setup lokal.
+# Jangan commit .env.local.
+
+# 8. Migrasikan schema dan masukkan data demo sintetis
+set -a
+source .env.local
+set +a
+pnpm db:migrate:local
+pnpm db:seed
+
+# 9. Jalankan aplikasi
 pnpm dev
 ```
+
+Terminal yang menjalankan aplikasi dapat dibiarkan aktif selama pengembangan;
+buka `http://localhost:3000` di browser. Perintah `source` di atas untuk
+Bash (Linux/macOS/WSL) dan memastikan perintah Drizzle/seed juga membaca
+nilai dari `.env.local`; Next.js membaca file tersebut saat aplikasi dimulai.
+Jika menggunakan nvm, jalankan `nvm use` dari direktori repository sebelum
+mengaktifkan Corepack.
+
+Skrip membuat database `agoraya_local` dan role `agoraya` dengan password
+pengembangan `localdev`, sama seperti nilai di `.env.example`. Gunakan nilai
+tersebut hanya untuk database lokal. PostgreSQL berjalan sebagai service
+sistem dan dapat diperiksa atau dihentikan dengan:
+
+```bash
+sudo systemctl status postgresql
+sudo systemctl stop postgresql
+sudo systemctl start postgresql
+```
+
+Data PostgreSQL dikelola oleh service dan direktori data PostgreSQL pada
+sistem operasi; jangan menghapus direktori data PostgreSQL secara manual.
 
 ### 10.2 Environment per Stage
 
 | Variable | Development | Preview | Production |
 |----------|-------------|---------|------------|
-| `DATABASE_URL` | Local/Neon Dev | Neon Preview | Neon Production |
+| `DATABASE_URL` | PostgreSQL lokal atau Neon Dev | Neon Preview | Neon Production |
 | `BREVO_API_KEY` | Test key | Test key | Production key |
 | `AUTH_SECRET` | Random | Random | Strong random |
 | `NEXT_PUBLIC_APP_URL` | localhost:3000 | Preview URL | Production URL |
@@ -1054,17 +1101,20 @@ pnpm dev
 | Command | Purpose |
 |---------|---------|
 | `pnpm db:generate` | Generate SQL migration files from `src/lib/db/schema.ts` into `db/migrations/` |
-| `pnpm db:migrate` | Apply pending migrations (use `DATABASE_URL_UNPOOLED` for DDL) |
-| `pnpm db:push` | Push schema directly to DB (development only, no versioning) |
-| `pnpm db:studio` | Open Drizzle Studio to inspect data |
+| `pnpm db:migrate:local` | Apply pending migrations to the local database |
+| `pnpm db:migrate` | Apply pending migrations to the configured remote database |
+| `pnpm db:push:local` | Push schema directly to the local DB (development only, no versioning) |
+| `pnpm db:studio:local` | Open Drizzle Studio for the local database |
 | `pnpm db:seed` | Seed BPS snapshots, demo scenario, and dataset catalog (idempotent) |
 | `pnpm db:reset` | Truncate all data tables then re-seed (clean demo state) |
 | `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
 
-Connection pooling is configured in `src/lib/db/index.ts` (pooled `DATABASE_URL` for
-the app, direct `DATABASE_URL_UNPOOLED` for migrations/reset/rollback). All seed
-data is explicitly synthetic (`sourceLabel = 'SIMULATED'`); no real NIK, citizen
-PII, or production credentials are ever seeded.
+`drizzle.config.local.ts` memakai `DATABASE_URL` (atau default PostgreSQL
+lokal); `drizzle.config.ts` memakai `DATABASE_URL_UNPOOLED`.
+Connection pooling untuk aplikasi diatur dalam `src/lib/db/index.ts`.
+Jalankan perintah database dan seed setelah mengekspor variabel `.env.local`
+seperti pada Quick Start. Semua data seed bersifat sintetis; jangan gunakan
+data pribadi warga atau kredensial production untuk pengembangan lokal.
 
 ## 11. Testing Strategy
 
@@ -1298,9 +1348,19 @@ Jika satu entry dimanipulasi, semua hash berikutnya akan invalid → **tamper-ev
 
 **Database connection gagal**
 ```bash
-# Cek connection string
-echo $DATABASE_URL
-# Pastikan Neon project aktif dan IP diallow
+# Periksa status PostgreSQL lokal
+sudo systemctl status postgresql
+pg_isready -h 127.0.0.1 -p 5432 -U agoraya -d agoraya_local
+
+# Pastikan URL lokal di .env.local cocok dengan scripts/setup-local-db.sh:
+# postgres://agoraya:localdev@127.0.0.1:5432/agoraya_local
+# Jika memakai Neon, pastikan project aktif dan IP diizinkan.
+```
+
+**Port 5432 sudah digunakan**
+```bash
+sudo ss -ltnp 'sport = :5432'
+# Pastikan hanya ada satu PostgreSQL yang menggunakan port 5432.
 ```
 
 **OTP email tidak terkirim**
