@@ -1,9 +1,7 @@
-import { randomUUID } from "node:crypto";
-
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 import type * as dbSchema from "@/lib/db/schema";
-import { auditEvents } from "../audit/db";
+import { appendAuditEvent } from "../audit/service";
 
 export interface AuditEvent {
   readonly actorId: string | null;
@@ -45,15 +43,13 @@ export function createAuditEventSink(
 ): AuditSink {
   return {
     async record(event: AuditEvent): Promise<void> {
-      await db.insert(auditEvents).values({
-        id: randomUUID(),
+      await appendAuditEvent(db, {
         actorId: uuidOrNull(event.actorId),
         action: event.action,
         targetTable: event.targetTable,
         targetId: uuidOrNull(event.targetId),
         metadata: { ...event.metadata },
-        createdAt: event.occurredAt,
-        updatedAt: event.occurredAt,
+        occurredAt: event.occurredAt,
       });
     },
   };

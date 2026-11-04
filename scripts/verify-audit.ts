@@ -6,26 +6,35 @@ import { verifyAuditTrail } from '../src/modules/audit/verify.js';
 import type { AuditEntry } from '../src/modules/audit/types.js';
 
 function requireAuditSecret(): string {
-  const secret = process.env.AUDIT_HMAC_SECRET ?? process.env.AUTH_SECRET;
+  const secret = process.env.AUDIT_HASH_SECRET ?? process.env.AUDIT_HMAC_SECRET ?? process.env.AUTH_SECRET;
   if (!secret) {
-    throw new Error('AUDIT_HMAC_SECRET or AUTH_SECRET must be defined to verify the audit trail.');
+    throw new Error('AUDIT_HASH_SECRET, AUDIT_HMAC_SECRET, or AUTH_SECRET must be defined to verify the audit trail.');
   }
   return secret;
 }
 
-function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry {
+function toAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry | null {
+  if (
+    row.chainSequence === null ||
+    row.previousHash === null ||
+    row.hash === null ||
+    row.signature === null
+  ) {
+    return null;
+  }
+
   return {
     id: row.id,
-    sequence: 0,
+    sequence: row.chainSequence,
     action: row.action,
     actorId: row.actorId,
     targetTable: row.targetTable,
     targetId: row.targetId,
     metadata: row.metadata as Readonly<Record<string, unknown>>,
     occurredAt: row.createdAt,
-    previousHash: '',
-    hash: '',
-    signature: '',
+    previousHash: row.previousHash,
+    hash: row.hash,
+    signature: row.signature,
   };
 }
 
@@ -33,7 +42,9 @@ async function main(): Promise<void> {
   const database = db();
   const secret = requireAuditSecret();
   const rows = await database.select().from(auditEvents).orderBy(asc(auditEvents.createdAt));
-  const entries = rows.map(toAuditEntry);
+  const entries = rows
+    .map(toAuditEntry)
+    .filter((entry): entry is AuditEntry => entry !== null);
   const result = verifyAuditTrail(entries, secret);
 
   console.log('[script:verify-audit] checked', JSON.stringify({

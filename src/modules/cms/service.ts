@@ -32,19 +32,23 @@ import type {
   RiskReview,
 } from "./types";
 import type { CmsRepository } from "./repository";
+import type { AuditSink } from "@/modules/rbac/audit";
 
 export interface CmsServiceOptions {
   readonly repository: CmsRepository;
   readonly authorizer: CmsAuthorizer;
+  readonly audit?: AuditSink;
   readonly clock?: () => Date;
 }
 export class CmsService {
   readonly #repository: CmsRepository;
   readonly #authorizer: CmsAuthorizer;
+  readonly #audit: AuditSink | null;
   readonly #clock: () => Date;
   constructor(options: CmsServiceOptions) {
     this.#repository = options.repository;
     this.#authorizer = options.authorizer;
+    this.#audit = options.audit ?? null;
     this.#clock = options.clock ?? (() => new Date());
   }
   async create(command: CreateContentCommand): Promise<CmsContent> {
@@ -84,6 +88,18 @@ export class CmsService {
         previousStatus: null,
         nextStatus: "draft",
         now,
+      });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: "cms.content.created",
+        targetTable: "cms_contents",
+        targetId: item.id,
+        metadata: {
+          tenantId: item.tenantId,
+          previousStatus: null,
+          nextStatus: "draft",
+        },
+        occurredAt: now,
       });
       return item;
     });
@@ -158,6 +174,19 @@ export class CmsService {
         metadata: { version },
         now,
       });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: "cms.content.updated",
+        targetTable: "cms_contents",
+        targetId: current.id,
+        metadata: {
+          tenantId: current.tenantId,
+          previousStatus: current.status,
+          nextStatus: updated.status,
+          version,
+        },
+        occurredAt: now,
+      });
       return updated;
     });
   }
@@ -219,6 +248,19 @@ export class CmsService {
         metadata: value.reason ? { reason: value.reason } : undefined,
         now,
       });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: "cms.content.restored",
+        targetTable: "cms_contents",
+        targetId: current.id,
+        metadata: {
+          tenantId: current.tenantId,
+          previousStatus: current.status,
+          nextStatus: "draft",
+          ...(value.reason ? { reason: value.reason } : {}),
+        },
+        occurredAt: now,
+      });
       return updated;
     });
   }
@@ -272,6 +314,22 @@ export class CmsService {
         },
         now,
       });
+      await this.#recordAudit({
+        actorId: value.reviewerId,
+        action: "cms.risk_review.recorded",
+        targetTable: "cms_risk_reviews",
+        targetId: item.id,
+        metadata: {
+          tenantId: current.tenantId,
+          contentId: current.id,
+          previousStatus: current.status,
+          nextStatus: current.status,
+          score: item.score,
+          level: item.level,
+          decision: item.decision,
+        },
+        occurredAt: now,
+      });
       return item;
     });
   }
@@ -321,6 +379,18 @@ export class CmsService {
         previousStatus: current.status,
         nextStatus: "published",
         now,
+      });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: "cms.content.published",
+        targetTable: "cms_contents",
+        targetId: current.id,
+        metadata: {
+          tenantId: current.tenantId,
+          previousStatus: current.status,
+          nextStatus: "published",
+        },
+        occurredAt: now,
       });
       return updated;
     });
@@ -382,6 +452,20 @@ export class CmsService {
         metadata: { restoredVersion: value.version, version: nextVersion },
         now,
       });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: "cms.content.rolled_back",
+        targetTable: "cms_contents",
+        targetId: current.id,
+        metadata: {
+          tenantId: current.tenantId,
+          previousStatus: current.status,
+          nextStatus: updated.status,
+          restoredVersion: value.version,
+          version: nextVersion,
+        },
+        occurredAt: now,
+      });
       return updated;
     });
   }
@@ -437,6 +521,19 @@ export class CmsService {
         metadata: value.reason ? { reason: value.reason } : undefined,
         now,
       });
+      await this.#recordAudit({
+        actorId: value.actorId,
+        action: auditAction,
+        targetTable: "cms_contents",
+        targetId: current.id,
+        metadata: {
+          tenantId: current.tenantId,
+          previousStatus: current.status,
+          nextStatus: target,
+          ...(value.reason ? { reason: value.reason } : {}),
+        },
+        occurredAt: now,
+      });
       return updated;
     });
   }
@@ -473,6 +570,17 @@ export class CmsService {
       action,
       contentId,
     });
+  }
+  async #recordAudit(event: {
+    readonly actorId: string;
+    readonly action: string;
+    readonly targetTable: string;
+    readonly targetId: string;
+    readonly metadata: Readonly<Record<string, unknown>>;
+    readonly occurredAt: Date;
+  }): Promise<void> {
+    if (!this.#audit) return;
+    await this.#audit.record(event);
   }
   async #required(promise: Promise<CmsContent | null>): Promise<CmsContent> {
     const item = await promise;

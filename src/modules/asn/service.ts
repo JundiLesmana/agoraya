@@ -2,6 +2,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { tenants, users } from "@/lib/db/schema/foundation";
+import { asnProfiles, jobPositions } from "@/modules/identity/db";
 import { kycRoster } from "@/modules/kyc/db";
 import { hashPassword } from "@/modules/identity/password/service";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
@@ -116,6 +117,41 @@ export async function registerAsn(command: RegisterAsnCommand) {
       status: "inactive", // Requires admin approval per requirements
     });
 
+    const [existingPosition] = await tx
+      .select({ id: jobPositions.id })
+      .from(jobPositions)
+      .where(eq(jobPositions.name, command.position))
+      .limit(1);
+    let positionId = existingPosition?.id;
+    if (!positionId) {
+      const [createdPosition] = await tx
+        .insert(jobPositions)
+        .values({
+          id: randomUUID(),
+          name: command.position,
+        })
+        .onConflictDoNothing()
+        .returning({ id: jobPositions.id });
+      positionId = createdPosition?.id;
+    }
+    if (!positionId) {
+      const [positionAfterConflict] = await tx
+        .select({ id: jobPositions.id })
+        .from(jobPositions)
+        .where(eq(jobPositions.name, command.position))
+        .limit(1);
+      positionId = positionAfterConflict?.id;
+    }
+
+    await tx.insert(asnProfiles).values({
+      userId,
+      tenantId,
+      nip: command.nip ?? null,
+      opdName: command.agencyName,
+      unitName: command.unit ?? null,
+      positionId: positionId ?? null,
+    });
+
     await tx.insert(kycRoster).values({
       id: randomUUID(),
       tenantId,
@@ -177,6 +213,71 @@ export async function saveAsnStep2(data: {
     agencyName: data.agencyName,
     nipHash,
   });
+
+  if (data.userId) {
+    const userId = data.userId;
+    const database = db();
+    await database.transaction(async (tx) => {
+      const [user] = await tx
+        .select({ tenantId: users.tenantId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (user) {
+        const [position] = await tx
+          .select({ id: jobPositions.id })
+          .from(jobPositions)
+          .where(eq(jobPositions.name, data.positionName))
+          .limit(1);
+        let positionId = position?.id;
+        if (!positionId) {
+          const [createdPosition] = await tx
+            .insert(jobPositions)
+            .values({
+              id: randomUUID(),
+              name: data.positionName,
+              type:
+                data.positionType === "Jabatan struktural"
+                  ? "structural"
+                  : "functional",
+            })
+            .onConflictDoNothing()
+            .returning({ id: jobPositions.id });
+          positionId = createdPosition?.id;
+        }
+        if (!positionId) {
+          const [positionAfterConflict] = await tx
+            .select({ id: jobPositions.id })
+            .from(jobPositions)
+            .where(eq(jobPositions.name, data.positionName))
+            .limit(1);
+          positionId = positionAfterConflict?.id;
+        }
+
+        await tx
+          .insert(asnProfiles)
+          .values({
+            userId,
+            tenantId: user.tenantId,
+            nip: data.nip ?? null,
+            opdName: data.agencyName,
+            unitName: data.unitWork,
+            positionId: positionId ?? null,
+          })
+          .onConflictDoUpdate({
+            target: asnProfiles.userId,
+            set: {
+              tenantId: user.tenantId,
+              nip: data.nip ?? null,
+              opdName: data.agencyName,
+              unitName: data.unitWork,
+              positionId: positionId ?? null,
+              updatedAt: new Date(),
+            },
+          });
+      }
+    });
+  }
 
   return {
     ok: true,
