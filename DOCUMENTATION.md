@@ -1061,12 +1061,95 @@ sistem operasi; jangan menghapus direktori data PostgreSQL secara manual.
 | `AUTH_SECRET` | Random | Random | Strong random |
 | `NEXT_PUBLIC_APP_URL` | localhost:3000 | Preview URL | Production URL |
 
-### 10.3 Neon Database Setup
+### 10.3 Menyiapkan dan Mendeploy Database ke Neon
 
-1. Buat project di [Neon Console](https://console.neon.tech/)
-2. Buat branch untuk development & preview
-3. Copy connection string ke `.env.local`
-4. Gunakan `DATABASE_URL_UNPOOLED` untuk migrations
+#### Menyiapkan koneksi Neon
+
+1. Masuk ke [Neon Console](https://console.neon.tech/) dan buat atau pilih
+   project PostgreSQL Agoraya.
+2. Buat branch terpisah untuk production dan development/preview. Jangan
+   gunakan branch production untuk pengembangan lokal.
+3. Pada branch **production**, buka **Connect** dan pilih database serta role
+   aplikasi yang akan digunakan.
+4. Salin **pooled connection string** ke environment production sebagai
+   `DATABASE_URL`. Salin **direct/unpooled connection string** ke
+   `DATABASE_URL_UNPOOLED`, yang dipakai oleh perintah migrasi.
+5. Simpan kedua nilai sebagai secret di hosting (contohnya Vercel Project
+   Settings → Environment Variables, untuk environment Production). Jangan
+   commit connection string atau menempelkannya ke issue/log.
+
+Format keduanya umumnya seperti berikut; gunakan nilai persis dari Neon,
+termasuk parameter SSL yang diberikan:
+
+```text
+postgresql://ROLE:PASSWORD@HOST/DB?sslmode=require
+```
+
+#### Deploy schema dari repository ke Neon production
+
+Prosedur ini menerapkan **schema dan migrasi yang tersimpan di repository** ke
+database Neon. Ini bukan proses menyalin seluruh isi database lokal.
+
+1. Pastikan semua migrasi yang dibutuhkan sudah masuk ke branch/release yang
+   akan di-deploy dan sudah ditinjau. Jalankan migrasi terlebih dahulu ke
+   branch Neon development/preview dan verifikasi aplikasi di sana.
+2. Buat backup/restore point atau Neon branch dari production sebelum
+   mengubah schema.
+3. Dari root repository, buka terminal Bash. Masukkan connection string
+   direct production ke variabel sesi terminal tanpa menaruhnya di command
+   yang akan disimpan ke shell history:
+
+   ```bash
+   read -rsp "Neon production direct URL: " DATABASE_URL_UNPOOLED
+   echo
+   export DATABASE_URL_UNPOOLED
+   ```
+
+4. Pastikan variabel mengarah ke host dan database production yang benar tanpa
+   mencetak password:
+
+   ```bash
+   node -e 'const u = new URL(process.env.DATABASE_URL_UNPOOLED); console.log(`${u.hostname}${u.port ? `:${u.port}` : ""}${u.pathname}`)'
+   ```
+
+   Cocokkan hasilnya dengan branch production di Neon Console. Jika tidak
+   cocok, hentikan dan isi ulang variabel sebelum lanjut.
+5. Terapkan migrasi:
+
+   ```bash
+   pnpm db:migrate
+   ```
+
+6. Konfigurasikan `DATABASE_URL` pooled dan
+   `DATABASE_URL_UNPOOLED` direct sebagai environment variables Production
+   di hosting, lalu deploy aplikasi.
+7. Verifikasi aplikasi dan schema pada production. Tutup terminal atau hapus
+   kedua variabel dari sesi setelah selesai:
+
+   ```bash
+   unset DATABASE_URL_UNPOOLED
+   ```
+
+**Jangan jalankan `pnpm db:push` pada production.** `db:push` melewati alur
+migrasi yang tercatat dan hanya untuk database development lokal. Jangan
+jalankan `pnpm db:seed` atau `pnpm db:reset` di production: seed berisi data
+demo sintetis, sementara reset menghapus data.
+
+#### Apakah data dari database lokal juga perlu dipindahkan?
+
+Migrasi hanya membuat/mengubah struktur tabel; migrasi **tidak menyalin baris
+data lokal**. Seed lokal Agoraya berisi tenant, akun, tiket, dataset, dan data
+statistik simulasi. Jangan memindahkan data seed itu ke production. Untuk
+production baru, deploy migrasi saja, lalu masukkan data production melalui
+proses onboarding/import yang telah ditinjau.
+
+Jika memang ada data lokal non-demo yang sah untuk dipindahkan, lakukan
+sebagai prosedur data migration terpisah: pastikan izin dan klasifikasi data,
+ambil backup production, uji export/import pada branch Neon non-production,
+redaksi PII/secret, dan rencanakan downtime serta rekonsiliasi sebelum
+menjalankan restore ke production. Jangan restore dump lokal langsung ke
+production atau menimpa database production yang telah berisi data tanpa
+rencana dan persetujuan eksplisit.
 
 ### 10.4 Brevo Setup
 
@@ -1103,7 +1186,7 @@ sistem operasi; jangan menghapus direktori data PostgreSQL secara manual.
 |---------|---------|
 | `pnpm db:generate` | Generate SQL migration files from `src/lib/db/schema.ts` into `db/migrations/` |
 | `pnpm db:migrate:local` | Apply pending migrations to the local database |
-| `pnpm db:migrate` | Apply pending migrations to the configured remote database |
+| `pnpm db:migrate` | Apply pending migrations to `DATABASE_URL_UNPOOLED` (use a Neon branch first; production steps above) |
 | `pnpm db:push:local` | Push schema directly to the local DB (development only, no versioning) |
 | `pnpm db:studio:local` | Open Drizzle Studio for the local database |
 | `pnpm db:seed` | Seed BPS snapshots, demo scenario, and dataset catalog (idempotent) |
@@ -1111,7 +1194,9 @@ sistem operasi; jangan menghapus direktori data PostgreSQL secara manual.
 | `pnpm db:rollback [name]` | Rollback the last (or named) migration via its `.down.sql` |
 
 `drizzle.config.local.ts` memakai `DATABASE_URL` (atau default PostgreSQL
-lokal); `drizzle.config.ts` memakai `DATABASE_URL_UNPOOLED`.
+lokal); `drizzle.config.ts` memakai `DATABASE_URL_UNPOOLED`. Perintah
+`pnpm db:migrate` membaca variabel yang sudah diekspor ke proses shell; file
+`.env.local` tidak otomatis dimuat oleh Drizzle Kit.
 Connection pooling untuk aplikasi diatur dalam `src/lib/db/index.ts`.
 Jalankan perintah database dan seed setelah mengekspor variabel `.env.local`
 seperti pada Quick Start. Semua data seed bersifat sintetis; jangan gunakan

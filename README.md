@@ -269,6 +269,10 @@ Buka [http://localhost:3000](http://localhost:3000). Aplikasi Next.js dan Postgr
 
 Untuk panduan database, migrasi, integrasi, dan pemecahan masalah lebih lengkap, lihat [DOCUMENTATION.md — Setup & Konfigurasi](./DOCUMENTATION.md#10-setup--konfigurasi). Variabel berawalan `NEXT_PUBLIC_` dapat terekspos ke browser dan tidak boleh berisi secret.
 
+Untuk menyiapkan schema di Neon production, gunakan migrasi dengan connection
+string direct Neon—jangan gunakan `db:push` atau seed data demo. Lihat
+[langkah deploy database ke Neon](./DOCUMENTATION.md#103-menyiapkan-dan-mendeploy-database-ke-neon).
+
 ## Perintah Pengembangan dan Pengujian
 
 ```bash
