@@ -22,6 +22,8 @@ function normalizeIdentifier(identifier: string): string {
   return trimmed.includes("@") ? trimmed.toLowerCase() : trimmed;
 }
 
+export { normalizeIdentifier };
+
 function hashIdentifier(identifier: string): string {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) {

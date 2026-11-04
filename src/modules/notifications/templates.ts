@@ -52,6 +52,16 @@ const templates: Record<NotificationTemplateName, TemplateDefinition<Record<stri
     html: ({ variables }) => `<p>${escapeHtml(readString(variables, "message", "We detected an account security event."))}</p>`,
     text: ({ variables }) => escapeText(readString(variables, "message", "We detected an account security event.")),
   },
+  "password-reset": {
+    subject: () => "Reset kata sandi Agoraya Anda",
+    html: ({ recipient, variables }) => {
+      const resetUrl = escapeHtml(readString(variables, "resetUrl", "#"));
+      const expiresIn = escapeHtml(readString(variables, "expiresIn", "1 jam"));
+      return `<p>Hello ${escapeHtml(recipient.name ?? recipient.email)},</p><p>Kami menerima permintaan untuk mereset kata sandi akun Agoraya Anda.</p><p>Klik tombol di bawah untuk membuat kata sandi baru. Link ini berlaku selama ${expiresIn} dan hanya bisa digunakan sekali.</p><p><a href="${resetUrl}" style="background:#1767cf;color:#ffffff;padding:10px 16px;text-decoration:none;border-radius:6px;display:inline-block">Buat kata sandi baru</a></p><p>Jika Anda tidak meminta permintaan ini, abaikan email ini dan pastikan akun Anda aman.</p>`;
+    },
+    text: ({ recipient, variables }) =>
+      escapeText(`Hello ${recipient.name ?? recipient.email}, Kami menerima permintaan untuk mereset kata sandi akun Agoraya Anda. Kunjungi ${readString(variables, "resetUrl", "#")} untuk membuat kata sandi baru. Link ini berlaku selama ${readString(variables, "expiresIn", "1 jam")} dan hanya bisa digunakan sekali. Jika Anda tidak meminta permintaan ini, abaikan email ini.`),
+  },
 };
 
 export function renderNotificationTemplate<TName extends NotificationTemplateName>(name: TName, input: NotificationTemplateRenderInput): NotificationMessage {
