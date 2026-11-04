@@ -16,7 +16,6 @@ What was wrong/needed, why this approach is minimal, and what changed?
 ## Scope guard
 - [ ] No unrelated refactor or behavior change
 - [ ] No unapproved dependency or architecture change
-- [ ] No CCTV/IoT/hardware workflow added
 - [ ] Outbound email uses Brevo only; no WhatsApp/SMS/direct Gmail API/SMTP/push
 
 ## Validation evidence

@@ -1,18 +1,3 @@
-/**
- * Agoraya — Demo scenario seed data.
- *
- * Deterministic demo data for the Kota Contoh (Demo City) tenant. All IDs are
- * fixed UUIDs so re-running the seed is idempotent (existing rows are updated,
- * tickets are replaced). Identity numbers are clearly simulated (padded zeros)
- * and must never be mistaken for real NIK/Dukcapil data.
- *
- * Seed is idempotent:
- * - tenants / users / roles / permissions: upserted on their unique keys
- * - role_permissions / user_roles: inserted with ON CONFLICT DO NOTHING
- *   tickets: deleted for the demo tenant, then re-inserted
- * - audit_events: inserted as append-only seed records
- */
-
 import { randomUUID } from "crypto";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
