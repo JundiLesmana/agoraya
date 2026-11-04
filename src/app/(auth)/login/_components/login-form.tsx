@@ -34,7 +34,18 @@ export function LoginForm() {
         return;
       }
 
-      router.replace("/citizen/dashboard");
+      const sessionResponse = await fetch("/api/auth", { cache: "no-store" });
+      const session = (await sessionResponse.json()) as { roles?: string[] };
+      const roles = session.roles ?? [];
+      let target = "/citizen/dashboard";
+      if (roles.includes("executive") || roles.includes("pimpinan")) {
+        target = "/executive/dashboard";
+      } else if (
+        roles.some((role) => role === "asn" || role === "staff" || role === "admin")
+      ) {
+        target = "/asn/dashboard";
+      }
+      router.replace(target);
       router.refresh();
     } catch {
       setError(

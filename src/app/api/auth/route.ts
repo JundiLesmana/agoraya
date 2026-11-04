@@ -11,7 +11,7 @@ const SESSION_COOKIE = "agoraya_session";
 export async function GET() {
   const session = await getCurrentSession();
   return NextResponse.json(
-    { authenticated: Boolean(session) },
+    { authenticated: Boolean(session), roles: session?.roles ?? [] },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

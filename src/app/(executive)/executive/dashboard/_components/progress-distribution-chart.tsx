@@ -33,19 +33,19 @@ export function buildProgressDistributionData(summary: ProjectSummary): Distribu
     {
       name: 'Selesai',
       value: summary.selesai,
-      percent: Math.round((summary.selesai / total) * 100),
+      percent: total === 0 ? 0 : Math.round((summary.selesai / total) * 100),
       color: CHART_COLORS.selesai,
     },
     {
       name: 'Berjalan',
       value: summary.berjalan,
-      percent: Math.round((summary.berjalan / total) * 100),
+      percent: total === 0 ? 0 : Math.round((summary.berjalan / total) * 100),
       color: CHART_COLORS.berjalan,
     },
     {
       name: 'Tertunda',
       value: summary.tertunda,
-      percent: Math.round((summary.tertunda / total) * 100),
+      percent: total === 0 ? 0 : Math.round((summary.tertunda / total) * 100),
       color: CHART_COLORS.tertunda,
     },
   ];
@@ -77,7 +77,7 @@ export function ProgressDistributionChart({ summary }: { summary: ProjectSummary
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle className="text-xl">Progres penyelesaian</CardTitle>
-            <CardDescription>240 proyek · status per 30 September 2025</CardDescription>
+            <CardDescription>{summary.totalProyek} proyek</CardDescription>
           </div>
           <SourceBadge source="SIMULATED" />
         </div>
@@ -107,29 +107,37 @@ export function ProgressDistributionChart({ summary }: { summary: ProjectSummary
               </table>
             </div>
             <div className="relative h-[260px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Tooltip content={DistributionTooltip} />
-                  <Pie
-                    data={data}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius="68%"
-                    outerRadius="88%"
-                    paddingAngle={2}
-                    stroke="transparent"
-                    isAnimationActive={false}
-                  >
-                    {data.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </RechartsPieChart>
-              </ResponsiveContainer>
+              {summary.totalProyek === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  Tidak ada data proyek.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Tooltip content={DistributionTooltip} />
+                    <Pie
+                      data={data}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius="68%"
+                      outerRadius="88%"
+                      paddingAngle={2}
+                      stroke="transparent"
+                      isAnimationActive={false}
+                    >
+                      {data.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              )}
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
                 <div>
-                  <p className="text-3xl font-semibold tracking-tight text-foreground">240 proyek</p>
-                  <p className="text-sm text-muted-foreground">status per 30 September 2025</p>
+                  <p className="text-3xl font-semibold tracking-tight text-foreground">
+                    {summary.totalProyek.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">total proyek</p>
                 </div>
               </div>
             </div>
@@ -149,9 +157,12 @@ export function ProgressDistributionChart({ summary }: { summary: ProjectSummary
             </ul>
           </div>
         </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-          12 proyek tertunda memerlukan perhatian. Periksa progres fisik.
-        </div>
+        {summary.tertunda > 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            {summary.tertunda.toLocaleString('id-ID')} proyek tertunda memerlukan
+            perhatian. Periksa progres fisik.
+          </div>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           Persentase berdasarkan jumlah proyek, bukan rata-rata progres fisik.
         </p>
