@@ -21,13 +21,22 @@ const BootstrapEnvSchema = z.object({
   BOOTSTRAP_TENANT_NAME: z.string().trim().min(1).max(255),
   BOOTSTRAP_EXECUTIVE_EMAIL: z.string().email(),
   BOOTSTRAP_EXECUTIVE_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_EXECUTIVE_PASSWORD: z.string().min(12).max(256),
+  BOOTSTRAP_EXECUTIVE_PASSWORD: z
+    .string()
+    .min(12, "harus minimal 12 karakter")
+    .max(256, "maksimal 256 karakter"),
   BOOTSTRAP_ADMIN_EMAIL: z.string().email(),
   BOOTSTRAP_ADMIN_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_ADMIN_PASSWORD: z.string().min(12).max(256),
+  BOOTSTRAP_ADMIN_PASSWORD: z
+    .string()
+    .min(12, "harus minimal 12 karakter")
+    .max(256, "maksimal 256 karakter"),
   BOOTSTRAP_CITIZEN_EMAIL: z.string().email(),
   BOOTSTRAP_CITIZEN_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_CITIZEN_PASSWORD: z.string().min(12).max(256),
+  BOOTSTRAP_CITIZEN_PASSWORD: z
+    .string()
+    .min(12, "harus minimal 12 karakter")
+    .max(256, "maksimal 256 karakter"),
 });
 
 const ROLE_DEFINITIONS = [
@@ -57,7 +66,7 @@ function getEnv() {
   const parsed = BootstrapEnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const invalid = parsed.error.issues
-      .map((issue) => issue.path.join("."))
+      .map((issue) => `${issue.path.join(".")} (${issue.message})`)
       .join(", ");
     throw new Error(`Konfigurasi bootstrap tidak valid: ${invalid}`);
   }
