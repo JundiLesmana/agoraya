@@ -17,9 +17,7 @@ import { hashPassword } from "../src/modules/identity/password/service.js";
 const ENV_FILE = ".env.production.local";
 
 const BootstrapEnvSchema = z.object({
-  BOOTSTRAP_DATABASE_URL: z.string().url(),
-  BOOTSTRAP_DATABASE_NAME: z.string().min(1),
-  BOOTSTRAP_PRODUCTION_CONFIRMATION: z.literal("I_UNDERSTAND_PRODUCTION"),
+  DATABASE_URL_UNPOOLED: z.string().url(),
   BOOTSTRAP_TENANT_NAME: z.string().trim().min(1).max(255),
   BOOTSTRAP_EXECUTIVE_EMAIL: z.string().email(),
   BOOTSTRAP_EXECUTIVE_NAME: z.string().trim().min(1).max(255),
@@ -64,20 +62,19 @@ function getEnv() {
     throw new Error(`Konfigurasi bootstrap tidak valid: ${invalid}`);
   }
 
-  const url = new URL(parsed.data.BOOTSTRAP_DATABASE_URL);
+  const url = new URL(parsed.data.DATABASE_URL_UNPOOLED);
   const databaseName = decodeURIComponent(url.pathname.slice(1));
   if (
     !["postgres:", "postgresql:"].includes(url.protocol) ||
-    !url.hostname.endsWith(".neon.tech")
+    !url.hostname.endsWith(".neon.tech") ||
+    url.hostname.includes("-pooler")
   ) {
     throw new Error(
-      "BOOTSTRAP_DATABASE_URL harus merupakan direct connection string Neon.",
+      "DATABASE_URL_UNPOOLED harus merupakan direct connection string Neon, bukan URL pooler.",
     );
   }
-  if (databaseName !== parsed.data.BOOTSTRAP_DATABASE_NAME) {
-    throw new Error(
-      "Nama database pada URL tidak cocok dengan BOOTSTRAP_DATABASE_NAME.",
-    );
+  if (!databaseName) {
+    throw new Error("DATABASE_URL_UNPOOLED tidak memuat nama database.");
   }
   if (
     new Set([
@@ -117,7 +114,7 @@ async function main(): Promise<void> {
     throw new Error("Konfirmasi database tidak cocok; bootstrap dibatalkan.");
   }
 
-  const client = postgres(env.BOOTSTRAP_DATABASE_URL, {
+  const client = postgres(env.DATABASE_URL_UNPOOLED, {
     max: 1,
     connect_timeout: 10,
   });

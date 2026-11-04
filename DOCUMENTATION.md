@@ -1167,10 +1167,8 @@ perintah bootstrap terpisah:
    ```
 
 3. Edit `.env.production.local` dan isi hanya untuk proses bootstrap:
-   - `BOOTSTRAP_DATABASE_URL`: direct connection string Neon production yang
-     baru.
-   - `BOOTSTRAP_DATABASE_NAME`: nama database di URL (contohnya `neondb`).
-   - `BOOTSTRAP_PRODUCTION_CONFIRMATION=I_UNDERSTAND_PRODUCTION`.
+   - `DATABASE_URL_UNPOOLED`: direct connection string Neon production yang
+     baru, bukan pooled URL. Nama database dibaca dari URL ini.
    - Nama tenant, email, dan nama tampilan sesuai akun yang akan dibuat.
    - Password unik yang kuat untuk `BOOTSTRAP_EXECUTIVE_PASSWORD`,
      `BOOTSTRAP_ADMIN_PASSWORD`, dan `BOOTSTRAP_CITIZEN_PASSWORD` (minimum 12
@@ -1186,16 +1184,16 @@ perintah bootstrap terpisah:
    `.env.production.local` hanya untuk menjalankan bootstrap dari mesin lokal;
    jangan commit atau membagikan file tersebut.
 
-4. Periksa sekali lagi nama database di `.env.production.local`, lalu jalankan
-   dari root repository:
+4. Periksa sekali lagi bahwa `DATABASE_URL_UNPOOLED` menunjuk ke database
+   production yang benar, lalu jalankan dari root repository:
 
    ```bash
    pnpm db:bootstrap:production-accounts
    ```
 
-   Skrip hanya menerima host Neon, mencocokkan nama database, menampilkan
-   host/database tanpa password, lalu meminta nama database diketik ulang
-   sebelum transaksi. Semua perubahan akun dibatalkan bersama jika ada konflik.
+   Skrip hanya menerima direct host Neon, menampilkan host/database tanpa
+   password, lalu meminta nama database diketik ulang sebelum transaksi.
+   Semua perubahan akun dibatalkan bersama jika ada konflik.
 
 5. Skrip membuat:
    - `executive@agoraya.com`: hanya role `superadmin` dan `executive`.
