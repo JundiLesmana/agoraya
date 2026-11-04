@@ -1151,6 +1151,67 @@ menjalankan restore ke production. Jangan restore dump lokal langsung ke
 production atau menimpa database production yang telah berisi data tanpa
 rencana dan persetujuan eksplisit.
 
+#### Membuat akun awal production
+
+Jangan gunakan `pnpm db:seed` untuk membuat akun production. Perintah tersebut
+memasukkan akun, NIK, tiket, serta data demo sintetis dan menghapus tiket
+tenant demo saat dijalankan. Untuk tiga akun production yang diminta, gunakan
+perintah bootstrap terpisah:
+
+1. Pastikan password role database Neon yang pernah dibagikan di chat sudah
+   di-rotate di Neon. Gunakan hanya connection string direct yang baru.
+2. Salin template ke file lokal yang diabaikan Git:
+
+   ```bash
+   cp -n .env.example .env.production.local
+   ```
+
+3. Edit `.env.production.local` dan isi hanya untuk proses bootstrap:
+   - `DATABASE_URL_UNPOOLED`: direct connection string Neon production yang
+     baru, bukan pooled URL. Nama database dibaca dari URL ini.
+   - Nama tenant, email, dan nama tampilan sesuai akun yang akan dibuat.
+   - Password unik yang kuat untuk `BOOTSTRAP_EXECUTIVE_PASSWORD`,
+     `BOOTSTRAP_ADMIN_PASSWORD`, dan `BOOTSTRAP_CITIZEN_PASSWORD` (minimum 12
+     karakter). Jangan gunakan password yang sama.
+
+   Buat password acak di terminal, lalu simpan ke password manager:
+
+   ```bash
+   openssl rand -hex 24
+   ```
+
+   Password tidak perlu dimasukkan ke Vercel Environment Variables. File
+   `.env.production.local` hanya untuk menjalankan bootstrap dari mesin lokal;
+   jangan commit atau membagikan file tersebut.
+
+4. Periksa sekali lagi bahwa `DATABASE_URL_UNPOOLED` menunjuk ke database
+   production yang benar, lalu jalankan dari root repository:
+
+   ```bash
+   pnpm db:bootstrap:production-accounts
+   ```
+
+   Skrip hanya menerima direct host Neon, menampilkan host/database tanpa
+   password, lalu meminta nama database diketik ulang sebelum transaksi.
+   Semua perubahan akun dibatalkan bersama jika ada konflik.
+
+5. Skrip membuat:
+   - `executive@agoraya.com`: hanya role `superadmin` dan `executive`.
+   - `admin@agoraya.com`: hanya role `admin`.
+   - `citizen@agoraya.com`: role `citizen`.
+
+   Akun dibuat aktif dan password disimpan sebagai hash scrypt. Saat dijalankan
+   kembali, password akun yang sudah memiliki hash tidak diubah; grant role
+   yang dicabut/kedaluwarsa menyebabkan transaksi gagal, bukan diaktifkan
+   diam-diam. Simpan dan sampaikan password akun kepada pemiliknya lewat kanal
+   aman.
+
+6. Setelah bootstrap berhasil, hapus file lokal yang memuat connection string
+   dan password, atau kosongkan isinya dengan aman sesuai kebijakan perangkat.
+   Jangan menambahkan variabel `BOOTSTRAP_*` ke Vercel. Di Vercel, atur hanya
+   `DATABASE_URL` pooled, `DATABASE_URL_UNPOOLED` direct, `AUTH_SECRET`, dan
+   secret runtime lain yang memang dibutuhkan aplikasi.
+
 ### 10.4 Brevo Setup
 
 1. Daftar di [Brevo](https://www.brevo.com/)
