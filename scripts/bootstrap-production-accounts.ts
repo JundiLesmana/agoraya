@@ -329,25 +329,39 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  let detail = "Kesalahan tidak diketahui.";
-  if (error instanceof Error) {
-    const cause = error.cause;
-    if (
-      cause &&
-      typeof cause === "object" &&
-      "message" in cause &&
-      typeof cause.message === "string"
-    ) {
-      const code =
-        "code" in cause && typeof cause.code === "string"
-          ? `PostgreSQL ${cause.code}: `
-          : "";
-      detail = `${code}${cause.message}`;
-    } else {
-      detail = error.message.split("\n", 1)[0] ?? error.message;
-    }
+function describeError(error: unknown): string {
+  const details: string[] = [];
+  const seen = new Set<object>();
+  let current: unknown = error;
+
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const record = current as Record<string, unknown>;
+    const name =
+      current instanceof Error
+        ? current.name
+        : typeof record.name === "string"
+          ? record.name
+          : "Error";
+    const code = typeof record.code === "string" ? record.code : undefined;
+    const message =
+      typeof record.message === "string" ? record.message.trim() : "";
+    const parts = [
+      code ? `kode ${code}` : "",
+      name !== "DrizzleQueryError" && message ? message.split("\n", 1)[0] : "",
+    ].filter(Boolean);
+
+    if (parts.length > 0) details.push(parts.join(": "));
+
+    current = record.cause;
   }
-  console.error("Bootstrap akun production gagal:", detail);
+
+  return details.length > 0
+    ? details.join(" — penyebab: ")
+    : "Detail error tidak tersedia; periksa status database sebelum mencoba ulang.";
+}
+
+main().catch((error: unknown) => {
+  console.error("Bootstrap akun production gagal:", describeError(error));
   process.exitCode = 1;
 });
