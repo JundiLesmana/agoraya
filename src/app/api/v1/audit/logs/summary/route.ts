@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireAsnAccessAdmin } from "@/modules/asn/access-api";
 import { summarizeAuditLogs } from "@/modules/audit";
 
-import { auditApiError, parseListQuery } from "../route";
+import { auditApiError, parseListQuery } from "../_utils";
 
 export const dynamic = "force-dynamic";
 
