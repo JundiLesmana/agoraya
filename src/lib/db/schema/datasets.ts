@@ -56,14 +56,7 @@ export const datasets = pgTable(
     isPublished: boolean("is_published").notNull().default(true),
     searchVector: tsvector("search_vector")
       .notNull()
-      .generatedAlwaysAs(
-        sql`setweight(to_tsvector('simple', coalesce(title, '')), 'A') ||
-            setweight(to_tsvector('simple', coalesce(summary, '')), 'B') ||
-            setweight(to_tsvector('simple', coalesce(description, '')), 'C') ||
-            setweight(to_tsvector('simple', coalesce(source_organization, '')), 'B') ||
-            setweight(to_tsvector('simple', coalesce(category, '')), 'C') ||
-            setweight(to_tsvector('simple', coalesce(array_to_string(tags, ' '), '')), 'C')`,
-      ),
+      .default(sql`''::tsvector`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible defect in GovHub.ID
+description: Report a reproducible defect
 title: "[BUG] "
 labels: ["bug", "triage"]
 body:

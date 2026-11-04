@@ -20,7 +20,7 @@ body:
     id: exit
     attributes:
       label: Exit criteria
-      description: Observable and verifiable; do not say only "works".
+      description: Observable and verifiable, do not say only "works".
     validations:
       required: true
   - type: textarea

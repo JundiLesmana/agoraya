@@ -18,16 +18,30 @@ CREATE TABLE datasets (
   last_updated_at TIMESTAMPTZ NOT NULL,
   downloads_count INTEGER NOT NULL DEFAULT 0 CHECK (downloads_count >= 0),
   is_published BOOLEAN NOT NULL DEFAULT TRUE,
-  search_vector TSVECTOR GENERATED ALWAYS AS (
-    setweight(to_tsvector('simple', coalesce(title, '')), 'A') ||
-    setweight(to_tsvector('simple', coalesce(summary, '')), 'B') ||
-    setweight(to_tsvector('simple', coalesce(description, '')), 'C') ||
-    setweight(to_tsvector('simple', coalesce(source_organization, '')), 'B') ||
-    setweight(to_tsvector('simple', coalesce(category, '')), 'C') ||
-    setweight(to_tsvector('simple', coalesce(array_to_string(tags, ' '), '')), 'C')
-  ) STORED,
+  search_vector TSVECTOR NOT NULL DEFAULT ''::tsvector,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE FUNCTION update_datasets_search_vector() RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.search_vector :=
+    setweight(to_tsvector('simple', coalesce(NEW.title, '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(NEW.summary, '')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(NEW.description, '')), 'C') ||
+    setweight(to_tsvector('simple', coalesce(NEW.source_organization, '')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(NEW.category, '')), 'C') ||
+    setweight(to_tsvector('simple', coalesce(array_to_string(NEW.tags, ' '), '')), 'C');
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER datasets_search_vector_update
+  BEFORE INSERT OR UPDATE OF title, summary, description, source_organization, category, tags
+  ON datasets
+  FOR EACH ROW
+  EXECUTE FUNCTION update_datasets_search_vector();
 
 CREATE UNIQUE INDEX datasets_slug_unique_idx ON datasets (slug);
 CREATE INDEX datasets_search_vector_gin_idx ON datasets USING GIN (search_vector);
