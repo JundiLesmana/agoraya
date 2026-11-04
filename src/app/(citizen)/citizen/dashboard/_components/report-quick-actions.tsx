@@ -387,7 +387,7 @@ export function ReportQuickActions({
             Pahami proses dan pilihan Anda sebelum menyampaikan laporan.
           </p>
           <Link
-            href="#report-form"
+            href="/bantuan/platform-publik/lapor-warga"
             className="mt-4 inline-block text-sm font-semibold text-blue-700 underline underline-offset-4 dark:text-blue-400"
           >
             Kunjungi pusat bantuan
