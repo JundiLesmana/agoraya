@@ -266,13 +266,11 @@ function buildWhere(filters: NormalizedFilters): SQL[] {
   if (filters.action) conditions.push(eq(auditEvents.action, filters.action));
   if (filters.module) conditions.push(ilike(auditEvents.action, `${filters.module}.%`));
   if (filters.objectType) {
-    const objectTypeCondition = or(
+    const objectCondition = or(
       eq(auditEvents.targetTable, filters.objectType),
       sql`split_part(${auditEvents.action}, '.', 2) = ${filters.objectType}`,
     );
-    if (objectTypeCondition) {
-      conditions.push(objectTypeCondition);
-    }
+    if (objectCondition) conditions.push(objectCondition);
   }
   if (filters.result) {
     conditions.push(sql`COALESCE(${auditEvents.metadata} ->> 'result', 'success') = ${filters.result}`);
@@ -285,9 +283,7 @@ function buildWhere(filters: NormalizedFilters): SQL[] {
       sql`${auditEvents.targetId}::text ILIKE ${query}`,
       sql`CAST(${auditEvents.metadata} AS text) ILIKE ${query}`,
     );
-    if (searchCondition) {
-      conditions.push(searchCondition);
-    }
+    if (searchCondition) conditions.push(searchCondition);
   }
   return conditions;
 }
