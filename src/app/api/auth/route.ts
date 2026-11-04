@@ -3,7 +3,36 @@ import { logger } from "@/lib/logger";
 import { authenticatePassword } from "@/modules/identity/password/service";
 import { createSession } from "@/modules/identity/session/service";
 
+import { cookies } from "next/headers";
+import { getCurrentSession } from "@/lib/auth/session";
+import { destroySession } from "@/modules/identity/session/service";
 const SESSION_COOKIE = "agoraya_session";
+
+export async function GET() {
+  const session = await getCurrentSession();
+  return NextResponse.json(
+    { authenticated: Boolean(session) },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+export async function DELETE() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (token) await destroySession(token);
+  const response = NextResponse.json(
+    { ok: true },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+  response.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: new Date(0),
+  });
+  return response;
+}
 const IDENTIFIER_MAX_LENGTH = 255;
 const PASSWORD_MAX_LENGTH = 256;
 
