@@ -126,7 +126,7 @@ export default function RegisterAsnPage() {
               {theme === "light" ? "Terang" : "Gelap"}
             </button>
             <Link
-              href="/tentang#faq"
+              href="/bantuan"
               className="hidden text-xs font-medium text-[#1265c9] transition-colors hover:text-[#0f4fa0] focus-visible:ring-2 focus-visible:ring-[#1265c9] focus-visible:ring-offset-2 focus-visible:outline-none sm:inline"
             >
               Pusat bantuan

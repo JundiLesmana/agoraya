@@ -62,10 +62,10 @@ export function TableOfContents() {
       className="hidden xl:flex flex-col w-[260px] flex-shrink-0"
     >
       <div className="sticky top-[80px] pt-[6px]">
-        <h2 className="mb-[14px] text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <h2 className="mb-[14px] text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
           DI HALAMAN INI
         </h2>
-        <nav className="space-y-[2px] text-[10px]">
+        <nav className="space-y-[2px] text-xs">
           {ITEMS.map((item) => {
             const isActive = activeId === item.id;
             const isParent = item.level === 1;
@@ -79,10 +79,10 @@ export function TableOfContents() {
                   el?.scrollIntoView({ behavior: "smooth", block: "start" });
                   setActiveId(item.id);
                 }}
-                className={`block px-[10px] py-[5px] rounded-md text-slate-600 transition-colors ${
+                className={`block px-[10px] py-[5px] rounded-md text-slate-600 dark:text-slate-300 transition-colors ${
                   isActive
                     ? "bg-blue-50 text-blue-700 font-semibold"
-                    : "hover:bg-slate-50 hover:text-slate-800"
+                    : "hover:bg-slate-50 dark:bg-slate-900 hover:text-slate-800 dark:text-slate-100"
                 } ${isParent ? "pl-0 pr-2" : "pl-[20px] pr-2"} `}
                 aria-current={isActive ? "page" : undefined}
               >
