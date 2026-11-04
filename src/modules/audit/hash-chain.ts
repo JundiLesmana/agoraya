@@ -1,48 +1,63 @@
-import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomUUID } from "node:crypto";
 
-import type { AuditEntry, AuditEntryInput } from './types';
+import type { AuditEntry, AuditEntryInput } from "./types";
 
 export interface HashChainOptions {
   readonly secret: string;
   readonly initialPreviousHash?: string | null;
+  readonly initialSequence?: number;
 }
 
 function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map((item) => canonicalize(item)).join(',')}]`;
-  return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonicalize((value as Record<string, unknown>)[key])}`).join(',')}}`;
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value))
+    return `[${value.map((item) => canonicalize(item)).join(",")}]`;
+  return `{${Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map(
+      (key) =>
+        `${JSON.stringify(key)}:${canonicalize((value as Record<string, unknown>)[key])}`,
+    )
+    .join(",")}}`;
 }
 
 function deriveHash(payload: string): string {
-  return createHash('sha256').update(payload).digest('hex');
+  return createHash("sha256").update(payload).digest("hex");
 }
 
 function deriveSignature(secret: string, payload: string): string {
-  return createHmac('sha256', secret).update(payload).digest('hex');
+  return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
 export class AuditHashChain {
   #entries: AuditEntry[] = [];
   #previousHash: string | null;
-  #sequence = 0;
+  #sequence: number;
 
   constructor(private readonly options: HashChainOptions) {
     this.#previousHash = options.initialPreviousHash ?? null;
+    this.#sequence = options.initialSequence ?? 0;
   }
 
   append(entry: AuditEntryInput): AuditEntry {
     this.#sequence += 1;
+    const id = randomUUID();
     const base = {
-      ...entry,
+      action: entry.action,
+      actorId: entry.actorId,
+      id,
       metadata: canonicalize(entry.metadata),
+      occurredAt: entry.occurredAt.toISOString(),
       previousHash: this.#previousHash,
       sequence: this.#sequence,
+      targetId: entry.targetId,
+      targetTable: entry.targetTable,
     };
     const hash = deriveHash(canonicalize(base));
     const signature = deriveSignature(this.options.secret, hash);
     const audited: AuditEntry = {
       ...entry,
-      id: randomUUID(),
+      id,
       sequence: this.#sequence,
       hash,
       previousHash: this.#previousHash,
@@ -53,7 +68,12 @@ export class AuditHashChain {
     return audited;
   }
 
-  static computeHash(entry: Omit<AuditEntry, 'hash' | 'signature'> & { readonly hash?: string; readonly signature?: string }): string {
+  static computeHash(
+    entry: Omit<AuditEntry, "hash" | "signature"> & {
+      readonly hash?: string;
+      readonly signature?: string;
+    },
+  ): string {
     const base = {
       action: entry.action,
       actorId: entry.actorId,
