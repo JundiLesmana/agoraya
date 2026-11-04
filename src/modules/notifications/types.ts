@@ -5,7 +5,8 @@ export type NotificationTemplateName =
   | "welcome"
   | "report-update"
   | "report-status"
-  | "security-alert";
+  | "security-alert"
+  | "password-reset";
 
 export interface NotificationRecipient {
   readonly email: string;

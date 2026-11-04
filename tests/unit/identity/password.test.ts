@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   hashPassword,
+  normalizeIdentifier,
   verifyPassword,
 } from "@/modules/identity/password/service";
 
@@ -25,5 +26,14 @@ describe("password credentials", () => {
     await expect(
       verifyPassword("apa saja", "scrypt$999999$8$1$bad$bad"),
     ).resolves.toBe(false);
+  });
+
+  it("normalizes email identifiers without changing NIK values", () => {
+    expect(normalizeIdentifier("  Citizen@Example.ID ")).toBe(
+      "citizen@example.id",
+    );
+    expect(normalizeIdentifier("  0123456789012345 ")).toBe(
+      "0123456789012345",
+    );
   });
 });

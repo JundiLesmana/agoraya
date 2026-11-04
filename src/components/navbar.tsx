@@ -3,11 +3,12 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Menu, MoonStar, SunMedium, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
@@ -31,7 +32,7 @@ function isNavigationItemActive(pathname: string, href: string) {
 
 function Navbar() {
   const pathname = usePathname();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -82,32 +83,7 @@ function Navbar() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 lg:flex">
-          <div className="border-border bg-background inline-flex items-center rounded-full border p-1 shadow-sm">
-            <button
-              type="button"
-              aria-label="Tema terang"
-              aria-pressed={theme === "light"}
-              onClick={toggleTheme}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <SunMedium className="size-4" /> Terang
-            </button>
-            <button
-              type="button"
-              aria-label="Tema gelap"
-              aria-pressed={theme === "dark"}
-              onClick={toggleTheme}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <MoonStar className="size-4" /> Gelap
-            </button>
-          </div>
+          <ThemeToggle />
           <Button asChild>
             <Link href="/login">Masuk / Daftar</Link>
           </Button>
@@ -140,26 +116,7 @@ function Navbar() {
             <div>
               <p className="text-sm font-semibold">Agoraya</p>
             </div>
-            <div className="border-border inline-flex rounded-full border p-1">
-              <button
-                type="button"
-                aria-label="Tema terang"
-                aria-pressed={theme === "light"}
-                onClick={toggleTheme}
-                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'light' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
-              >
-                Terang
-              </button>
-              <button
-                type="button"
-                aria-label="Tema gelap"
-                aria-pressed={theme === "dark"}
-                onClick={toggleTheme}
-                className={cn('rounded-full px-3 py-1.5 text-xs font-medium transition-colors', theme === 'dark' ? 'bg-primary/10 text-primary' : 'text-muted-foreground')}
-              >
-                Gelap
-              </button>
-            </div>
+            <ThemeToggle compact />
           </div>
           <nav aria-label="Navigasi mobile" className="grid gap-2">
             {NAV_ITEMS.map((item) => {
