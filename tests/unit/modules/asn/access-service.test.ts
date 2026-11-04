@@ -2,7 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ConflictError, ValidationError } from "@/lib/errors";
+import type { ConflictError, ValidationError } from "@/lib/errors";
 import {
   confirmExecutiveAccessDraft,
   getExecutiveAccessPreview,
