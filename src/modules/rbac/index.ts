@@ -20,6 +20,14 @@ export type {
   StoredPolicy,
   SubjectIdentifier,
 } from "./types";
+export {
+  hasModuleAccess,
+  isModuleAccessAllowed,
+  accountCanReceiveAccess,
+  parseModuleAccessKey,
+  MODULE_ACCESS_KEYS,
+} from "./module-access";
+export type { ModuleAccessKey } from "./module-access";
 
 export {
   accessRequestSchema,

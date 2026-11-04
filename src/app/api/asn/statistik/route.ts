@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentSession } from "@/lib/auth/session";
+import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import { logger } from "@/lib/logger";
 import { statisticEntryQuerySchema } from "@/modules/statistics-input";
 import {
@@ -31,7 +31,9 @@ function errorResponse(error: unknown): Response {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const session = await getCurrentSession();
+  const moduleAuthorization = await requireModuleAccess("insight");
+  if (!moduleAuthorization.authorized) return moduleAuthorization.response;
+  const session = moduleAuthorization.session;
   if (!session || !isStatisticsOperator(session.roles)) {
     return NextResponse.json(
       { error: "Sesi tidak valid atau Anda tidak memiliki akses." },
@@ -76,7 +78,9 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await getCurrentSession();
+  const moduleAuthorization = await requireModuleAccess("insight");
+  if (!moduleAuthorization.authorized) return moduleAuthorization.response;
+  const session = moduleAuthorization.session;
   if (!session || !isStatisticsOperator(session.roles)) {
     return NextResponse.json(
       { error: "Sesi tidak valid atau Anda tidak memiliki akses." },

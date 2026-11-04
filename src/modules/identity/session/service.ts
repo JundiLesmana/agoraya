@@ -1,11 +1,18 @@
-import crypto from 'crypto';
-import { db } from '@/lib/db';
-import { userSessions, users } from '@/modules/identity/db';
-import { roles, userRoles } from '@/lib/db/schema';
-import { and, eq, gt, isNull, or } from 'drizzle-orm';
-import { logger } from '@/lib/logger';
+import crypto from "crypto";
+import { db } from "@/lib/db";
+import { asnProfiles, userSessions, users } from "@/modules/identity/db";
+import { roles, userRoles } from "@/lib/db/schema";
+import { and, eq, gt, isNull, or } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 const SESSION_TTL_HOURS = 24;
+
+export function resolveSessionRoles(
+  activeRoleKeys: readonly string[],
+  hasAsnProfile: boolean,
+): string[] {
+  return [...new Set([...activeRoleKeys, ...(hasAsnProfile ? ["asn"] : [])])];
+}
 
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -31,7 +38,7 @@ export async function createSession(
     expiresAt,
   });
 
-  logger.info('session.created');
+  logger.info("session.created");
 
   return { sessionId, token, expiresAt };
 }
@@ -60,19 +67,22 @@ export async function validateSession(token: string): Promise<{
     .where(eq(userSessions.tokenHash, tokenHash));
 
   if (!session) {
-    logger.warn('session.invalid');
+    logger.warn("session.invalid");
     return { valid: false };
   }
 
   if (new Date() > session.expiresAt) {
-    logger.warn('session.expired');
+    logger.warn("session.expired");
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
 
-  const [user] = await database.select({ status: users.status, tenantId: users.tenantId }).from(users).where(eq(users.id, session.userId));
-  if (!user || user.status !== 'active') {
-    logger.warn('session.user_inactive');
+  const [user] = await database
+    .select({ status: users.status, tenantId: users.tenantId })
+    .from(users)
+    .where(eq(users.id, session.userId));
+  if (!user || user.status !== "active") {
+    logger.warn("session.user_inactive");
     await database.delete(userSessions).where(eq(userSessions.id, session.id));
     return { valid: false };
   }
@@ -90,12 +100,27 @@ export async function validateSession(token: string): Promise<{
       ),
     );
 
+  const [asnProfile] = await database
+    .select({ userId: asnProfiles.userId })
+    .from(asnProfiles)
+    .where(
+      and(
+        eq(asnProfiles.userId, session.userId),
+        eq(asnProfiles.tenantId, user.tenantId),
+      ),
+    )
+    .limit(1);
+  const sessionRoles = resolveSessionRoles(
+    activeRoles.map((role) => role.key),
+    Boolean(asnProfile),
+  );
+
   return {
-    valid: activeRoles.length > 0,
+    valid: sessionRoles.length > 0,
     userId: session.userId,
     sessionId: session.id,
     tenantId: user.tenantId,
-    roles: activeRoles.map((role) => role.key),
+    roles: sessionRoles,
   };
 }
 
@@ -104,8 +129,10 @@ export async function destroySession(token: string): Promise<void> {
 
   const database = db();
   const tokenHash = hashToken(token);
-  await database.delete(userSessions).where(eq(userSessions.tokenHash, tokenHash));
-  logger.info('session.destroyed');
+  await database
+    .delete(userSessions)
+    .where(eq(userSessions.tokenHash, tokenHash));
+  logger.info("session.destroyed");
 }
 
 export async function refreshSession(

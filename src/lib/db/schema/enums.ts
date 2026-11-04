@@ -5,6 +5,10 @@ export const userStatusEnum = pgEnum("user_status", [
   "inactive",
   "suspended",
 ]);
+export const jobPositionTypeEnum = pgEnum("job_position_type", [
+  "structural",
+  "functional",
+]);
 export const kycStatusEnum = pgEnum("kyc_status", [
   "pending",
   "partially_approved",
