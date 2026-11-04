@@ -606,7 +606,8 @@ tenant_memberships      -- User-tenant assignments
 ```
 
 Katalog metadata menggunakan migrasi `0006_dataset_metadata_catalog.sql`.
-Kolom `datasets.search_vector` adalah `tsvector` terhitung dengan indeks GIN;
+Kolom `datasets.search_vector` adalah `tsvector` yang diperbarui otomatis oleh
+trigger dan dioptimalkan dengan indeks GIN;
 filter kata kunci, kategori, format resource, dan instansi dijalankan di
 PostgreSQL sebelum pagination. `data_dictionary` menyimpan deskripsi struktur
 kolom, sedangkan setiap file atau endpoint akses disimpan sebagai
