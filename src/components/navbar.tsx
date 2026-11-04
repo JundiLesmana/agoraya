@@ -59,8 +59,9 @@ function Navbar() {
       try {
         window.localStorage.clear();
         window.sessionStorage.clear();
-      } catch {}
-    }
+      } catch {
+        // ignore
+      }    }
     router.refresh();
     router.replace("/");
   }
