@@ -14,7 +14,7 @@ import {
 } from "../src/lib/db/schema/index.js";
 import { hashPassword } from "../src/modules/identity/password/service.js";
 
-const ENV_FILE = ".env.production.local";
+const ENV_FILE = ".env";
 
 const BootstrapEnvSchema = z.object({
   DATABASE_URL_UNPOOLED: z.string().url(),
