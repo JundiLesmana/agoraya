@@ -4,7 +4,7 @@ import { ValidationError } from "@/lib/errors";
 import { exportAuditLogs } from "@/modules/audit";
 import type { AuditExportFormat } from "@/modules/audit";
 
-import { auditApiError, parseListQuery } from "../route";
+import { auditApiError, parseListQuery } from "../_utils";
 
 export const dynamic = "force-dynamic";
 
@@ -36,5 +36,3 @@ export async function GET(request: Request): Promise<Response> {
     return auditApiError(error);
   }
 }
-
-export { parseFormat };
