@@ -131,7 +131,7 @@ describe("AboutPage", () => {
       screen
         .getByRole("link", { name: "Cara berpartisipasi di Agoraya" })
         .getAttribute("href"),
-    ).toBe("/tracking");
+    ).toBe("/bantuan/platform-publik/layanan-publik");
     expect(
       screen
         .getByRole("link", { name: /Mulai Sekarang/i })

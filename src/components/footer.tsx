@@ -34,7 +34,11 @@ const SOCIAL_LINKS = [
 
 function Footer() {
   const { theme } = useTheme();
-  const isHomePage = usePathname() === "/";
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+  const isHelpPage = pathname.startsWith("/bantuan");
+
+  if (isHelpPage) return null;
 
   return (
     <footer className="border-border/60 bg-background border-t">

@@ -101,7 +101,7 @@ export default function LoginPage() {
               <span className="sm:hidden">Kembali</span>
             </Link>
             <Link
-              href="/tentang#faq"
+              href="/bantuan"
               className="hidden text-[0.7rem] font-medium text-[#1265c9] transition-colors hover:text-[#0f4fa0] sm:inline sm:text-xs"
             >
               Pusat bantuan
