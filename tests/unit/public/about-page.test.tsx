@@ -136,7 +136,7 @@ describe("AboutPage", () => {
       screen
         .getByRole("link", { name: /Mulai Sekarang/i })
         .getAttribute("href"),
-    ).toBe("/tracking");
+    ).toBe("/citizen/service");
   });
 
   it("shows all FAQ answers by default and lets each answer be collapsed", () => {

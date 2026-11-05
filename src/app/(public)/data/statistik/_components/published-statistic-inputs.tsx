@@ -59,7 +59,7 @@ export function PublishedStatisticInputs() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+    <section className="w-full">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">

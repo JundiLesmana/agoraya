@@ -195,17 +195,44 @@ describe("asn performance service", () => {
       {
         periodStart: "2026-02-01",
         totalCompleted: 1,
-        taskBreakdown: { submit_cms: 1, review_cms: 0, review_kyc: 0 },
+        taskBreakdown: {
+          layanan_kesehatan: 0,
+          layanan_pendidikan: 0,
+          layanan_sosial: 0,
+          laporan_warga: 0,
+          perizinan: 0,
+          submit_cms: 1,
+          review_cms: 0,
+          review_kyc: 0,
+        },
       },
       {
         periodStart: "2026-02-02",
         totalCompleted: 1,
-        taskBreakdown: { submit_cms: 0, review_cms: 1, review_kyc: 0 },
+        taskBreakdown: {
+          layanan_kesehatan: 0,
+          layanan_pendidikan: 0,
+          layanan_sosial: 0,
+          laporan_warga: 0,
+          perizinan: 0,
+          submit_cms: 0,
+          review_cms: 1,
+          review_kyc: 0,
+        },
       },
       {
         periodStart: "2026-02-03",
         totalCompleted: 1,
-        taskBreakdown: { submit_cms: 0, review_cms: 0, review_kyc: 1 },
+        taskBreakdown: {
+          layanan_kesehatan: 0,
+          layanan_pendidikan: 0,
+          layanan_sosial: 0,
+          laporan_warga: 0,
+          perizinan: 0,
+          submit_cms: 0,
+          review_cms: 0,
+          review_kyc: 1,
+        },
       },
     ]);
   });

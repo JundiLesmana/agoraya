@@ -4,7 +4,7 @@ import { formatError, isAppError } from "@/lib/errors";
 import { getCurrentSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 
-const KYC_REVIEWER_ROLES = ["admin", "kyc_verifikator"] as const;
+const KYC_REVIEWER_ROLES = ["admin", "superadmin", "kyc_verifikator"] as const;
 
 export function isKycReviewer(roles: readonly string[]): boolean {
   return roles.some((role) => KYC_REVIEWER_ROLES.includes(role as (typeof KYC_REVIEWER_ROLES)[number]));

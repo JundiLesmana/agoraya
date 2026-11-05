@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 export const ASN_PERFORMANCE_TASK_TYPES = [
+  "layanan_kesehatan",
+  "layanan_pendidikan",
+  "layanan_sosial",
+  "laporan_warga",
+  "perizinan",
   "submit_cms",
   "review_cms",
   "review_kyc",

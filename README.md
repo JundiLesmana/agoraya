@@ -24,7 +24,7 @@ Agoraya merupakan karya inovasi teknologi oleh **Gugu Gaga Team**.
 | **Muhammad Alif Miftah Faridh** | Anggota II | Bina Sarana Informatika | Teknologi Informasi |
 
 <p>
-  Cabang Kompetisi <strong>Web In Action (WIA) — Multimedia In Action (MIA) 2026</strong><br />
+  Cabang Kompetisi Nasional <strong>Web In Action (WIA) — Multimedia In Action (MIA) 2026</strong><br />
   Diselenggarakan oleh <strong>KSM Multimedia UPN Veteran Jakarta</strong><br />
   Tema Kompetisi: <em>Designing Digital Futures – Powering Public Transparency</em>
 </p>

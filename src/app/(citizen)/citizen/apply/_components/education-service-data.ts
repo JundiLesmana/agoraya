@@ -29,7 +29,7 @@ export const EDUCATION_SERVICE_CATEGORY: EducationServiceCategory = {
     "Pengajuan akan diverifikasi bersama sekolah; bukan pendaftaran siswa baru atau jaminan penerimaan bantuan.",
   infoBox:
     "Dinas Pendidikan memeriksa data siswa dan tindak lanjut disepakati bersama layanan yang tersedia.",
-  helpCenterUrl: "/citizen/reporting#report-faq-title",
+  helpCenterUrl: "/reporting#report-faq-title",
   helpCenterHours: "Hari kerja, 08.00–16.00",
   subCategories: [
     {

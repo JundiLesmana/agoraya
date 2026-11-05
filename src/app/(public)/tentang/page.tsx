@@ -496,7 +496,7 @@ export default function AboutPage() {
         mobileDescription="Gunakan data dan laporkan masalah untuk perubahan yang lebih baik."
         description="Jadilah bagian dari masyarakat yang aktif, kritis, dan peduli. Gunakan data, pantau layanan, laporkan masalah, dan bantu wujudkan pemerintahan yang lebih baik."
         buttonLabel="Mulai Sekarang"
-        buttonHref="/tracking"
+        buttonHref="/citizen/service"
       />
     </>
   );

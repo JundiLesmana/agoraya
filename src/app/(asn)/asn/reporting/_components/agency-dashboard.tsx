@@ -17,7 +17,7 @@ import {
 import {
   formatDateTimeWib,
   getDaysUntilDeadline,
-} from "@/app/(citizen)/tracking/_components/tracking-format";
+} from "@/app/(citizen)/citizen/service/_components/tracking-format";
 import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

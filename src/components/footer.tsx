@@ -12,8 +12,8 @@ import { usePathname } from "next/navigation";
 const SECONDARY_NAV_ITEMS = [
   { href: "/", label: "Beranda" },
   { href: "/data", label: "Data Pemerintah" },
-  { href: "/tracking", label: "Layanan Publik" },
-  { href: "/citizen/dashboard", label: "Lapor Warga" },
+  { href: "/citizen/service", label: "Layanan Publik" },
+  { href: "/reporting", label: "Lapor Warga" },
   { href: "/insights", label: "Insight" },
   { href: "/tentang", label: "Tentang" },
 ] as const;
@@ -64,7 +64,7 @@ function Footer() {
             className="h-12 shrink-0 bg-white px-5 text-blue-800 hover:bg-slate-100 focus-visible:ring-white"
             aria-label="Buat laporan"
           >
-            <Link href="/tracking">
+            <Link href="/reporting">
               Buat laporan
               <ArrowUpRight className="size-4" aria-hidden="true" />
             </Link>

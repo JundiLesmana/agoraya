@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createElement, type ReactNode } from "react";
-import CitizenDashboardPage from "@/app/(citizen)/citizen/dashboard/page";
+import PublicReportingPage from "@/app/(public)/reporting/page";
 
 vi.mock("next/image", () => ({
   default: (props: { alt: string; src: string }) => createElement("img", props),
@@ -22,7 +22,7 @@ vi.mock("next/link", () => ({
 
 describe("CitizenDashboardPage", () => {
   async function renderDashboard(category?: string) {
-    const page = await CitizenDashboardPage({
+    const page = await PublicReportingPage({
       searchParams: Promise.resolve({ category }),
     });
     return render(page);
@@ -76,7 +76,7 @@ describe("CitizenDashboardPage", () => {
       expect(action.querySelector("svg")).toBeTruthy();
       expect(action.textContent).toContain(category.description);
       expect(action.getAttribute("href")).toBe(
-        `/citizen/dashboard?category=${encodeURIComponent(category.category)}#report-form`,
+        `/reporting?category=${encodeURIComponent(category.category)}#report-form`,
       );
       expect(action.className).toContain("flex");
       expect(action.className).toContain("border-slate-200");

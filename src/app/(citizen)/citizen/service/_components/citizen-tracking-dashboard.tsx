@@ -736,7 +736,7 @@ export function CitizenTrackingDashboard() {
                 {" > "}
               </li>
               <li>
-                <Link href="/tracking" className="hover:text-primary">
+                <Link href="/citizen/service" className="hover:text-primary">
                   Layanan Publik
                 </Link>
               </li>

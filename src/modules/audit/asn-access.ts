@@ -14,7 +14,7 @@ type AuditDatabase = Pick<
 >;
 
 function getAuditSecret(): string {
-  const secret = process.env.AUDIT_HMAC_SECRET;
+  const secret = process.env.AUDIT_HMAC_SECRET ?? process.env.AUDIT_HASH_SECRET ?? process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error("AUDIT_HMAC_SECRET must contain at least 32 characters");
   }

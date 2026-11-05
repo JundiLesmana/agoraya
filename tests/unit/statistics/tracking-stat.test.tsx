@@ -51,7 +51,7 @@ describe("TrackingStatisticsPage", () => {
     const trackingBreadcrumb = within(breadcrumb).getByRole("link", {
       name: "Ruang Statistik",
     });
-    expect(trackingBreadcrumb.getAttribute("href")).toBe("/tracking");
+    expect(trackingBreadcrumb.getAttribute("href")).toBe("/tracking/stat");
     expect(trackingBreadcrumb.className).toContain("text-primary");
     const serviceNavigation = screen.getByRole("navigation", {
       name: "Kategori layanan publik",
@@ -60,7 +60,7 @@ describe("TrackingStatisticsPage", () => {
       within(serviceNavigation)
         .getByRole("link", { name: "Ruang Warga" })
         .getAttribute("href"),
-    ).toBe("/tracking");
+    ).toBe("/citizen/service");
     expect(
       within(serviceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })

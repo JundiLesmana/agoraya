@@ -13,7 +13,7 @@ const DEFAULT_LOOKBACK_DAYS = 7;
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 const EVENT_ID_SEQUENCE_WIDTH = 3;
-const EVENT_ID_PATTERN = /^AUD-(\d{8})-(\d{3,})$/;
+const EVENT_ID_PATTERN = /^AUD-(\d{8})-([A-Za-z0-9]{3,})$/;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MASK_KEYS = [
@@ -113,7 +113,7 @@ interface AuditDetails {
 }
 
 function getAuditSecret(): string {
-  const secret = process.env.AUDIT_HASH_SECRET ?? process.env.AUDIT_HMAC_SECRET;
+  const secret = process.env.AUDIT_HASH_SECRET ?? process.env.AUDIT_HMAC_SECRET ?? process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error("AUDIT_HASH_SECRET or AUDIT_HMAC_SECRET must contain at least 32 characters");
   }
@@ -218,9 +218,12 @@ function parseEventId(eventId: string): { readonly date: string; readonly sequen
   if (!match) {
     throw new ValidationError("Invalid event_id.");
   }
+  const sequenceNum = /^\d+$/.test(match[2])
+    ? Number(match[2])
+    : Number.parseInt(match[2], 16) || Number(match[2].replace(/\D/g, "")) || 0;
   return {
     date: match[1],
-    sequence: Number(match[2]),
+    sequence: sequenceNum,
   };
 }
 

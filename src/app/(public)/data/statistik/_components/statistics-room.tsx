@@ -405,14 +405,14 @@ export function StatisticsRoom() {
               <li>
                 <Link
                   className="hover:text-foreground"
-                  href="/tracking"
+                  href="/citizen/service"
                 >
                   Layanan Publik
                 </Link>
               </li>
               <li aria-hidden="true">/</li>
               <li>
-                <Link className="hover:text-foreground" href="/tracking">
+                <Link className="hover:text-foreground" href="/citizen/service">
                   Pelacakan
                 </Link>
               </li>

@@ -1,12 +1,26 @@
 import { and, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cmsContents, cmsRiskReviews, kycApprovals } from "@/lib/db/schema";
+import { cmsContents, cmsRiskReviews, kycApprovals, tickets } from "@/lib/db/schema";
 import { asnProfiles, jobPositions, users } from "@/modules/identity/db";
-import type {
-  AsnPerformanceFilters,
-  AsnPerformanceTaskType,
+import {
+  ASN_PERFORMANCE_TASK_TYPES,
+  type AsnPerformanceFilters,
+  type AsnPerformanceTaskType,
 } from "./performance-schema";
+
+function createEmptyTaskBreakdown(): Record<AsnPerformanceTaskType, number> {
+  return {
+    layanan_kesehatan: 0,
+    layanan_pendidikan: 0,
+    layanan_sosial: 0,
+    laporan_warga: 0,
+    perizinan: 0,
+    submit_cms: 0,
+    review_cms: 0,
+    review_kyc: 0,
+  };
+}
 
 interface PerformanceEventRow {
   readonly userId: string;
@@ -69,12 +83,7 @@ export async function getAsnPerformanceTrends(
 
   for (const event of events) {
     const key = bucketKey(event.completedAt, filters.granularity);
-    const current =
-      buckets.get(key) ??
-      ({ submit_cms: 0, review_cms: 0, review_kyc: 0 } satisfies Record<
-        AsnPerformanceTaskType,
-        number
-      >);
+    const current = buckets.get(key) ?? createEmptyTaskBreakdown();
     current[event.taskType] += 1;
     buckets.set(key, current);
   }
@@ -171,6 +180,11 @@ export async function exportAsnPerformance(
       "completedTasks",
       "completionRate",
       "statusLabel",
+      "layananKesehatan",
+      "layananPendidikan",
+      "layananSosial",
+      "laporanWarga",
+      "perizinan",
       "submitCms",
       "reviewCms",
       "reviewKyc",
@@ -188,6 +202,11 @@ export async function exportAsnPerformance(
         item.completedTasks,
         item.completionRate ?? "",
         item.statusLabel,
+        item.taskBreakdown.layanan_kesehatan,
+        item.taskBreakdown.layanan_pendidikan,
+        item.taskBreakdown.layanan_sosial,
+        item.taskBreakdown.laporan_warga,
+        item.taskBreakdown.perizinan,
         item.taskBreakdown.submit_cms,
         item.taskBreakdown.review_cms,
         item.taskBreakdown.review_kyc,
@@ -218,24 +237,14 @@ async function buildPerformanceMetrics(
 
   const countsByUser = new Map<string, Record<AsnPerformanceTaskType, number>>();
   for (const event of events) {
-    const current =
-      countsByUser.get(event.userId) ??
-      ({ submit_cms: 0, review_cms: 0, review_kyc: 0 } satisfies Record<
-        AsnPerformanceTaskType,
-        number
-      >);
+    const current = countsByUser.get(event.userId) ?? createEmptyTaskBreakdown();
     current[event.taskType] += 1;
     countsByUser.set(event.userId, current);
   }
 
   return identities
     .map((identity) => {
-      const taskBreakdown =
-        countsByUser.get(identity.userId) ??
-        ({ submit_cms: 0, review_cms: 0, review_kyc: 0 } satisfies Record<
-          AsnPerformanceTaskType,
-          number
-        >);
+      const taskBreakdown = countsByUser.get(identity.userId) ?? createEmptyTaskBreakdown();
       const assignedTasks = Object.values(taskBreakdown).reduce(
         (sum, value) => sum + value,
         0,
@@ -328,34 +337,116 @@ async function listPerformanceEvents(
   }
 
   if (filters.taskTypes.includes("review_kyc")) {
-    const kycRows = await database
-      .select({
-        userId: kycApprovals.approverId,
-        tenantId: kycApprovals.tenantId,
-        completedAt: kycApprovals.createdAt,
-        taskType: sql<AsnPerformanceTaskType>`'review_kyc'`,
-      })
-      .from(kycApprovals)
-      .where(
-        and(
-          eq(kycApprovals.tenantId, tenantId),
-          inArray(kycApprovals.decision, ["approved", "rejected"]),
-          gte(kycApprovals.createdAt, filters.startDate),
-          lte(kycApprovals.createdAt, filters.endDate),
-        ),
-      );
-    events.push(...kycRows.filter((row) => row.userId !== null) as PerformanceEventRow[]);
+    try {
+      const kycRows = await database
+        .select({
+          userId: kycApprovals.approverId,
+          tenantId: kycApprovals.tenantId,
+          completedAt: kycApprovals.createdAt,
+          taskType: sql<AsnPerformanceTaskType>`'review_kyc'`,
+        })
+        .from(kycApprovals)
+        .where(
+          and(
+            eq(kycApprovals.tenantId, tenantId),
+            inArray(kycApprovals.decision, ["approved", "rejected"]),
+            gte(kycApprovals.createdAt, filters.startDate),
+            lte(kycApprovals.createdAt, filters.endDate),
+          ),
+        );
+      events.push(...kycRows.filter((row) => row.userId !== null) as PerformanceEventRow[]);
+    } catch {
+      // kyc_approvals table may not be migrated in all environments
+    }
+  }
+
+  const ticketCategoryMap: Record<string, AsnPerformanceTaskType> = {
+    health: "layanan_kesehatan",
+    kesehatan: "layanan_kesehatan",
+    layanan_kesehatan: "layanan_kesehatan",
+    education: "layanan_pendidikan",
+    pendidikan: "layanan_pendidikan",
+    layanan_pendidikan: "layanan_pendidikan",
+    social: "layanan_sosial",
+    sosial: "layanan_sosial",
+    layanan_sosial: "layanan_sosial",
+    permit: "perizinan",
+    perizinan: "perizinan",
+    izin: "perizinan",
+    civic_reporting: "laporan_warga",
+    laporan_warga: "laporan_warga",
+    infrastruktur: "laporan_warga",
+    lingkungan: "laporan_warga",
+    ilumniasi: "laporan_warga",
+    laporan: "laporan_warga",
+  };
+
+  const hasTicketTasks = filters.taskTypes.some((t) =>
+    [
+      "layanan_kesehatan",
+      "layanan_pendidikan",
+      "layanan_sosial",
+      "laporan_warga",
+      "perizinan",
+    ].includes(t),
+  );
+
+  if (hasTicketTasks) {
+    try {
+      const ticketRows = await database
+        .select({
+          assigneeId: tickets.assigneeId,
+          tenantId: tickets.tenantId,
+          category: tickets.category,
+          status: tickets.status,
+          updatedAt: tickets.updatedAt,
+          resolvedAt: tickets.resolvedAt,
+          closedAt: tickets.closedAt,
+        })
+        .from(tickets)
+        .where(
+          and(
+            eq(tickets.tenantId, tenantId),
+            sql`${tickets.assigneeId} is not null`,
+          ),
+        );
+
+      for (const row of ticketRows) {
+        if (!row.assigneeId) continue;
+        const taskType =
+          ticketCategoryMap[row.category.toLowerCase()] ?? "laporan_warga";
+        if (!filters.taskTypes.includes(taskType)) continue;
+
+        const completedDate = row.resolvedAt ?? row.closedAt ?? row.updatedAt;
+        if (!completedDate) continue;
+
+        const date = new Date(completedDate);
+        if (date >= filters.startDate && date <= filters.endDate) {
+          events.push({
+            userId: row.assigneeId,
+            tenantId: row.tenantId,
+            completedAt: date,
+            taskType,
+          });
+        }
+      }
+    } catch {
+      // tickets table fallback
+    }
   }
 
   return events;
 }
 
 function summarizeByTaskType(items: readonly ParticipantMetrics[]) {
-  return {
-    submit_cms: summarizeTaskType(items, "submit_cms"),
-    review_cms: summarizeTaskType(items, "review_cms"),
-    review_kyc: summarizeTaskType(items, "review_kyc"),
-  };
+  const result = {} as Record<
+    AsnPerformanceTaskType,
+    { assignedTasks: number; completedTasks: number; completionRate: number | null }
+  >;
+  for (const taskType of ASN_PERFORMANCE_TASK_TYPES) {
+    result[taskType] = summarizeTaskType(items, taskType);
+  }
+  return result;
 }
 
 function summarizeTaskType(

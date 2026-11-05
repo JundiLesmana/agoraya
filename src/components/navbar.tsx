@@ -13,8 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV_ITEMS = [
   { href: '/', label: 'Beranda' },
   { href: '/data', label: 'Data Pemerintah' },
-  { href: '/tracking', label: 'Layanan Publik' },
-  { href: '/citizen/dashboard', label: 'Lapor Warga' },
+  { href: '/citizen/service', label: 'Layanan Publik' },
+  { href: '/reporting', label: 'Lapor Warga' },
   { href: '/insight', label: 'Insight' },
   { href: '/tentang', label: 'Tentang' },
 ] as const;
@@ -23,7 +23,7 @@ function isNavigationItemActive(pathname: string, href: string) {
   if (href === "/") return pathname === href;
   if (pathname === href || pathname.startsWith(`${href}/`)) return true;
   if (
-    href === "/tracking" &&
+    href === "/citizen/service" &&
     (pathname === "/citizen/apply" || pathname.startsWith("/citizen/apply/"))
   )
     return true;

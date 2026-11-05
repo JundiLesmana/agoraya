@@ -650,8 +650,8 @@ export async function saveStatisticsInput(
              tenant_id, agency_id, region_id, region_name, sector_id,
              indicator_id, reference_year, source_name, methodology, status,
              created_by, updated_by, published_at, updated_at
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11,
-             CASE WHEN $10 = 'published' THEN $12 ELSE NULL END, $12)
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::varchar, $11, $11,
+             CASE WHEN $10::varchar = 'published' THEN $12 ELSE NULL END, $12)
            ON CONFLICT (tenant_id, agency_id, region_id, sector_id, indicator_id, reference_year)
            DO UPDATE SET region_name = EXCLUDED.region_name,
              source_name = EXCLUDED.source_name,

@@ -16,7 +16,7 @@ describe("ServiceApplicationWizard", () => {
       screen
         .getByRole("link", { name: /Kembali ke pelacakan/ })
         .getAttribute("href"),
-    ).toBe("/tracking");
+    ).toBe("/citizen/service");
     fireEvent.click(screen.getByRole("button", { name: "Simpan draft" }));
     expect(screen.getByRole("status").textContent).toContain(
       "Fitur simpan draft belum tersedia",

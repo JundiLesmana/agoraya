@@ -37,11 +37,11 @@ export function LoginForm() {
       const sessionResponse = await fetch("/api/auth", { cache: "no-store" });
       const session = (await sessionResponse.json()) as { roles?: string[] };
       const roles = session.roles ?? [];
-      let target = "/citizen/dashboard";
+      let target = "/reporting";
       if (roles.includes("executive") || roles.includes("pimpinan")) {
         target = "/executive/dashboard";
       } else if (
-        roles.some((role) => role === "asn" || role === "staff" || role === "admin")
+        roles.some((role) => role === "asn" || role === "staff" || role === "superadmin")
       ) {
         target = "/asn/dashboard";
       }

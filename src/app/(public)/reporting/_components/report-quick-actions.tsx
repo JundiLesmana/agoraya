@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ReportForm } from "../../reporting/_components/report-form";
+import { ReportForm } from "@/app/(citizen)/citizen/reporting/_components/report-form";
 import { ReportTrackingSection } from "@/app/(public)/_components/report-tracking-section";
 
 const REPORT_CATEGORIES = [
@@ -69,7 +69,7 @@ function reportHref(category?: string, subcategory?: string) {
   if (category) parts.push(`category=${encodeURIComponent(category)}`);
   if (subcategory) parts.push(`subcategory=${encodeURIComponent(subcategory)}`);
   const query = parts.join("&");
-  return query ? `/citizen/dashboard?${query}#report-form` : "#report-form";
+  return query ? `/reporting?${query}#report-form` : "#report-form";
 }
 
 export function ReportQuickActions({

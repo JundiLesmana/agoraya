@@ -1,15 +1,15 @@
 import { ReportQuickActions } from "./_components/report-quick-actions";
 
-interface CitizenDashboardPageProps {
+interface PublicReportingPageProps {
   searchParams: Promise<{
     category?: string | string[];
     subcategory?: string | string[];
   }>;
 }
 
-export default async function CitizenDashboardPage({
+export default async function PublicReportingPage({
   searchParams,
-}: CitizenDashboardPageProps) {
+}: PublicReportingPageProps) {
   const { category, subcategory } = await searchParams;
 
   return (

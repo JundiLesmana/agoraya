@@ -42,7 +42,7 @@ const SERVICE_CARDS = [
   {
     title: 'Layanan Publik',
     description: 'Pantau status dan progres layanan publik seperti pengaduan warga, perizinan, atau bantuan sosial dengan sistem tracking yang transparan dari sisi pengguna maupun instansi.',
-    href: '/citizen/dashboard',
+    href: '/citizen/service',
     cta: 'Cek Layanan',
     accent: 'green',
     Icon: FileText,
@@ -51,7 +51,7 @@ const SERVICE_CARDS = [
     title: 'Laporan Warga',
     description:
       'Laporkan masalah di sekitar Anda (seperti infrastruktur rusak, dugaan penyimpangan, atau isu lingkungan) yang terintegrasi dengan sistem verifikasi dan tindak lanjut, guna mendorong partisipasi warga.',
-    href: '/tracking',
+    href: '/reporting',
     cta: 'Laporkan Sekarang',
     accent: 'orange',
     Icon: Megaphone,
@@ -96,7 +96,7 @@ function ReportingCta() {
         <p className="text-muted-foreground mt-3 text-sm leading-6 sm:text-base">Pahami progres laporan Anda dari awal hingga akhir</p>
         <p className="text-muted-foreground mt-3 text-sm">Identitas Anda tidak ditampilkan jika memilih laporan anonim. Pilihan privasi akan dijelaskan saat mengisi formulir.</p>
         <Button asChild size="lg" className="mt-6" aria-label="Buat laporan baru">
-          <Link href="/tracking">
+          <Link href="/reporting">
             Buat laporan baru
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
@@ -194,7 +194,7 @@ export default function PublicLandingPage() {
         mobileDescription="Gunakan data dan laporkan masalah untuk perubahan yang lebih baik."
         description="Jadilah bagian dari masyarakat yang aktif, kritis, dan peduli. Gunakan data, pantau layanan, laporkan masalah, dan bantu wujudkan pemerintahan yang lebih baik."
         buttonLabel="Mulai Sekarang"
-        buttonHref="/tracking"
+        buttonHref="/citizen/service"
       />
     </div>
   );
