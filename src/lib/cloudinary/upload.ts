@@ -31,10 +31,14 @@ export async function uploadToCloudinary({
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new AppError(ErrorCode.ENV_VALIDATION_FAILED, "Cloudinary is not configured", {
-      statusCode: 500,
-      isOperational: true,
-    });
+    throw new AppError(
+      ErrorCode.ENV_VALIDATION_FAILED,
+      "Cloudinary is not configured",
+      {
+        statusCode: 500,
+        isOperational: true,
+      },
+    );
   }
 
   cloudinary.config({
@@ -55,7 +59,10 @@ export async function uploadToCloudinary({
       (error, result) => {
         if (error || !result) {
           logger.error("cloudinary.upload_failed", {
-            error: error instanceof Error ? error.message : String(error),
+            error: error?.message ?? "Unknown Cloudinary error",
+            errorName: error?.name,
+            httpCode: error?.http_code,
+            requestId: error?.request_id,
           });
           reject(
             new AppError(
