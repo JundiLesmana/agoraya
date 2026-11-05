@@ -74,7 +74,7 @@ describe("Footer", () => {
     ).toBeTruthy();
 
     const cta = screen.getByRole("link", { name: "Buat laporan" });
-    expect(cta.getAttribute("href")).toBe("/tracking");
+    expect(cta.getAttribute("href")).toBe("/reporting");
     expect(cta.getAttribute("aria-label")).toBe("Buat laporan");
     expect(
       cta.compareDocumentPosition(

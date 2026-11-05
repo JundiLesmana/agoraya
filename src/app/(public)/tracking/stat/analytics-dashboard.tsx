@@ -340,7 +340,7 @@ export function AnalyticsDashboard() {
                 <li>
                   <Link
                     className="text-primary font-medium hover:underline"
-                    href="/citizen/service"
+                    href="/tracking/stat"
                   >
                     Ruang Statistik
                   </Link>
@@ -356,7 +356,7 @@ export function AnalyticsDashboard() {
             </p>
             <ServiceSpaceNavigation
               activeSpace="statistics"
-              statisticsHref="/service/stat"
+              statisticsHref="/tracking/stat"
             />
           </div>
         </header>
