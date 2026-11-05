@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDefaultDatabase } from "@/lib/db/client";
 import { serverLogger } from "@/lib/logger";
+import { BpsHttpAdapter, syncBpsStatistics } from "@/modules/integrations/bps";
 import {
   invalidateAggregateCache,
   isAnalyticsRefreshSecretConfigured,
@@ -28,12 +29,23 @@ export async function GET(request: Request) {
   try {
     await refreshAnalyticsMaterializedView(getDefaultDatabase());
     invalidateAggregateCache();
+
+    // Sinkronisasi statistik BPS dengan degradasi tambahan:
+    // jika BPS API mati, tidak melempar exception sehingga cron tetap
+    // mengembalikan 200 dan data snapshot terakhir (termasuk SIMULATED)
+    // tetap tersedia untuk publik.
+    const adapter = new BpsHttpAdapter();
+    const bps = await syncBpsStatistics(adapter);
+
     return NextResponse.json({
       status: "refreshed",
+      bpsSynced: bps.synced,
+      bpsCount: bps.count,
+      ...(bps.error ? { bpsError: bps.error } : {}),
       refreshedAt: new Date().toISOString(),
     });
   } catch (error) {
-    serverLogger.error("Analytics materialized view refresh failed", {
+    serverLogger.error("Analytics refresh failed", {
       errorName: error instanceof Error ? error.name : "UnknownError",
     });
     await serverLogger.flush();
