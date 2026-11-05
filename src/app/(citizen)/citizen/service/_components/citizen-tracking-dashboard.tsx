@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Search,
   ShieldCheck,
-  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,8 +25,9 @@ import { Select } from '@/components/ui/select';
 import { ServiceSpaceNavigation } from '@/components/service-space-navigation';
 import { cn } from '@/lib/utils';
 import {
-  TRACKING_APPLICATIONS,
+  mapStoredServiceApplication,
   TRACKING_NUMBER_PATTERN,
+  type StoredServiceApplication,
   type TrackingApplication,
   type TrackingCategory,
   type TrackingStatus,
@@ -37,21 +37,27 @@ import { formatDateTimeWib, getDaysUntilDeadline } from './tracking-format';
 type StatusFilter = 'Semua status' | TrackingStatus;
 type CategoryFilter = 'Semua kategori' | TrackingCategory;
 type SortOrder = 'Terbaru' | 'Terlama';
-type DialogName = 'upload' | 'contact' | null;
+type DialogName = 'contact' | null;
 
 const CATEGORY_OPTIONS = [
   { value: 'Semua kategori', label: 'Semua kategori' },
   { value: 'Pengaduan', label: 'Pengaduan' },
   { value: 'Perizinan', label: 'Perizinan' },
   { value: 'Sosial', label: 'Sosial' },
+  { value: 'Pendidikan', label: 'Pendidikan' },
+  { value: 'Kesehatan', label: 'Kesehatan' },
+  { value: 'Layanan lainnya', label: 'Layanan lainnya' },
 ] as const;
 
 const STATUS_OPTIONS = [
   { value: 'Semua status', label: 'Semua status' },
+  { value: 'Diterima', label: 'Diterima' },
   { value: 'Sedang diproses', label: 'Sedang diproses' },
   { value: 'Perlu dokumen', label: 'Perlu dokumen' },
   { value: 'Diverifikasi', label: 'Diverifikasi' },
   { value: 'Selesai', label: 'Selesai' },
+  { value: 'Ditolak', label: 'Ditolak' },
+  { value: 'Status lain', label: 'Status lain' },
 ] as const;
 
 const SORT_OPTIONS = [
@@ -59,12 +65,9 @@ const SORT_OPTIONS = [
   { value: 'Terlama', label: 'Terlama' },
 ] as const;
 
-const ACTION_REQUIRED_APPLICATION = TRACKING_APPLICATIONS.find(
-  (application) => application.status === 'Perlu dokumen',
-);
-
 function getStatusStyle(status: TrackingStatus): string {
   switch (status) {
+    case 'Diterima':
     case 'Sedang diproses':
       return 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300';
     case 'Perlu dokumen':
@@ -73,6 +76,10 @@ function getStatusStyle(status: TrackingStatus): string {
       return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300';
     case 'Selesai':
       return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300';
+    case 'Ditolak':
+      return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300';
+    case 'Status lain':
+      return 'border-border bg-muted text-muted-foreground';
   }
 }
 
@@ -82,6 +89,8 @@ function StatusBadge({ status }: { status: TrackingStatus }) {
       ? CircleCheck
       : status === 'Perlu dokumen'
         ? FileText
+        : status === 'Ditolak'
+          ? AlertCircle
         : status === 'Diverifikasi'
           ? ShieldCheck
           : Clock3;
@@ -99,21 +108,26 @@ function StatusBadge({ status }: { status: TrackingStatus }) {
   );
 }
 
-function SummaryCards() {
-  const inProgressCount = TRACKING_APPLICATIONS.filter(
+function SummaryCards({
+  applications,
+}: {
+  applications: readonly TrackingApplication[];
+}) {
+  const inProgressCount = applications.filter(
     (application) =>
-      application.status === 'Sedang diproses' || application.status === 'Diverifikasi',
+      application.status === 'Sedang diproses' ||
+      application.status === 'Diverifikasi',
   ).length;
-  const needsActionCount = TRACKING_APPLICATIONS.filter(
+  const needsActionCount = applications.filter(
     (application) => application.status === 'Perlu dokumen',
   ).length;
-  const completedCount = TRACKING_APPLICATIONS.filter(
+  const completedCount = applications.filter(
     (application) => application.status === 'Selesai',
   ).length;
   const summaries = [
     {
       label: 'Total pengajuan',
-      value: TRACKING_APPLICATIONS.length,
+      value: applications.length,
       description: 'Seluruh layanan Anda',
       Icon: FileText,
       color: 'text-blue-700 dark:text-blue-300',
@@ -128,7 +142,7 @@ function SummaryCards() {
     {
       label: 'Perlu tindakan',
       value: needsActionCount,
-      description: 'Lengkapi dokumen izin',
+      description: 'Tindak lanjut diperlukan',
       Icon: AlertCircle,
       color: 'text-amber-700 dark:text-amber-300',
     },
@@ -186,6 +200,9 @@ function useDeadlineDays(deadline: string | undefined): number | null {
 
 function ApplicationList({
   applications,
+  totalApplications,
+  isLoading,
+  loadError,
   selectedId,
   onSelect,
   category,
@@ -201,7 +218,10 @@ function ApplicationList({
   searchMessage,
 }: {
   applications: readonly TrackingApplication[];
-  selectedId: string;
+  totalApplications: number;
+  isLoading: boolean;
+  loadError: string;
+  selectedId: string | null;
   onSelect: (application: TrackingApplication) => void;
   category: CategoryFilter;
   onCategoryChange: (value: CategoryFilter) => void;
@@ -222,7 +242,8 @@ function ApplicationList({
           <div>
             <h2 className="text-lg font-semibold">Pengajuan saya</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              4 pengajuan · 3 kategori layanan
+              {totalApplications} pengajuan ·{" "}
+              {new Set(applications.map((application) => application.category)).size} kategori
             </p>
           </div>
         </div>
@@ -259,7 +280,7 @@ function ApplicationList({
             </p>
           ) : (
             <p id="tracking-hint" className="text-xs text-muted-foreground">
-              Format: 2–3 huruf, 6 angka, lalu 5 angka.
+              Cari hanya di antara pengajuan milik akun Anda.
             </p>
           )}
           {searchMessage ? (
@@ -310,7 +331,15 @@ function ApplicationList({
         </div>
       </div>
 
-      {applications.length ? (
+      {isLoading ? (
+        <p className="border-t border-border px-5 py-10 text-center text-sm text-muted-foreground">
+          Memuat pengajuan Anda…
+        </p>
+      ) : loadError ? (
+        <p role="alert" className="border-t border-border px-5 py-10 text-center text-sm text-destructive">
+          {loadError}
+        </p>
+      ) : applications.length ? (
         <div className="overflow-x-auto border-t border-border">
           <table className="w-full min-w-[600px] border-collapse text-left text-sm">
             <caption className="sr-only">Daftar pengajuan layanan warga</caption>
@@ -359,7 +388,9 @@ function ApplicationList({
                     </p>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    {formatDateTimeWib(application.targetAt).split(' pukul ')[0]}
+                    {application.targetAt
+                      ? formatDateTimeWib(application.targetAt).split(' pukul ')[0]
+                      : 'Belum ditentukan'}
                   </td>
                 </tr>
               ))}
@@ -369,9 +400,15 @@ function ApplicationList({
       ) : (
         <div className="border-t border-border px-5 py-10 text-center">
           <Info className="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
-          <p className="mt-2 font-medium">Tidak ada pengajuan yang cocok</p>
+          <p className="mt-2 font-medium">
+            {totalApplications === 0
+              ? 'Belum ada pengajuan layanan'
+              : 'Tidak ada pengajuan yang cocok'}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Ubah kategori atau status untuk melihat pengajuan lainnya.
+            {totalApplications === 0
+              ? 'Pengajuan yang Anda kirim akan tampil di sini.'
+              : 'Ubah kategori atau status untuk melihat pengajuan lainnya.'}
           </p>
         </div>
       )}
@@ -393,6 +430,7 @@ function ApplicationDetails({
   const steps = ['Diterima', 'Verifikasi', 'Diproses', 'Selesai'];
   const timelineHeadingId = React.useId();
   const deadlineDaysRemaining = useDeadlineDays(application.deadlineAt);
+  const responseDeadlineAt = application.deadlineAt ?? application.targetAt;
 
   return (
     <Card
@@ -475,26 +513,35 @@ function ApplicationDetails({
           </div>
           <div>
             <dt className="text-muted-foreground">Target penyelesaian</dt>
-            <dd className="mt-1 font-medium">{formatDateTimeWib(application.targetAt)}</dd>
+            <dd className="mt-1 font-medium">
+              {application.targetAt
+                ? formatDateTimeWib(application.targetAt)
+                : 'Belum ditentukan'}
+            </dd>
           </div>
         </dl>
 
-        <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-          <CalendarClock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          Target mengikuti standar layanan instansi. Perubahan jadwal dicatat dalam riwayat.
-        </p>
+        {application.targetAt ? (
+          <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+            <CalendarClock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            Target mengikuti standar layanan instansi. Perubahan jadwal dicatat dalam riwayat.
+          </p>
+        ) : null}
 
         {application.status === 'Perlu dokumen' ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs dark:border-amber-900 dark:bg-amber-950/40">
             <p className="font-semibold text-amber-900 dark:text-amber-200">
               Lengkapi dokumen yang diminta
             </p>
-            <p className="mt-1 text-amber-800 dark:text-amber-300">
-              Batas waktu {formatDateTimeWib(application.deadlineAt ?? application.targetAt)} ·{' '}
-              {deadlineDaysRemaining === null
-                ? 'Menghitung sisa waktu…'
-                : getDeadlineCopy(deadlineDaysRemaining)}
-            </p>
+            {responseDeadlineAt ? (
+              <p className="mt-1 text-amber-800 dark:text-amber-300">
+                Batas waktu{' '}
+                {formatDateTimeWib(responseDeadlineAt)} ·{' '}
+                {deadlineDaysRemaining === null
+                  ? 'Menghitung sisa waktu…'
+                  : getDeadlineCopy(deadlineDaysRemaining)}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -600,7 +647,10 @@ function EducationSection() {
 }
 
 export function CitizenTrackingDashboard() {
-  const [selectedId, setSelectedId] = React.useState(TRACKING_APPLICATIONS[0].id);
+  const [applications, setApplications] = React.useState<TrackingApplication[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState('');
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState<CategoryFilter>('Semua kategori');
   const [status, setStatus] = React.useState<StatusFilter>('Semua status');
   const [sortOrder, setSortOrder] = React.useState<SortOrder>('Terbaru');
@@ -609,20 +659,56 @@ export function CitizenTrackingDashboard() {
   const [searchMessage, setSearchMessage] = React.useState('');
   const [isMobileDetailOpen, setIsMobileDetailOpen] = React.useState(false);
   const [activeDialog, setActiveDialog] = React.useState<DialogName>(null);
-  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
-  const [uploadError, setUploadError] = React.useState('');
   const [contactMessage, setContactMessage] = React.useState('');
   const [interactionNotice, setInteractionNotice] = React.useState('');
 
+  React.useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadApplications() {
+      try {
+        const response = await fetch('/api/citizen/service-applications', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = (await response.json()) as {
+          applications?: StoredServiceApplication[];
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(
+            data.error ??
+              (response.status === 401
+                ? 'Silakan masuk untuk melihat pengajuan Anda.'
+                : 'Pengajuan Anda gagal dimuat.'),
+          );
+        }
+        if (!Array.isArray(data.applications)) {
+          throw new Error('Data pengajuan yang diterima tidak valid.');
+        }
+
+        const mappedApplications = data.applications.map(mapStoredServiceApplication);
+        setApplications(mappedApplications);
+        setSelectedId(mappedApplications[0]?.id ?? null);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setLoadError(
+          error instanceof Error ? error.message : 'Pengajuan Anda gagal dimuat.',
+        );
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    }
+
+    void loadApplications();
+    return () => controller.abort();
+  }, []);
+
   const selectedApplication =
-    TRACKING_APPLICATIONS.find((application) => application.id === selectedId) ??
-    TRACKING_APPLICATIONS[0];
-  const alertDeadlineDaysRemaining = useDeadlineDays(
-    ACTION_REQUIRED_APPLICATION?.deadlineAt,
-  );
+    applications.find((application) => application.id === selectedId) ?? null;
 
   const filteredApplications = React.useMemo(() => {
-    const filtered = TRACKING_APPLICATIONS.filter((application) => {
+    const filtered = applications.filter((application) => {
       const matchesCategory = category === 'Semua kategori' || application.category === category;
       const matchesStatus = status === 'Semua status' || application.status === status;
       return matchesCategory && matchesStatus;
@@ -632,7 +718,7 @@ export function CitizenTrackingDashboard() {
         new Date(second.submittedAt).getTime() - new Date(first.submittedAt).getTime();
       return sortOrder === 'Terbaru' ? difference : -difference;
     });
-  }, [category, sortOrder, status]);
+  }, [applications, category, sortOrder, status]);
 
   function selectApplication(application: TrackingApplication) {
     setSelectedId(application.id);
@@ -650,12 +736,12 @@ export function CitizenTrackingDashboard() {
       return;
     }
 
-    const match = TRACKING_APPLICATIONS.find(
+    const match = applications.find(
       (application) => application.trackingNumber === normalizedTrackingNumber,
     );
     setSearchError('');
     if (!match) {
-      setSearchMessage('Nomor pelacakan tidak ditemukan pada data simulasi akun ini.');
+      setSearchMessage('Nomor pelacakan tidak ditemukan pada pengajuan akun ini.');
       return;
     }
 
@@ -664,48 +750,6 @@ export function CitizenTrackingDashboard() {
     setSelectedId(match.id);
     setSearchMessage(`Pengajuan ${match.trackingNumber} ditemukan.`);
     setIsMobileDetailOpen(true);
-  }
-
-  function openUploadDialog(application: TrackingApplication) {
-    setSelectedId(application.id);
-    setUploadFile(null);
-    setUploadError('');
-    setInteractionNotice('');
-    setActiveDialog('upload');
-  }
-
-  function handleUploadChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setUploadError('');
-    if (!file) {
-      setUploadFile(null);
-      return;
-    }
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      setUploadFile(null);
-      setUploadError('Pilih dokumen PDF, JPG, atau PNG.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadFile(null);
-      setUploadError('Ukuran dokumen maksimal 10 MB.');
-      return;
-    }
-    setUploadFile(file);
-  }
-
-  function handleUploadSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!uploadFile) {
-      setUploadError('Pilih dokumen terlebih dahulu.');
-      return;
-    }
-    setActiveDialog(null);
-    setUploadFile(null);
-    setInteractionNotice(
-      'Dokumen dipilih untuk simulasi. Berkas belum dikirim atau disimpan karena layanan unggah belum terhubung.',
-    );
   }
 
   function handleContactSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -768,17 +812,21 @@ export function CitizenTrackingDashboard() {
           <ServiceSpaceNavigation
             activeSpace="citizen"
             statisticsHref="/tracking/stat"
+            excludeSpaces={["agency"]}
           />
         </div>
       </section>
 
       <div className="mx-auto max-w-7xl space-y-7 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <SummaryCards />
+        <SummaryCards applications={applications} />
 
         <section aria-label="Daftar dan detail pengajuan" className="space-y-4">
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(350px,0.95fr)]">
             <ApplicationList
               applications={filteredApplications}
+              totalApplications={applications.length}
+              isLoading={isLoading}
+              loadError={loadError}
               selectedId={selectedId}
               onSelect={selectApplication}
               category={category}
@@ -794,53 +842,22 @@ export function CitizenTrackingDashboard() {
               searchMessage={searchMessage}
             />
             <aside className="hidden lg:block">
-              <ApplicationDetails
-                application={selectedApplication}
-                onContact={() => {
-                  setContactMessage('');
-                  setInteractionNotice('');
-                  setActiveDialog('contact');
-                }}
-              />
+              {selectedApplication ? (
+                <ApplicationDetails
+                  application={selectedApplication}
+                  onContact={() => {
+                    setContactMessage('');
+                    setInteractionNotice('');
+                    setActiveDialog('contact');
+                  }}
+                />
+              ) : (
+                <Card className="rounded-xl p-8 text-center text-sm text-muted-foreground">
+                  {loadError || (isLoading ? 'Memuat pengajuan Anda…' : 'Pilih pengajuan untuk melihat detail.')}
+                </Card>
+              )}
             </aside>
           </div>
-
-          {ACTION_REQUIRED_APPLICATION ? (
-            <Card className="gap-0 rounded-xl border-amber-200 bg-amber-50 shadow-none dark:border-amber-900 dark:bg-amber-950/30">
-              <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                <div className="flex gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200">
-                    <AlertCircle className="size-4" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <h2 className="font-semibold">Satu pengajuan perlu Anda lengkapi</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {ACTION_REQUIRED_APPLICATION.trackingNumber} · Bukti alamat usaha diminta.
-                      Batas pengiriman{' '}
-                      {formatDateTimeWib(
-                        ACTION_REQUIRED_APPLICATION.deadlineAt ??
-                          ACTION_REQUIRED_APPLICATION.targetAt,
-                      )}
-                      .
-                    </p>
-                    <p className="mt-1 text-xs font-medium text-amber-800 dark:text-amber-200">
-                      Tenggat{' '}
-                      {alertDeadlineDaysRemaining === null
-                        ? 'Menghitung sisa waktu…'
-                        : getDeadlineCopy(alertDeadlineDaysRemaining)}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => openUploadDialog(ACTION_REQUIRED_APPLICATION)}
-                  className="shrink-0 bg-amber-800 text-white hover:bg-amber-900 dark:bg-amber-700 dark:hover:bg-amber-600"
-                >
-                  Buka &amp; lengkapi dokumen
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Button>
-              </div>
-            </Card>
-          ) : null}
 
           {interactionNotice ? (
             <p
@@ -855,7 +872,7 @@ export function CitizenTrackingDashboard() {
         <EducationSection />
 
         <div className="flex flex-col gap-2 border-t border-border pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>Semua pengajuan, angka, dan instansi di halaman ini adalah ilustrasi untuk layanan.</p>
+          <p>Daftar ini hanya menampilkan pengajuan yang terhubung ke akun Anda.</p>
           <a
             href="#education-heading"
             className="inline-flex items-center gap-1 font-medium text-blue-700 hover:underline dark:text-blue-300"
@@ -866,85 +883,37 @@ export function CitizenTrackingDashboard() {
       </div>
 
       <Modal
-        open={isMobileDetailOpen}
+        open={isMobileDetailOpen && Boolean(selectedApplication)}
         onOpenChange={setIsMobileDetailOpen}
-        title={selectedApplication.serviceName}
+        title={selectedApplication?.serviceName ?? 'Detail pengajuan'}
         contentClassName="inset-x-0 bottom-0 top-auto max-h-[92dvh] max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-t-2xl p-4 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[85dvh] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:p-6 lg:hidden"
       >
         <div className="pb-1">
-          <ApplicationDetails
-            application={selectedApplication}
-            onContact={() => {
-              setIsMobileDetailOpen(false);
-              setContactMessage('');
-              setActiveDialog('contact');
-            }}
-          />
+          {selectedApplication ? (
+            <ApplicationDetails
+              application={selectedApplication}
+              onContact={() => {
+                setIsMobileDetailOpen(false);
+                setContactMessage('');
+                setActiveDialog('contact');
+              }}
+            />
+          ) : null}
         </div>
       </Modal>
 
       <Modal
-        open={activeDialog === 'upload'}
-        onOpenChange={(open) => {
-          setActiveDialog(open ? 'upload' : null);
-          if (!open) {
-            setUploadFile(null);
-            setUploadError('');
-          }
-        }}
-        title="Lengkapi dokumen"
-        description={`Permintaan untuk ${selectedApplication.trackingNumber} · ${selectedApplication.serviceName}`}
-        footer={
-          <Button
-            form="upload-document-form"
-            type="submit"
-            disabled={!uploadFile}
-          >
-            <Upload className="size-4" aria-hidden="true" />
-            Simpan pilihan (simulasi)
-          </Button>
-        }
-      >
-        <form id="upload-document-form" onSubmit={handleUploadSubmit} className="space-y-4">
-          <p className="text-muted-foreground">
-            Pilih bukti alamat dalam format PDF, JPG, atau PNG (maks. 10 MB). Berkas hanya dipilih
-            di perangkat ini dan tidak akan dikirim.
-          </p>
-          <label className="block space-y-2 text-sm font-medium">
-            Dokumen pendukung
-            <input
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-              onChange={handleUploadChange}
-              aria-describedby={uploadError ? 'upload-error' : 'upload-hint'}
-              className="block w-full rounded-md border border-input bg-background p-2 text-xs file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-2 file:text-xs"
-            />
-          </label>
-          {uploadError ? (
-            <p id="upload-error" role="alert" className="text-xs text-destructive">
-              {uploadError}
-            </p>
-          ) : (
-            <p id="upload-hint" className="text-xs text-muted-foreground">
-              {uploadFile ? 'Dokumen dipilih untuk pratinjau lokal.' : 'Belum ada dokumen dipilih.'}
-            </p>
-          )}
-          <p className="flex gap-2 text-xs leading-5 text-muted-foreground">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            Jangan pilih berkas yang berisi informasi yang tidak diminta. Integrasi unggah resmi
-            belum tersedia.
-          </p>
-        </form>
-      </Modal>
-
-      <Modal
-        open={activeDialog === 'contact'}
+        open={activeDialog === 'contact' && Boolean(selectedApplication)}
         onOpenChange={(open) => {
           setActiveDialog(open ? 'contact' : null);
           if (!open) setContactMessage('');
         }}
         title="Hubungi instansi"
-        description={`${selectedApplication.agency} · Estimasi respons ${selectedApplication.responseEstimate}`}
+        description={
+          selectedApplication
+            ? `${selectedApplication.agency} · Estimasi respons ${selectedApplication.responseEstimate}`
+            : undefined
+        }
         footer={
           <Button
             form="contact-agency-form"

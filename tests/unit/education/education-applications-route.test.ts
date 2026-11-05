@@ -1,15 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/education-applications/route";
+import { persistServiceApplication } from "@/lib/service-applications/persistence";
+
+vi.mock("@/lib/service-applications/persistence", () => ({
+  persistServiceApplication: vi.fn(),
+}));
 
 describe("education applications API", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+    vi.mocked(persistServiceApplication).mockImplementation(async (payload) => ({
+      ok: true,
+      trackingNumber: "EDU-261105-00001",
+      submittedAt: "2026-11-05T10:00:00.000Z",
+      routeKey: `${payload.category}:${payload.serviceId}`,
+    }));
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   function createPayload(
@@ -83,7 +92,11 @@ describe("education applications API", () => {
     await expect(response.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "education:bantuan-biaya",
+      trackingNumber: "EDU-261105-00001",
     });
+    expect(persistServiceApplication).toHaveBeenCalledWith(
+      expect.objectContaining({ category: "education", serviceType: "BantuanBiaya" }),
+    );
   });
 
   it("accepts administrasi siswa payloads independently from bantuan biaya", async () => {
@@ -97,6 +110,7 @@ describe("education applications API", () => {
     await expect(response.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "education:administrasi-siswa",
+      trackingNumber: "EDU-261105-00001",
       received: {
         serviceType: "AdministrasiSiswa",
         serviceId: "administrasi-siswa",
@@ -142,6 +156,7 @@ describe("education applications API", () => {
     await expect(response.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "education:konsultasi-pendidikan",
+      trackingNumber: "EDU-261105-00001",
       received: {
         serviceType: "KonsultasiPendidikan",
         serviceId: "konsultasi-pendidikan",

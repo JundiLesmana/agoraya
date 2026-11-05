@@ -1,10 +1,19 @@
 export type TrackingStatus =
-  | 'Sedang diproses'
-  | 'Perlu dokumen'
-  | 'Diverifikasi'
-  | 'Selesai';
+  | "Sedang diproses"
+  | "Perlu dokumen"
+  | "Diverifikasi"
+  | "Diterima"
+  | "Selesai"
+  | "Ditolak"
+  | "Status lain";
 
-export type TrackingCategory = 'Pengaduan' | 'Perizinan' | 'Sosial' | 'Kesehatan';
+export type TrackingCategory =
+  | "Pengaduan"
+  | "Perizinan"
+  | "Sosial"
+  | "Pendidikan"
+  | "Kesehatan"
+  | "Layanan lainnya";
 
 export interface TrackingTimelineItem {
   title: string;
@@ -20,7 +29,7 @@ export interface TrackingApplication {
   category: TrackingCategory;
   status: TrackingStatus;
   submittedAt: string;
-  targetAt: string;
+  targetAt: string | null;
   deadlineAt?: string;
   currentStep: number;
   progressLabel: string;
@@ -31,156 +40,116 @@ export interface TrackingApplication {
   timeline: TrackingTimelineItem[];
 }
 
-const documentDeadline = '2026-10-29T17:00:00+07:00';
+export interface StoredServiceApplication {
+  id: string;
+  trackingNumber: string;
+  category: string;
+  serviceType: string;
+  serviceId: string;
+  routeKey: string;
+  serviceName: string;
+  agency: string;
+  status: string;
+  applicantName: string;
+  contactEmail: string;
+  payload: Record<string, unknown>;
+  submittedAt: string;
+  updatedAt: string;
+}
 
-export const TRACKING_APPLICATIONS: readonly TrackingApplication[] = [
-  {
-    id: 'lampu-jalan',
-    trackingNumber: 'PGD-261012-00128',
-    serviceName: 'Lampu jalan padam di Jl. Melati',
-    category: 'Pengaduan',
-    status: 'Sedang diproses',
-    submittedAt: '2026-10-12T09:15:00+07:00',
-    targetAt: '2026-10-19T17:00:00+07:00',
-    currentStep: 3,
-    progressLabel: 'Diproses',
-    progressDescription: 'Tim lapangan sedang melakukan pemeriksaan dan tindak lanjut.',
-    agency: 'Dinas Perhubungan (View)',
-    team: 'Tim PJU 02',
-    responseEstimate: '1 hari kerja',
-    timeline: [
-      {
-        title: 'Pengajuan diterima',
-        description: 'Laporan lampu jalan tercatat. Nomor pelacakan diterbitkan.',
-        occurredAt: '2026-10-12T09:15:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Verifikasi selesai',
-        description: 'Lokasi dan informasi laporan diverifikasi oleh Dinas Perhubungan.',
-        occurredAt: '2026-10-13T11:00:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Tim lapangan ditugaskan',
-        description: 'Tim PJU 02 ditugaskan untuk pemeriksaan dan tindak lanjut.',
-        occurredAt: '2026-10-14T14:20:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Perbaikan dijadwalkan',
-        description: 'Pemeriksaan awal selesai. Target selesai 19 Okt 2026.',
-        occurredAt: '2026-10-15T10:30:00+07:00',
-        completed: false,
-      },
-    ],
-  },
-  {
-    id: 'izin-mikro',
-    trackingNumber: 'ZN-261011-00084',
-    serviceName: 'Perizinan usaha mikro',
-    category: 'Perizinan',
-    status: 'Perlu dokumen',
-    submittedAt: '2026-10-11T10:00:00+07:00',
-    targetAt: '2026-10-30T17:00:00+07:00',
-    deadlineAt: documentDeadline,
-    currentStep: 2,
-    progressLabel: 'Menunggu kelengkapan',
-    progressDescription: 'Unggah salinan bukti lokasi agar verifikasi dapat dilanjutkan.',
-    agency: 'Dinas Penanaman Modal dan PTSP',
-    team: 'Tim Perizinan Usaha',
-    responseEstimate: '2 hari kerja',
-    timeline: [
-      {
-        title: 'Pengajuan diterima',
-        description: 'Permohonan perizinan tercatat dan masuk antrean.',
-        occurredAt: '2026-10-11T10:00:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Pemeriksaan dokumen',
-        description: 'Petugas meminta bukti lokasi untuk melengkapi permohonan.',
-        occurredAt: '2026-10-12T13:40:00+07:00',
-        completed: false,
-      },
-    ],
-  },
-  {
-    id: 'bantuan-pendidikan',
-    trackingNumber: 'BSL-261010-00051',
-    serviceName: 'Pengajuan pendidikan',
-    category: 'Sosial',
-    status: 'Diverifikasi',
-    submittedAt: '2026-10-10T08:30:00+07:00',
-    targetAt: '2026-10-22T17:00:00+07:00',
-    currentStep: 3,
-    progressLabel: 'Diverifikasi',
-    progressDescription: 'Data pengajuan telah diverifikasi dan menunggu keputusan.',
-    agency: 'Dinas Sosial',
-    team: 'Tim Pendidikan',
-    responseEstimate: '3 hari kerja',
-    timeline: [
-      {
-        title: 'Pengajuan diterima',
-        description: 'Permohonan masuk ke sistem untuk diperiksa.',
-        occurredAt: '2026-10-10T08:30:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Dokumen diverifikasi',
-        description: 'Pemeriksaan kelengkapan dokumen selesai.',
-        occurredAt: '2026-10-12T14:00:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Menunggu keputusan',
-        description: 'Instansi sedang meninjau hasil verifikasi.',
-        occurredAt: '2026-10-13T09:00:00+07:00',
-        completed: false,
-      },
-    ],
-  },
-  {
-    id: 'rambu-rusak',
-    trackingNumber: 'PGD-261008-00035',
-    serviceName: 'Rambu lalu lintas rusak',
-    category: 'Pengaduan',
-    status: 'Selesai',
-    submittedAt: '2026-10-08T15:45:00+07:00',
-    targetAt: '2026-10-20T17:00:00+07:00',
-    currentStep: 4,
-    progressLabel: 'Selesai',
-    progressDescription: 'Penanganan selesai. Terima kasih telah membantu menjaga keselamatan.',
-    agency: 'Dinas Perhubungan (View)',
-    team: 'Tim Perlengkapan Jalan',
-    responseEstimate: '1 hari kerja',
-    timeline: [
-      {
-        title: 'Pengajuan diterima',
-        description: 'Laporan kerusakan rambu tercatat.',
-        occurredAt: '2026-10-08T15:45:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Lokasi diverifikasi',
-        description: 'Petugas memastikan lokasi dan kondisi rambu.',
-        occurredAt: '2026-10-09T10:10:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Perbaikan dilakukan',
-        description: 'Tim teknis memperbaiki rambu lalu lintas.',
-        occurredAt: '2026-10-11T13:00:00+07:00',
-        completed: true,
-      },
-      {
-        title: 'Pengajuan selesai',
-        description: 'Hasil penanganan telah dikonfirmasi oleh instansi.',
-        occurredAt: '2026-10-12T16:30:00+07:00',
-        completed: true,
-      },
-    ],
-  },
-];
+const CATEGORY_LABELS: Record<string, TrackingCategory> = {
+  permit: "Perizinan",
+  education: "Pendidikan",
+  social: "Sosial",
+  health: "Kesehatan",
+  reporting: "Pengaduan",
+};
+
+function getStatus(status: string): TrackingStatus {
+  switch (status) {
+    case "submitted":
+      return "Diterima";
+    case "verified":
+      return "Diverifikasi";
+    case "in_progress":
+      return "Sedang diproses";
+    case "needs_document":
+    case "needs_documents":
+      return "Perlu dokumen";
+    case "resolved":
+    case "closed":
+      return "Selesai";
+    case "rejected":
+      return "Ditolak";
+    default:
+      return "Status lain";
+  }
+}
+
+function getStep(status: TrackingStatus): number {
+  switch (status) {
+    case "Diterima":
+      return 1;
+    case "Perlu dokumen":
+    case "Diverifikasi":
+      return 2;
+    case "Sedang diproses":
+      return 3;
+    case "Selesai":
+      return 4;
+    case "Ditolak":
+      return 2;
+    case "Status lain":
+      return 1;
+  }
+}
+
+export function mapStoredServiceApplication(
+  application: StoredServiceApplication,
+): TrackingApplication {
+  const status = getStatus(application.status);
+  const category = CATEGORY_LABELS[application.category] ?? "Layanan lainnya";
+  const submittedAt = new Date(application.submittedAt).toISOString();
+  const updatedAt = new Date(application.updatedAt).toISOString();
+  const hasStatusUpdate =
+    new Date(updatedAt).getTime() > new Date(submittedAt).getTime();
+  const timeline: TrackingTimelineItem[] = [
+    {
+      title: "Pengajuan diterima",
+      description: "Pengajuan Anda berhasil dicatat.",
+      occurredAt: submittedAt,
+      completed: true,
+    },
+  ];
+
+  if (hasStatusUpdate) {
+    timeline.push({
+      title: "Status diperbarui",
+      description: `Status pengajuan saat ini: ${status}.`,
+      occurredAt: updatedAt,
+      completed: status === "Selesai" || status === "Ditolak",
+    });
+  }
+
+  return {
+    id: application.id,
+    trackingNumber: application.trackingNumber,
+    serviceName: application.serviceName,
+    category,
+    status,
+    submittedAt,
+    targetAt: null,
+    currentStep: getStep(status),
+    progressLabel: status,
+    progressDescription:
+      status === "Diterima"
+        ? "Pengajuan Anda telah diterima dan menunggu pemeriksaan."
+        : `Status terakhir pengajuan Anda: ${status}.`,
+    agency: application.agency,
+    team: "Belum ditentukan",
+    responseEstimate: "Belum tersedia",
+    timeline,
+  };
+}
 
 export const TRACKING_NUMBER_PATTERN = /^[A-Z]{2,3}-\d{6}-\d{5}$/;

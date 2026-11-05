@@ -191,7 +191,8 @@ export default function SocialApplicationPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedRoute, setSubmittedRoute] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [submittedAt, setSubmittedAt] = useState("");
 
   function updateDetail(key: keyof SocialFormDetails, value: string) {
     setDetails((current) => ({ ...current, [key]: value }));
@@ -239,18 +240,29 @@ export default function SocialApplicationPage() {
         body: JSON.stringify(createPayload(selectedService, details)),
       });
 
-      const result: { error?: string; valid?: boolean; routeKey?: string } =
-        await response.json();
+      const result: {
+        error?: string;
+        valid?: boolean;
+        routeKey?: string;
+        trackingNumber?: string;
+        submittedAt?: string;
+      } = await response.json();
 
-      if (!response.ok || !result.valid || result.routeKey !== `social:${selectedService.id}`) {
+      if (
+        !response.ok ||
+        !result.valid ||
+        result.routeKey !== `social:${selectedService.id}` ||
+        !result.trackingNumber
+      ) {
         setError(
           result.error ??
-            "Pengajuan sosial gagal divalidasi. Periksa kembali data Anda.",
+            "Pengajuan sosial gagal dikirim. Periksa kembali data Anda.",
         );
         return;
       }
 
-      setSubmittedRoute(result.routeKey);
+      setTrackingNumber(result.trackingNumber);
+      setSubmittedAt(result.submittedAt ?? "");
     } catch {
       setError(
         "Layanan pengajuan sosial tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
@@ -299,18 +311,25 @@ export default function SocialApplicationPage() {
       </section>
 
       <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] lg:px-8">
-        {submittedRoute ? (
+        {trackingNumber ? (
           <section className="border-border bg-card rounded-xl border p-6 lg:col-span-2">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 size-6 shrink-0 text-emerald-600" aria-hidden="true" />
               <div>
-                <h2 className="text-xl font-semibold">Pengajuan sosial tervalidasi</h2>
+                <h2 className="text-xl font-semibold">Pengajuan sosial berhasil dikirim</h2>
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Data telah dikirim ke route terpisah untuk layanan{" "}
-                  <strong>{selectedService?.name}</strong>.
+                  Nomor pelacakan:{" "}
+                  <span className="font-mono font-semibold">{trackingNumber}</span>
                 </p>
-                <p className="mt-3 rounded-lg bg-muted p-3 font-mono text-sm">
-                  {submittedRoute}
+                {submittedAt ? (
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Dikirim: {new Date(submittedAt).toLocaleString("id-ID")}
+                  </p>
+                ) : null}
+                <p className="mt-3 rounded-lg bg-muted p-3 text-sm">
+                  Data pengajuan tersimpan untuk layanan{" "}
+                  <strong>{selectedService?.name}</strong> (Dinas Sosial) dan
+                  dikirim ke endpoint instansi terkait.
                 </p>
               </div>
             </div>

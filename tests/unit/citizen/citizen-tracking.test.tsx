@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CitizenTrackingDashboard } from "@/app/(citizen)/citizen/service/_components/citizen-tracking-dashboard";
 import CitizenTrackingPage from "@/app/(citizen)/citizen/service/page";
-import AsnReportingPage from "@/app/(asn)/asn/reporting/page";
+import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import {
   formatDateTimeWib,
   getDaysUntilDeadline,
@@ -61,10 +61,8 @@ describe("CitizenTrackingDashboard", () => {
         .getAttribute("href"),
     ).toBe("/citizen/service");
     expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Instansi" })
-        .getAttribute("href"),
-    ).toBe("/asn/reporting");
+      within(spaceNavigation).queryByRole("link", { name: "Ruang Instansi" }),
+    ).toBeNull();
     expect(
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Statistik" })
@@ -117,9 +115,9 @@ describe("CitizenTrackingDashboard", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "BSL-261010-00051 ditemukan",
     );
-    expect(
-      screen.getAllByText("Pengajuan pendidikan").length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Pengajuan pendidikan").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("keeps the selected details when category and status filters change", () => {
@@ -141,9 +139,7 @@ describe("CitizenTrackingDashboard", () => {
     const table = screen.getByRole("table", {
       name: "Daftar pengajuan layanan warga",
     });
-    expect(
-      within(table).getByText("Pengajuan pendidikan"),
-    ).toBeTruthy();
+    expect(within(table).getByText("Pengajuan pendidikan")).toBeTruthy();
     expect(
       within(table).queryByText("Lampu jalan padam di Jl. Melati"),
     ).toBeNull();
@@ -171,12 +167,8 @@ describe("CitizenTrackingDashboard", () => {
     );
   });
 
-  it("links the agency service room to its route without offering a statistics room", () => {
-    render(<AsnReportingPage />);
-
-    expect(
-      screen.getByRole("heading", { name: "Ruang Instansi" }),
-    ).toBeTruthy();
+  it("links the agency service room to the dashboard route", () => {
+    render(<ServiceSpaceNavigation activeSpace="agency" />);
     const spaceNavigation = screen.getByRole("navigation", {
       name: "Kategori layanan publik",
     });
@@ -184,7 +176,7 @@ describe("CitizenTrackingDashboard", () => {
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })
         .getAttribute("href"),
-    ).toBe("/asn/reporting");
+    ).toBe("/asn/dashboard");
     expect(
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })

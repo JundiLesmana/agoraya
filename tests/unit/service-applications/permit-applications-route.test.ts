@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/permit-applications/route";
+import { persistServiceApplication } from "@/lib/service-applications/persistence";
+
+vi.mock("@/lib/service-applications/persistence", () => ({
+  persistServiceApplication: vi.fn(),
+}));
 
 function createPayload(
   serviceType: "NibUsahaMikro" | "IzinKegiatan" | "PerizinanLainnya",
@@ -68,6 +73,20 @@ async function postPayload(payload: unknown) {
 }
 
 describe("permit applications API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(persistServiceApplication).mockResolvedValue({
+      ok: true,
+      trackingNumber: "IZN-261105-00001",
+      submittedAt: "2026-11-05T10:00:00.000Z",
+      routeKey: "permit:nib-usaha-mikro",
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it.each([
     ["NibUsahaMikro", "permit:nib-usaha-mikro"],
     ["IzinKegiatan", "permit:izin-kegiatan"],
@@ -81,7 +100,15 @@ describe("permit applications API", () => {
       await expect(response.json()).resolves.toMatchObject({
         valid: true,
         routeKey,
+        trackingNumber: "IZN-261105-00001",
       });
+      expect(persistServiceApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: "permit",
+          serviceType,
+          serviceId: routeKey.replace("permit:", ""),
+        }),
+      );
     },
   );
 

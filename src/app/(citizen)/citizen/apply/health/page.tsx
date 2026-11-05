@@ -224,7 +224,8 @@ export default function HealthApplicationPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedRoute, setSubmittedRoute] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [submittedAt, setSubmittedAt] = useState("");
 
   function updateDetail(key: keyof HealthDetails, value: string) {
     setDetails((current) => ({ ...current, [key]: value }));
@@ -293,21 +294,28 @@ export default function HealthApplicationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createPayload(selectedService, details)),
       });
-      const result: { error?: string; valid?: boolean; routeKey?: string } =
-        await response.json();
+      const result: {
+        error?: string;
+        valid?: boolean;
+        routeKey?: string;
+        trackingNumber?: string;
+        submittedAt?: string;
+      } = await response.json();
       const expectedRouteKey = `health:${selectedService.id}`;
       if (
         !response.ok ||
         !result.valid ||
-        result.routeKey !== expectedRouteKey
+        result.routeKey !== expectedRouteKey ||
+        !result.trackingNumber
       ) {
         setError(
           result.error ??
-            "Pengajuan layanan kesehatan gagal divalidasi. Periksa kembali data Anda.",
+            "Pengajuan layanan kesehatan gagal dikirim. Periksa kembali data Anda.",
         );
         return;
       }
-      setSubmittedRoute(result.routeKey);
+      setTrackingNumber(result.trackingNumber);
+      setSubmittedAt(result.submittedAt ?? "");
     } catch {
       setError(
         "Layanan pengajuan kesehatan tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
@@ -396,7 +404,7 @@ export default function HealthApplicationPage() {
       </section>
 
       <main className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] lg:px-8">
-        {submittedRoute ? (
+        {trackingNumber ? (
           <section className="border-border bg-card rounded-xl border p-6 lg:col-span-2">
             <div className="flex items-start gap-3">
               <CheckCircle2
@@ -405,18 +413,28 @@ export default function HealthApplicationPage() {
               />
               <div>
                 <h2 className="text-xl font-semibold">
-                  Payload layanan tervalidasi
+                  Pengajuan kesehatan berhasil dikirim
                 </h2>
                 <p className="text-muted-foreground mt-2 text-sm">
-                  Jenis layanan dipisahkan untuk diteruskan ke Dinas Kesehatan.
+                  Nomor pelacakan:{" "}
+                  <span className="font-mono font-semibold">
+                    {trackingNumber}
+                  </span>
                 </p>
-                <p className="bg-muted mt-3 rounded-lg p-3 font-mono text-sm">
-                  {submittedRoute}
+                {submittedAt ? (
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Dikirim: {new Date(submittedAt).toLocaleString("id-ID")}
+                  </p>
+                ) : null}
+                <p className="mt-3 rounded-lg bg-muted p-3 text-sm">
+                  Data pengajuan tersimpan untuk layanan{" "}
+                  <strong>{selectedService?.name}</strong> (Dinas Kesehatan) dan
+                  dikirim ke endpoint instansi terkait.
                 </p>
                 <p className="text-muted-foreground mt-3 text-xs">
-                  Endpoint saat ini memvalidasi payload. Pengiriman atau
-                  penyimpanan ke CMS produksi dan unggahan lampiran memerlukan
-                  integrasi backend yang dikonfigurasi.
+                  Catatan: file lampiran belum diunggah atau dikirim ke CMS;
+                  integrasi penyimpanan lampiran memerlukan endpoint unggah
+                  tersendiri.
                 </p>
               </div>
             </div>
