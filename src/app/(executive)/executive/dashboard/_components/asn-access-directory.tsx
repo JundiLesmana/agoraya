@@ -382,6 +382,51 @@ export function AsnAccessDirectory() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const directoryRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [profile, setProfile] = useState<{
+    name: string;
+    email: string;
+    roles: string[];
+  } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const fetchProfile = useCallback(async () => {
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      const res = await fetch("/api/v1/user/me", { cache: "no-store" });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          setProfile(null);
+          return;
+        }
+        throw new Error(`Gagal memuat profil (${res.status}).`);
+      }
+    const payload = await res.json();
+    const data = payload?.data as
+      | { name: string; email: string; roles: string[] }
+      | undefined;
+    if (
+      data &&
+      typeof data.name === "string" &&
+      typeof data.email === "string" &&
+      Array.isArray(data.roles)
+    ) {
+      setProfile(data);
+    }
+    } catch (err) {
+      setProfileError(
+        err instanceof Error ? err.message : "Gagal memuat profil pengguna.",
+      );
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchProfile();
+  }, [fetchProfile]);
 
   const loadDirectory = useCallback(async () => {
     setLoading(true);
@@ -644,9 +689,12 @@ export function AsnAccessDirectory() {
     <div className="min-h-screen bg-[#f7faff] text-slate-800">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[224px] flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-[68px] items-center gap-2.5 border-b border-slate-100 px-5">
-          <span className="relative grid size-8 place-items-center rounded-md bg-blue-600 text-white">
-            <ShieldCheck aria-hidden="true" className="size-[18px]" />
-          </span>
+          <img
+            src="/logo/brand.svg"
+            alt="Agoraya"
+            className="size-[34px] object-contain"
+            loading="eager"
+          />
           <span className="leading-tight">
             <span className="block text-[15px] font-bold tracking-tight text-slate-800">
               Agoraya
@@ -681,14 +729,20 @@ export function AsnAccessDirectory() {
             <Shield aria-hidden="true" className="size-3.5" />
             Kontrol akses ASN
           </a>
-          <span className="mt-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[11px] font-medium text-slate-500">
+          <a
+            href="/executive/audit"
+            className="mt-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+          >
             <ClipboardCheck aria-hidden="true" className="size-3.5" />
-            Audit log
-          </span>
-          <span className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[11px] font-medium text-slate-500">
+            Audit log terpadu
+          </a>
+          <a
+            href="/executive/asn-performance"
+            className="mt-1 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+          >
             <LayoutDashboard aria-hidden="true" className="size-3.5" />
             Kinerja ASN
-          </span>
+          </a>
         </nav>
 
         <div className="mx-3 mt-auto mb-4 rounded-md border border-slate-100 bg-slate-50 p-3">
@@ -700,8 +754,31 @@ export function AsnAccessDirectory() {
             Berikan hanya akses yang diperlukan dan tinjau perubahan sebelum disimpan.
           </p>
         </div>
-        <div className="border-t border-slate-100 px-4 py-3 text-[9px] text-slate-400">
-          © {new Date().getFullYear()} Agoraya · Ruang Executive
+        {/* Profile Card Footer */}
+        <div className="border-t border-slate-100 p-3 flex items-center gap-3">
+          {profileLoading ? (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 animate-pulse">
+              …
+            </div>
+          ) : profileError || !profile ? (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+              ?
+            </div>
+          ) : (
+            <>
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                {profile.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-slate-800">
+                  {profile.name}
+                </p>
+                <p className="truncate text-[10px] text-slate-400">
+                  {profile.roles.join(" · ")} · Pemerintah Kota Contoh
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -750,6 +827,22 @@ export function AsnAccessDirectory() {
               >
                 <Shield aria-hidden="true" className="size-4" />
                 Kontrol akses ASN
+              </a>
+              <a
+                href="/executive/audit"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-1 flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <ClipboardCheck aria-hidden="true" className="size-4" />
+                Audit log terpadu
+              </a>
+              <a
+                href="/executive/asn-performance"
+                onClick={() => setMobileMenuOpen(false)}
+                className="mt-1 flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <LayoutDashboard aria-hidden="true" className="size-4" />
+                Kinerja ASN
               </a>
             </nav>
           )}

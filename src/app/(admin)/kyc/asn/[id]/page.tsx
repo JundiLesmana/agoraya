@@ -18,7 +18,7 @@ export default async function AdminKycAsnDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireAuth({ roles: ["admin", "kyc_verifikator"] });
+  const session = await requireAuth({ roles: ["superadmin", "kyc_verifikator"] });
   if (!isKycReviewer(session.roles)) {
     notFound();
   }

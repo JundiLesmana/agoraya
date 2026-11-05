@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CitizenTrackingDashboard } from "@/app/(citizen)/tracking/_components/citizen-tracking-dashboard";
-import CitizenTrackingPage from "@/app/(citizen)/tracking/page";
+import { CitizenTrackingDashboard } from "@/app/(citizen)/citizen/service/_components/citizen-tracking-dashboard";
+import CitizenTrackingPage from "@/app/(citizen)/citizen/service/page";
 import AsnReportingPage from "@/app/(asn)/asn/reporting/page";
 import {
   formatDateTimeWib,
   getDaysUntilDeadline,
-} from "@/app/(citizen)/tracking/_components/tracking-format";
+} from "@/app/(citizen)/citizen/service/_components/tracking-format";
 
 describe("tracking date helpers", () => {
   it("formats date and time in WIB", () => {

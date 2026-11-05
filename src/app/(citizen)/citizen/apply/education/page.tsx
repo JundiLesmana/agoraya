@@ -1015,7 +1015,7 @@ function SuccessState({ trackingNumber }: { trackingNumber: string }) {
         tidak akan muncul pada daftar pelacakan.
       </p>
       <Button asChild className="mt-6">
-        <Link href="/tracking">
+        <Link href="/citizen/service">
           Lacak Pengajuan <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </Button>
@@ -1332,7 +1332,7 @@ export default function EducationApplicationPage() {
             {!trackingNumber ? (
               <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
                 <Button asChild variant="outline" className="bg-background">
-                  <Link href="/tracking">
+                  <Link href="/citizen/service">
                     <ArrowLeft className="size-4" aria-hidden="true" />
                     Kembali ke pelacakan
                   </Link>

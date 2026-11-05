@@ -8,6 +8,25 @@ afterEach(() => {
 });
 
 describe("regional statistics page", () => {
+  it("renders operator publications immediately after the regional indicator section", () => {
+    render(<StatisticsPage />);
+
+    const indicatorHeading = screen.getByRole("heading", {
+      name: "Telusuri indikator daerah",
+    });
+    const publicationTitle = screen.getByText(
+      "Publikasi terbaru dari operator statistik",
+    );
+    const indicatorSection = indicatorHeading.closest("section");
+    const publicationSection = publicationTitle.closest("section");
+
+    expect(
+      screen.getAllByText("Publikasi terbaru dari operator statistik"),
+    ).toHaveLength(1);
+    expect(indicatorSection?.nextElementSibling).toBe(publicationSection);
+    expect(publicationSection?.className).toBe("w-full");
+  });
+
   it("renders the dashboard structure and active public-data tab", () => {
     render(<StatisticsPage />);
 

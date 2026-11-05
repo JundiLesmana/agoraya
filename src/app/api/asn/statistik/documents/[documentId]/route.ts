@@ -18,7 +18,9 @@ export async function GET(
   const session = moduleAuthorization.session;
   if (
     !session ||
-    !session.roles.some((role) => role === "asn" || role === "staff")
+    !session.roles.some(
+      (role) => role === "asn" || role === "staff" || role === "superadmin",
+    )
   ) {
     return NextResponse.json(
       { error: "Sesi tidak valid atau Anda tidak memiliki akses." },

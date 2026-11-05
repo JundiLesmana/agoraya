@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 type ServiceSpace = "citizen" | "agency" | "statistics";
 
 const SERVICE_SPACES = [
-  { id: "citizen", href: "/tracking", label: "Ruang Warga" },
+  { id: "citizen", href: "/citizen/service", label: "Ruang Warga" },
   { id: "agency", href: "/asn/reporting", label: "Ruang Instansi" },
   { id: "statistics", href: "/data/statistik", label: "Ruang Statistik" },
 ] as const;

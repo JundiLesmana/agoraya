@@ -1030,6 +1030,9 @@ pnpm db:seed
 # 8a. (Opsional) buat akun login testing khusus database lokal
 pnpm db:seed:local-accounts
 
+# 8b. Siapkan akses operator dan draf contoh statistik lokal
+pnpm db:seed:local-statistics
+
 # 9. Jalankan aplikasi
 pnpm dev
 ```
@@ -1053,6 +1056,13 @@ loopback (`localhost`, `127.0.0.1`, atau `::1`) dan nama database
 membuat atau memperbarui tenant dan akun lokal tersebut, tidak menyalin,
 mendorong, atau mengirim data ke database production, dan tidak menghapus
 tiket demo.
+
+Perintah `pnpm db:seed:local-statistics` hanya menerima database lokal
+`agoraya_local`. Perintah ini memberi grant modul `insight` dan assignment
+statistik Jawa Barat kepada akun ASN/staff/superadmin lokal yang aktif; untuk
+akun lokal ber-role `admin` saja, perintah juga menambahkan role `asn` agar
+akun dapat membuka ruang ASN. Perintah mengisi draf TPT sintetis untuk tahun
+berjalan dan tidak menandainya sebagai data BPS resmi.
 
 Skrip membuat database `agoraya_local` dan role `agoraya` dengan password
 pengembangan `localdev`, sama seperti nilai di `.env.example`. Gunakan nilai

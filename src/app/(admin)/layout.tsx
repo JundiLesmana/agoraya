@@ -5,7 +5,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth({ roles: ['admin'] });
+  await requireAuth({ roles: ['admin', 'superadmin'] });
   return (
     <div className="min-h-screen">
       <nav className="border-b p-4">Admin Panel</nav>

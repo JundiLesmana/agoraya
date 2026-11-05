@@ -922,7 +922,7 @@ export function ReportForm({
         <p className="text-muted-foreground mt-4 text-xs">
           Ingin melihat halaman lain?{" "}
           <Link
-            href="/tracking"
+            href="/citizen/service"
             className="text-primary font-medium underline underline-offset-4"
           >
             Lacak status laporan

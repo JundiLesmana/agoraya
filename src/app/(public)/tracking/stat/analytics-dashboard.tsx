@@ -330,7 +330,7 @@ export function AnalyticsDashboard() {
                   {" > "}
                 </li>
                 <li>
-                  <Link className="hover:text-primary" href="/tracking">
+                  <Link className="hover:text-primary" href="/citizen/service">
                     Layanan Publik
                   </Link>
                 </li>
@@ -340,7 +340,7 @@ export function AnalyticsDashboard() {
                 <li>
                   <Link
                     className="text-primary font-medium hover:underline"
-                    href="/tracking"
+                    href="/citizen/service"
                   >
                     Ruang Statistik
                   </Link>
@@ -356,7 +356,7 @@ export function AnalyticsDashboard() {
             </p>
             <ServiceSpaceNavigation
               activeSpace="statistics"
-              statisticsHref="/tracking/stat"
+              statisticsHref="/service/stat"
             />
           </div>
         </header>

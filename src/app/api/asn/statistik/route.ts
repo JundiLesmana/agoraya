@@ -11,7 +11,9 @@ import {
 export const dynamic = "force-dynamic";
 
 function isStatisticsOperator(roles: readonly string[]): boolean {
-  return roles.some((role) => role === "asn" || role === "staff");
+  return roles.some(
+    (role) => role === "asn" || role === "staff" || role === "superadmin",
+  );
 }
 
 function errorResponse(error: unknown): Response {

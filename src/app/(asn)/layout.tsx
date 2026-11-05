@@ -5,7 +5,7 @@ export default async function AsnLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAuth({ roles: ['asn', 'staff', 'admin'] });
+  await requireAuth({ roles: ['asn', 'staff', 'admin', 'superadmin'] });
   return (
     <div className="min-h-screen">
       <nav className="border-b p-4">ASN Portal</nav>

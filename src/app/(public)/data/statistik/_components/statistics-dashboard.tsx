@@ -42,6 +42,7 @@ import {
   type StatisticsRegion,
   type StatisticsYear,
 } from "./statistics-data";
+import { PublishedStatisticInputs } from "./published-statistic-inputs";
 
 type StatisticsFrequency = "tahunan" | "bulanan";
 const AVAILABLE_YEARS = ["2025", "2024", "2023", "2022", "2021", "2020"];
@@ -996,6 +997,8 @@ export function StatisticsDashboard() {
               </CardContent>
             </Card>
           </section>
+
+          <PublishedStatisticInputs />
 
           <section id="metodologi" aria-labelledby="methodology-title">
             <Card className="shadow-sm">
