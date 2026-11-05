@@ -999,20 +999,20 @@ function SuccessState({ trackingNumber }: { trackingNumber: string }) {
         <CheckCircle2 className="size-7" aria-hidden="true" />
       </span>
       <p className="mt-5 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-        PENGAJUAN BERHASIL
+        PENGAJUAN BERHASIL DIKIRIM
       </p>
       <h2 className="mt-2 text-2xl font-bold tracking-tight">
-        Pengajuan pendidikan berhasil disimulasikan
+        Pengajuan pendidikan berhasil dikirim
       </h2>
       <p className="text-muted-foreground mt-2 text-sm">
-        Nomor pelacakan contoh Anda:
+        Nomor pelacakan Anda:
       </p>
       <p className="border-border bg-muted/40 mt-3 rounded-xl border px-4 py-4 font-mono text-lg font-semibold tracking-wider">
         {trackingNumber}
       </p>
       <p className="text-muted-foreground mt-4 text-sm">
-        Pengajuan akan diverifikasi bersama sekolah. Nomor ini hanya contoh dan
-        tidak akan muncul pada daftar pelacakan.
+        Data pengajuan tersimpan dan diteruskan ke endpoint instansi terkait
+        (Dinas Pendidikan). Pengajuan akan diverifikasi bersama sekolah.
       </p>
       <Button asChild className="mt-6">
         <Link href="/citizen/service">
@@ -1164,6 +1164,7 @@ export default function EducationApplicationPage() {
   }
 
   function createTrackingNumber(): string {
+    // Unused fallback; server issues persisted tracking numbers.
     const now = new Date();
     const date = [now.getFullYear() % 100, now.getMonth() + 1, now.getDate()]
       .map((part) => String(part).padStart(2, "0"))
@@ -1171,6 +1172,7 @@ export default function EducationApplicationPage() {
     const suffix = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
     return `EDU-${date}-${suffix}`;
   }
+
 
   async function submitApplication(event: React.FormEvent) {
     event.preventDefault();
@@ -1260,18 +1262,22 @@ export default function EducationApplicationPage() {
           body: JSON.stringify(payload),
         },
       );
-      const result: { error?: string; valid?: boolean } = await response.json();
-      if (!response.ok || !result.valid) {
+      const result: {
+        error?: string;
+        valid?: boolean;
+        trackingNumber?: string;
+      } = await response.json();
+      if (!response.ok || !result.valid || !result.trackingNumber) {
         setFormError(
           result.error ??
-            "Validasi privasi gagal. Periksa kembali uraian dan catatan Anda.",
+            "Pengajuan layanan pendidikan gagal dikirim. Periksa kembali data Anda.",
         );
         return;
       }
-      setTrackingNumber(createTrackingNumber());
+      setTrackingNumber(result.trackingNumber);
     } catch {
       setFormError(
-        "Validasi privasi tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
+        "Layanan pendidikan tidak dapat dihubungi. Periksa koneksi lalu coba lagi.",
       );
     } finally {
       setIsSubmitting(false);
@@ -1325,7 +1331,7 @@ export default function EducationApplicationPage() {
               <div className="mt-3">
                 <SourceBadge
                   source="SIMULATED"
-                  label="Simulasi, tidak dikirim"
+                  label="Formulir pratinjau; pengajuan tersimpan saat dikirim"
                 />
               </div>
             </div>
@@ -1341,12 +1347,13 @@ export default function EducationApplicationPage() {
                   type="button"
                   onClick={() => {
                     setFormError(
-                      "Fitur simpan draft belum tersedia. Data formulir tidak disimpan.",
+                      "Fitur simpan draft belum tersedia. Kirim pengajuan untuk menyimpan data ke sistem.",
                     );
                   }}
                 >
                   Simpan draft
                 </Button>
+
               </div>
             ) : null}
           </div>
@@ -1575,11 +1582,12 @@ export default function EducationApplicationPage() {
                 <h2 className="font-semibold">Penyimpanan belum tersedia</h2>
               </div>
               <p className="text-muted-foreground text-sm">
-                Draf dan pengajuan belum disimpan. Data hanya tersedia selama
-                halaman ini terbuka, dan berkas tetap di perangkat. Uraian dan
-                catatan dikirim hanya untuk validasi privasi saat pengiriman dan
-                tidak disimpan.
+                Draf belum tersimpan. Setelah pengajuan dikirim, data formulir
+                (kecuali lampiran yang belum terintegrasi) disimpan dan
+                diteruskan ke endpoint instansi terkait. Uraian/catatan juga
+                dikirim untuk validasi privasi.
               </p>
+
             </CardContent>
           </Card>
           <Card className="rounded-xl border-amber-200 bg-amber-50 shadow-none dark:border-amber-900 dark:bg-amber-950/30">

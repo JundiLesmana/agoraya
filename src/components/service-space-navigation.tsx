@@ -5,7 +5,7 @@ type ServiceSpace = "citizen" | "agency" | "statistics";
 
 const SERVICE_SPACES = [
   { id: "citizen", href: "/citizen/service", label: "Ruang Warga" },
-  { id: "agency", href: "/asn/reporting", label: "Ruang Instansi" },
+  { id: "agency", href: "/asn/dashboard", label: "Ruang Instansi" },
   { id: "statistics", href: "/data/statistik", label: "Ruang Statistik" },
 ] as const;
 
@@ -13,11 +13,17 @@ export function ServiceSpaceNavigation({
   activeSpace,
   variant = "default",
   statisticsHref = "/data/statistik",
+  excludeSpaces = [],
 }: {
   activeSpace: ServiceSpace;
   variant?: "default" | "plain";
   statisticsHref?: string;
+  excludeSpaces?: readonly ServiceSpace[];
 }) {
+  const spaces = SERVICE_SPACES.filter(
+    (space) => !excludeSpaces.includes(space.id),
+  );
+
   return (
     <nav
       aria-label="Kategori layanan publik"
@@ -27,7 +33,7 @@ export function ServiceSpaceNavigation({
           : "bg-background dark:border-border mt-5 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-white/70 p-1 shadow-sm"
       }
     >
-      {SERVICE_SPACES.map((space) => {
+      {spaces.map((space) => {
         const active = space.id === activeSpace;
         return (
           <Link

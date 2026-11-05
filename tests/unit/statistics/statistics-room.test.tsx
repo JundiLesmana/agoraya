@@ -70,7 +70,7 @@ describe("StatisticsRoom", () => {
       within(spaceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })
         .getAttribute("href"),
-    ).toBe("/asn/reporting");
+    ).toBe("/asn/dashboard");
 
     fireEvent.change(
       screen.getByRole("combobox", { name: "Periode statistik" }),

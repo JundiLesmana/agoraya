@@ -123,6 +123,12 @@ export function getPublicReportStatusPresentation(
         className:
           "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300",
       };
+    case "rejected":
+      return {
+        label: "Tidak dapat ditindaklanjuti",
+        className:
+          "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300",
+      };
     case "resolved":
     case "closed":
       return {

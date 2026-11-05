@@ -34,6 +34,7 @@ export const PUBLIC_SERVICES: readonly PublicService[] = [
     category: "Pendidikan",
     agency: "Dinas Pendidikan",
     prefix: "EDU",
+    route: "/citizen/apply/education",
   },
   {
     id: "social-aid",
