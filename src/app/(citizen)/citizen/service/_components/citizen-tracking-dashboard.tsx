@@ -767,7 +767,7 @@ export function CitizenTrackingDashboard() {
           </div>
           <ServiceSpaceNavigation
             activeSpace="citizen"
-            statisticsHref="/service/stat"
+            statisticsHref="/tracking/stat"
           />
         </div>
       </section>
