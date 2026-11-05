@@ -31,13 +31,15 @@ export async function uploadToCloudinary({
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
+    logger.error("cloudinary.config_missing", {
+      hasCloudName: Boolean(cloudName),
+      hasApiKey: Boolean(apiKey),
+      hasApiSecret: Boolean(apiSecret),
+    });
     throw new AppError(
       ErrorCode.ENV_VALIDATION_FAILED,
-      "Cloudinary is not configured",
-      {
-        statusCode: 500,
-        isOperational: true,
-      },
+      "Penyimpanan lampiran belum dikonfigurasi. Hubungi administrator.",
+      { statusCode: 500, isOperational: true },
     );
   }
 
@@ -63,12 +65,21 @@ export async function uploadToCloudinary({
             errorName: error?.name,
             httpCode: error?.http_code,
             requestId: error?.request_id,
+            cloudName,
           });
+          const authError = error?.http_code === 401 || error?.http_code === 403;
           reject(
             new AppError(
               ErrorCode.EXTERNAL_SERVICE_ERROR,
-              "Gagal mengunggah lampiran ke CDN.",
-              { statusCode: 502, isOperational: false, cause: error },
+              authError
+                ? "Konfigurasi penyimpanan lampiran tidak valid. Hubungi administrator."
+                : "Gagal mengunggah lampiran ke CDN.",
+              {
+                statusCode: 502,
+                isOperational: true,
+                cause: error,
+                context: { cloudinaryHttpCode: error?.http_code },
+              },
             ),
           );
           return;

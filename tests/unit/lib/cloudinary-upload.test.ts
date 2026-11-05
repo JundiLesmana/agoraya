@@ -64,6 +64,7 @@ describe("uploadToCloudinary", () => {
         errorName: "Error",
         httpCode: 401,
         requestId: "request-123",
+        cloudName: "test-cloud",
       },
     );
   });
