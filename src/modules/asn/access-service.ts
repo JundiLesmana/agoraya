@@ -10,6 +10,7 @@ import {
   isNotNull,
   isNull,
   or,
+  sql,
 } from "drizzle-orm";
 
 import { db } from "@/lib/db";
@@ -375,6 +376,66 @@ export async function listAsnAccess(
     total: totalResult[0]?.total ?? 0,
     limit: filters.limit,
     offset: filters.offset,
+  };
+}
+
+export async function listAsnAccessOptions() {
+  return db()
+    .select({ key: applicationRoles.key, name: applicationRoles.name })
+    .from(applicationRoles)
+    .orderBy(asc(applicationRoles.name), asc(applicationRoles.key));
+}
+
+export async function getAsnAccessSummary(tenantId: string) {
+  const [summary] = await db()
+    .select({
+      total: count(),
+      activeAndVerified: count(
+        sql`case
+          when ${users.status} = 'active'
+            and ${users.emailVerifiedAt} is not null
+            and ${kycRoster.status} = 'verified'
+          then 1
+        end`,
+      ),
+      executiveAccess: count(
+        sql`case when ${executiveAccess.status} = 'observer' then 1 end`,
+      ),
+      requirementsIncomplete: count(
+        sql`case
+          when ${users.status} <> 'active'
+            or ${users.emailVerifiedAt} is null
+            or ${kycRoster.status} is distinct from 'verified'
+          then 1
+        end`,
+      ),
+    })
+    .from(users)
+    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+    .leftJoin(
+      kycRoster,
+      and(eq(kycRoster.userId, users.id), eq(kycRoster.tenantId, tenantId)),
+    )
+    .leftJoin(
+      executiveAccess,
+      and(
+        eq(executiveAccess.userId, users.id),
+        eq(executiveAccess.tenantId, tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(users.tenantId, tenantId),
+        eq(asnProfiles.tenantId, tenantId),
+        isNotNull(asnProfiles.userId),
+      ),
+    );
+
+  return {
+    total: Number(summary?.total ?? 0),
+    activeAndVerified: Number(summary?.activeAndVerified ?? 0),
+    executiveAccess: Number(summary?.executiveAccess ?? 0),
+    requirementsIncomplete: Number(summary?.requirementsIncomplete ?? 0),
   };
 }
 

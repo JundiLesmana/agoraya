@@ -11,6 +11,16 @@ const sessionState = vi.hoisted(() => ({
 }));
 
 const serviceState = vi.hoisted(() => ({
+  optionsResult: [
+    { key: "operator", name: "Operator" },
+    { key: "cms-editor", name: "CMS Editor" },
+  ],
+  summaryResult: {
+    total: 7,
+    activeAndVerified: 6,
+    executiveAccess: 1,
+    requirementsIncomplete: 1,
+  },
   detailResult: {
     id: "550e8400-e29b-41d4-a716-446655440000",
     name: "Siti Aminah",
@@ -65,6 +75,8 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 vi.mock("@/modules/asn/access-service", () => ({
+  listAsnAccessOptions: vi.fn(async () => serviceState.optionsResult),
+  getAsnAccessSummary: vi.fn(async () => serviceState.summaryResult),
   getAsnAccessDetail: vi.fn(async () => serviceState.detailResult),
   createExecutiveAccessDraft: vi.fn(async () => serviceState.draftResult),
   getExecutiveAccessPreview: vi.fn(async () => serviceState.previewResult),
@@ -72,6 +84,8 @@ vi.mock("@/modules/asn/access-service", () => ({
 }));
 
 import { GET as getAccessDetail } from "@/app/api/v1/asn/[id]/access-detail/route";
+import { GET as getAccessOptions } from "@/app/api/v1/asn/access/options/route";
+import { GET as getAccessSummary } from "@/app/api/v1/asn/access/summary/route";
 import { GET as getAccessPreview } from "@/app/api/v1/asn/[id]/access-preview/route";
 import { POST as postExecutiveAccessConfirm } from "@/app/api/v1/asn/[id]/executive-access/confirm/route";
 import { POST as postExecutiveAccessDraft } from "@/app/api/v1/asn/[id]/executive-access/draft/route";
@@ -109,6 +123,28 @@ describe("ASN executive access routes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: serviceState.detailResult });
     expect(vi.mocked(getAsnAccessDetail)).toHaveBeenCalledWith(ASN_ID, "tenant-1");
+  });
+
+  it("returns global application role and CMS/KYC page options for a superadmin", async () => {
+    const response = await getAccessOptions();
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload.data.applicationRoles).toEqual(serviceState.optionsResult);
+    expect(payload.data.modules.map((module: { label: string }) => module.label)).toEqual([
+      "CMS Data Pemerintah",
+      "CMS Layanan Publik",
+      "CMS Lapor Warga",
+      "CMS Insight",
+      "Verifikasi akun ASN",
+    ]);
+  });
+
+  it("returns complete directory metrics for a superadmin", async () => {
+    const response = await getAccessSummary();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ data: serviceState.summaryResult });
   });
 
   it("creates an executive access draft", async () => {

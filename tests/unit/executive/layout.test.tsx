@@ -17,7 +17,9 @@ describe('ExecutiveLayout', () => {
 
     render(element);
 
-    expect(requireAuth).toHaveBeenCalledWith({ roles: ['executive', 'pimpinan'] });
+    expect(requireAuth).toHaveBeenCalledWith({
+      roles: ['executive', 'pimpinan', 'superadmin'],
+    });
     expect(screen.getByText('Dashboard child content')).toBeTruthy();
   });
 });

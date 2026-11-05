@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
@@ -32,9 +32,39 @@ function isNavigationItemActive(pathname: string, href: string) {
 
 function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [authenticated, setAuthenticated] = React.useState(false);
   const mobileMenuRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    fetch("/api/auth", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (active) setAuthenticated(Boolean(data?.authenticated));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    await fetch("/api/auth", { method: "DELETE" });
+    setAuthenticated(false);
+    if (typeof window !== "undefined") {
+      // clear cached client data
+      try {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      } catch {
+        // ignore
+      }    }
+    router.refresh();
+    router.replace("/");
+  }
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -84,9 +114,13 @@ function Navbar() {
 
         <div className="ml-auto hidden items-center gap-3 lg:flex">
           <ThemeToggle />
-          <Button asChild>
-            <Link href="/login">Masuk / Daftar</Link>
-          </Button>
+          {authenticated ? (
+            <Button onClick={handleLogout}>Keluar</Button>
+          ) : (
+            <Button asChild>
+              <Link href="/login">Masuk / Daftar</Link>
+            </Button>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-2 lg:hidden">
@@ -137,11 +171,17 @@ function Navbar() {
               );
             })}
           </nav>
-          <Button asChild className="w-full">
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-              Masuk / Daftar
-            </Link>
-          </Button>
+          {authenticated ? (
+            <Button className="w-full" onClick={() => { setMobileMenuOpen(false); handleLogout(); }}>
+              Keluar
+            </Button>
+          ) : (
+            <Button asChild className="w-full">
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                Masuk / Daftar
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

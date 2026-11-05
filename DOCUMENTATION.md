@@ -1027,6 +1027,9 @@ set +a
 pnpm db:migrate:local
 pnpm db:seed
 
+# 8a. (Opsional) buat akun login testing khusus database lokal
+pnpm db:seed:local-accounts
+
 # 9. Jalankan aplikasi
 pnpm dev
 ```
@@ -1037,6 +1040,19 @@ Bash (Linux/macOS/WSL) dan memastikan perintah Drizzle/seed juga membaca
 nilai dari `.env.local`; Next.js membaca file tersebut saat aplikasi dimulai.
 Jika menggunakan nvm, jalankan `nvm use` dari direktori repository sebelum
 mengaktifkan Corepack.
+
+Perintah `pnpm db:seed:local-accounts` membuat akun login lokal
+`testing@executive.com` (role `superadmin` dan `executive`),
+`testing@admin.com` (role `admin`), dan `testing@citizen.com` (role `citizen`).
+Isi `LOCAL_SEED_EXECUTIVE_PASSWORD`, `LOCAL_SEED_ADMIN_PASSWORD`, dan
+`LOCAL_SEED_CITIZEN_PASSWORD` pada `.env.local` dengan password masing-masing
+(12–256 karakter). Password diperbarui dari `.env.local` setiap kali perintah
+dijalankan. Perintah ini hanya menerima `DATABASE_URL_UNPOOLED` dengan host
+loopback (`localhost`, `127.0.0.1`, atau `::1`) dan nama database
+`agoraya_local`; ia tidak dapat tersambung ke Neon/production. Script hanya
+membuat atau memperbarui tenant dan akun lokal tersebut, tidak menyalin,
+mendorong, atau mengirim data ke database production, dan tidak menghapus
+tiket demo.
 
 Skrip membuat database `agoraya_local` dan role `agoraya` dengan password
 pengembangan `localdev`, sama seperti nilai di `.env.example`. Gunakan nilai

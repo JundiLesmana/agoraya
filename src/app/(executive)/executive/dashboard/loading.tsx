@@ -1,10 +1,10 @@
 export default function ExecutiveDashboardLoading() {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">
-        Ringkasan Proyek
+    <div className="mx-auto max-w-[1440px] space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-bold tracking-tight text-foreground">
+        Kontrol akses ASN
       </h1>
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -18,6 +18,7 @@ export default function ExecutiveDashboardLoading() {
           </div>
         ))}
       </div>
+      <div className="h-80 animate-pulse rounded-xl border border-border bg-card" />
     </div>
   );
 }

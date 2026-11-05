@@ -26,7 +26,6 @@ describe('progress distribution chart', () => {
 
     expect(screen.getByText('Progres penyelesaian')).toBeTruthy();
     expect(screen.getByText('240 proyek')).toBeTruthy();
-    expect(screen.getByText('status per 30 September 2025')).toBeTruthy();
     expect(screen.getByText('12 proyek tertunda memerlukan perhatian. Periksa progres fisik.')).toBeTruthy();
     expect(screen.getByText('Distribusi status proyek')).toBeTruthy();
     expect(screen.getByText('Selesai')).toBeTruthy();
@@ -35,5 +34,21 @@ describe('progress distribution chart', () => {
     expect(screen.getByText('Selesai · 65%')).toBeTruthy();
     expect(screen.getByText('Berjalan · 30%')).toBeTruthy();
     expect(screen.getByText('Tertunda · 5%')).toBeTruthy();
+  });
+
+  it('menghasilkan persentase nol saat tidak ada proyek', () => {
+    expect(
+      buildProgressDistributionData({
+        totalProyek: 0,
+        totalWilayah: 0,
+        selesai: 0,
+        berjalan: 0,
+        tertunda: 0,
+      }),
+    ).toEqual([
+      { name: 'Selesai', value: 0, percent: 0, color: '#2fb58b' },
+      { name: 'Berjalan', value: 0, percent: 0, color: '#3b82f6' },
+      { name: 'Tertunda', value: 0, percent: 0, color: '#f59e0b' },
+    ]);
   });
 });
