@@ -47,6 +47,20 @@ function fileFromText(name: string, type: string, text: string): File {
   return new File([text], name, { type });
 }
 
+function mockImageCompression() {
+  vi.stubGlobal(
+    "createImageBitmap",
+    vi.fn(async () => ({ width: 100, height: 100, close: vi.fn() })),
+  );
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    drawImage: vi.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
+    (callback) =>
+      callback(new Blob(["compressed-image"], { type: "image/jpeg" })),
+  );
+}
+
 describe("RegisterCitizenPage", () => {
   it("renders the registration form with all required fields", () => {
     render(<RegisterCitizenPage />);
@@ -158,6 +172,7 @@ describe("RegisterCitizenPage", () => {
       },
     });
 
+    mockImageCompression();
     fireEvent.click(screen.getByRole("button", { name: /Daftar Akun Warga/i }));
 
     await vi.waitFor(() => {
@@ -174,7 +189,9 @@ describe("RegisterCitizenPage", () => {
     expect(body.nik).toBe("3273010101010001");
     expect(body.email).toBe("budi@example.id");
     expect(body.attachment).toContain("data:image/jpeg;base64,");
-    expect(body.selfie).toContain("data:image/png;base64,");
+    expect(body.selfie).toContain("data:image/jpeg;base64,");
+    expect(body.attachmentFileName).toBe("ktp.jpg");
+    expect(body.selfieFileName).toBe("selfie.jpg");
   });
 
   it("shows API error when registration fails", async () => {
@@ -211,6 +228,7 @@ describe("RegisterCitizenPage", () => {
       },
     });
 
+    mockImageCompression();
     fireEvent.click(screen.getByRole("button", { name: /Daftar Akun Warga/i }));
 
     await vi.waitFor(() => {

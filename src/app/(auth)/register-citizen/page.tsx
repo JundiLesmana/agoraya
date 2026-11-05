@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_UPLOAD_IMAGE_SIZE = 1_400_000;
+const MAX_REQUEST_SIZE = 4_000_000;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type UploadKind = "ktp" | "selfie";
@@ -120,35 +122,96 @@ export default function RegisterCitizenPage() {
     setError("");
 
     try {
-      const readImage = (image: UploadedImage) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () =>
-            resolve(typeof reader.result === "string" ? reader.result : "");
-          reader.onerror = () => reject(new Error("Gagal membaca berkas foto."));
-          reader.readAsDataURL(image.file);
-        });
+      const readImage = async (image: UploadedImage) => {
+        let bitmap: ImageBitmap;
+        try {
+          bitmap = await createImageBitmap(image.file);
+        } catch {
+          throw new Error("Gagal memproses foto.");
+        }
+
+        try {
+          const scale = Math.min(
+            1,
+            2000 / Math.max(bitmap.width, bitmap.height),
+          );
+          let width = Math.max(1, Math.round(bitmap.width * scale));
+          let height = Math.max(1, Math.round(bitmap.height * scale));
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          if (!context) throw new Error("Gagal memproses foto.");
+
+          let blob: Blob | null = null;
+          while (!blob || blob.size > MAX_UPLOAD_IMAGE_SIZE) {
+            canvas.width = width;
+            canvas.height = height;
+            context.drawImage(bitmap, 0, 0, width, height);
+
+            for (const quality of [0.85, 0.7, 0.55]) {
+              blob = await new Promise<Blob | null>((resolve) =>
+                canvas.toBlob(resolve, "image/jpeg", quality),
+              );
+              if (blob && blob.size <= MAX_UPLOAD_IMAGE_SIZE) break;
+            }
+
+            if (!blob) throw new Error("Gagal memproses foto.");
+            if (blob.size > MAX_UPLOAD_IMAGE_SIZE) {
+              if (Math.max(width, height) <= 320) {
+                throw new Error("Gagal mengecilkan ukuran foto untuk dikirim.");
+              }
+              width = Math.max(1, Math.round(width * 0.8));
+              height = Math.max(1, Math.round(height * 0.8));
+            }
+          }
+
+          const data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              typeof reader.result === "string"
+                ? resolve(reader.result)
+                : reject(new Error("Gagal membaca berkas foto."));
+            reader.onerror = () =>
+              reject(new Error("Gagal membaca berkas foto."));
+            reader.readAsDataURL(blob);
+          });
+          const extensionIndex = image.file.name.lastIndexOf(".");
+          const fileName = `${extensionIndex > 0 ? image.file.name.slice(0, extensionIndex) : image.file.name}.jpg`;
+
+          return { data, fileName };
+        } finally {
+          bitmap.close();
+        }
+      };
       const [attachment, selfie] = await Promise.all([
         readImage(images.ktp),
         readImage(images.selfie),
       ]);
 
+      const body = JSON.stringify({
+        nik: form.nik.trim(),
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim(),
+        password: form.password,
+        attachment: attachment.data,
+        attachmentFileName: attachment.fileName,
+        attachmentMimeType: "image/jpeg",
+        selfie: selfie.data,
+        selfieFileName: selfie.fileName,
+        selfieMimeType: "image/jpeg",
+      });
+
+      if (new TextEncoder().encode(body).byteLength > MAX_REQUEST_SIZE) {
+        setError(
+          "Ukuran foto gabungan terlalu besar. Silakan unggah foto yang lebih kecil.",
+        );
+        return;
+      }
+
       const response = await fetch("/api/citizen/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nik: form.nik.trim(),
-          name: form.name.trim(),
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
-          password: form.password,
-          attachment,
-          attachmentFileName: images.ktp.file.name,
-          attachmentMimeType: images.ktp.file.type,
-          selfie,
-          selfieFileName: images.selfie.file.name,
-          selfieMimeType: images.selfie.file.type,
-        }),
+        body,
       });
 
       const result = await response.json();
