@@ -736,7 +736,7 @@ export function CitizenTrackingDashboard() {
                 {" > "}
               </li>
               <li>
-                <Link href="/tracking" className="hover:text-primary">
+                <Link href="/citizen/service" className="hover:text-primary">
                   Layanan Publik
                 </Link>
               </li>
@@ -767,7 +767,7 @@ export function CitizenTrackingDashboard() {
           </div>
           <ServiceSpaceNavigation
             activeSpace="citizen"
-            statisticsHref="/tracking/stat"
+            statisticsHref="/service/stat"
           />
         </div>
       </section>

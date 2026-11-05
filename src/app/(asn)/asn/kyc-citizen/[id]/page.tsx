@@ -98,7 +98,7 @@ export default async function VerifikasiAkunWargaDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAuth({ roles: ["asn", "staff"] });
+  await requireAuth({ roles: ["admin"] });
 
   const { id } = await params;
   const application = await getMockKycApplication(id);
