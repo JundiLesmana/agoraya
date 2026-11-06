@@ -17,6 +17,8 @@ export type BpsStatisticsSource = "BPS_API" | "SIMULATED" | null;
 export interface BpsStatisticsFilters {
   readonly indicatorCode?: string;
   readonly regionCode?: string;
+  readonly simulatedIndicatorCode?: string;
+  readonly simulatedRegionCode?: string;
 }
 
 /**
@@ -30,11 +32,19 @@ function buildStatisticsQuery(
   filters: BpsStatisticsFilters,
 ) {
   const conditions = [eq(bpsStatistics.sourceLabel, sourceLabel)];
-  if (filters.indicatorCode) {
-    conditions.push(eq(bpsStatistics.indicatorCode, filters.indicatorCode));
+  const indicatorCode =
+    sourceLabel === "SIMULATED"
+      ? (filters.simulatedIndicatorCode ?? filters.indicatorCode)
+      : filters.indicatorCode;
+  const regionCode =
+    sourceLabel === "SIMULATED"
+      ? (filters.simulatedRegionCode ?? filters.regionCode)
+      : filters.regionCode;
+  if (indicatorCode) {
+    conditions.push(eq(bpsStatistics.indicatorCode, indicatorCode));
   }
-  if (filters.regionCode) {
-    conditions.push(eq(bpsStatistics.regionCode, filters.regionCode));
+  if (regionCode) {
+    conditions.push(eq(bpsStatistics.regionCode, regionCode));
   }
   return database
     .select()
@@ -65,7 +75,11 @@ export async function selectPublicBpsStatistics(
     return { rows: bpsApiRows, source: "BPS_API" };
   }
 
-  const simulatedRows = await buildStatisticsQuery(database, "SIMULATED", filters);
+  const simulatedRows = await buildStatisticsQuery(
+    database,
+    "SIMULATED",
+    filters,
+  );
 
   return {
     rows: simulatedRows,

@@ -30,6 +30,7 @@ import {
   formatRelativeDatasetDate,
   getHighlightedTextParts,
 } from "@/lib/dataset-catalog-presentation";
+import { BpsDatasetReview } from "./bps-dataset-review";
 
 const FORMAT_OPTIONS: readonly SelectOption[] = [
   { value: "CSV", label: "CSV" },
@@ -475,6 +476,9 @@ export function DatasetCatalog() {
 
   return (
     <div className="space-y-6 pb-8">
+      <BpsDatasetReview
+        onPublished={() => setRetryCount((count) => count + 1)}
+      />
       <header className="space-y-3">
         <nav aria-label="Breadcrumb" className="text-muted-foreground text-xs">
           <ol className="flex flex-wrap items-center gap-2">

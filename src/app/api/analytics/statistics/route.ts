@@ -12,9 +12,30 @@ const StatisticsQuerySchema = z.object({
   latest: z.enum(["true", "false"]).optional(),
 });
 
-const INDICATOR_ALIASES: Readonly<Record<string, string>> = {
-  POV: "IND_KEMISKINAN",
-};
+const BPS_INDICATOR_ALIASES = new Map([
+  ["POV", "bps:0000:192:434:61"],
+  ["IND_KEMISKINAN", "bps:0000:192:434:61"],
+  ["IND_PENDUDUK", "bps:0000:1886:585:0"],
+  ["IND_IPM", "bps:0000:413:0:0"],
+  ["IND_SANITASI", "bps:0000:847:0:0"],
+]);
+
+const SIMULATED_INDICATOR_ALIASES = new Map([
+  ["POV", "IND_KEMISKINAN"],
+  ["IND_KEMISKINAN", "IND_KEMISKINAN"],
+  ["IND_PENDUDUK", "IND_PENDUDUK"],
+]);
+
+function normalizePublicRegionCode(regionCode: string): string {
+  if (
+    /^\d{4}$/.test(regionCode) &&
+    regionCode.endsWith("00") &&
+    !regionCode.startsWith("00")
+  ) {
+    return regionCode.slice(0, 2);
+  }
+  return regionCode;
+}
 
 export type StatisticsResponse = {
   readonly source: "BPS_API" | "SIMULATED" | null;
@@ -24,6 +45,7 @@ export type StatisticsResponse = {
   readonly data: readonly {
     readonly year: number;
     readonly value: number;
+    readonly unit: string;
     readonly regionCode: string;
     readonly indicatorCode: string;
   }[];
@@ -56,17 +78,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const indicatorCode = parsed.data.indicator
-    ? (INDICATOR_ALIASES[parsed.data.indicator] ?? parsed.data.indicator)
+  const requestedIndicator = parsed.data.indicator;
+  const indicatorCode = requestedIndicator
+    ? (BPS_INDICATOR_ALIASES.get(requestedIndicator) ?? requestedIndicator)
     : undefined;
+  const regionCode = parsed.data.region;
+  const bpsRegionCode =
+    regionCode && /^\d{2}$/.test(regionCode) ? `${regionCode}00` : regionCode;
   const { rows: queryRows, source } = await selectPublicBpsStatistics(db(), {
     indicatorCode,
-    regionCode: parsed.data.region,
+    regionCode: bpsRegionCode,
+    simulatedIndicatorCode: requestedIndicator
+      ? SIMULATED_INDICATOR_ALIASES.get(requestedIndicator)
+      : undefined,
+    simulatedRegionCode: regionCode,
   });
-  const orderedRows = [...queryRows].sort(
-    (left, right) =>
-      left.year - right.year || left.regionCode.localeCompare(right.regionCode),
-  );
+  const orderedRows = queryRows
+    .map((row) => ({
+      ...row,
+      regionCode:
+        source === "BPS_API"
+          ? normalizePublicRegionCode(row.regionCode)
+          : row.regionCode,
+    }))
+    .sort(
+      (left, right) =>
+        left.year - right.year ||
+        left.regionCode.localeCompare(right.regionCode),
+    );
   const rows =
     parsed.data.latest === "true"
       ? Array.from(
@@ -89,6 +128,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     data: rows.map((row) => ({
       year: row.year,
       value: Number(row.value),
+      unit: row.unit,
       regionCode: row.regionCode,
       indicatorCode: row.indicatorCode,
     })),

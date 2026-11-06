@@ -58,16 +58,67 @@ describe("public statistics analytics route", () => {
     expect(response.status).toBe(200);
     expect(selectPublicBpsStatistics).toHaveBeenCalledWith(
       {},
-      { indicatorCode: "IND_KEMISKINAN", regionCode: "31" },
+      {
+        indicatorCode: "bps:0000:192:434:61",
+        regionCode: "3100",
+        simulatedIndicatorCode: "IND_KEMISKINAN",
+        simulatedRegionCode: "31",
+      },
     );
     await expect(response.json()).resolves.toMatchObject({
       source: "SIMULATED",
-      indicator: "IND_KEMISKINAN",
+      indicator: "bps:0000:192:434:61",
       region: "31",
       count: 2,
       data: [
         { year: 2021, value: 11.04 },
         { year: 2025, value: 8.7 },
+      ],
+    });
+  });
+
+  it("serves real BPS province rows with GeoJSON-compatible province codes", async () => {
+    selectPublicBpsStatistics.mockResolvedValueOnce({
+      rows: [
+        {
+          indicatorCode: "bps:0000:192:434:61",
+          regionCode: "3100",
+          year: 2026,
+          value: 8.11,
+          unit: "Persen",
+          sourceLabel: "BPS_API",
+          lastSyncedAt: new Date("2026-11-06T00:00:00.000Z"),
+        },
+      ],
+      source: "BPS_API",
+    });
+
+    const response = await GET(
+      new NextRequest(
+        "http://localhost/api/analytics/statistics?indicator=IND_KEMISKINAN&region=31",
+      ),
+    );
+
+    expect(selectPublicBpsStatistics).toHaveBeenCalledWith(
+      {},
+      {
+        indicatorCode: "bps:0000:192:434:61",
+        regionCode: "3100",
+        simulatedIndicatorCode: "IND_KEMISKINAN",
+        simulatedRegionCode: "31",
+      },
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      source: "BPS_API",
+      count: 1,
+      data: [
+        {
+          regionCode: "31",
+          indicatorCode: "bps:0000:192:434:61",
+          year: 2026,
+          value: 8.11,
+          unit: "Persen",
+        },
       ],
     });
   });
