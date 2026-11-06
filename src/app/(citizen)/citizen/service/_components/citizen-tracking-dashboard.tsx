@@ -37,7 +37,7 @@ import { formatDateTimeWib, getDaysUntilDeadline } from './tracking-format';
 type StatusFilter = 'Semua status' | TrackingStatus;
 type CategoryFilter = 'Semua kategori' | TrackingCategory;
 type SortOrder = 'Terbaru' | 'Terlama';
-type DialogName = 'contact' | null;
+type DialogName = 'contact' | 'document' | null;
 
 const CATEGORY_OPTIONS = [
   { value: 'Semua kategori', label: 'Semua kategori' },
@@ -341,7 +341,10 @@ function ApplicationList({
         </p>
       ) : applications.length ? (
         <div className="overflow-x-auto border-t border-border">
-          <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+          <button type="button" onClick={() => setActiveDialog('document')} className="m-4 rounded-md border px-3 py-1 text-xs">
+            Buka & lengkapi dokumen
+          </button>
+          <table aria-label="Daftar pengajuan layanan warga" className="w-full min-w-[600px] border-collapse text-left text-sm">
             <caption className="sr-only">Daftar pengajuan layanan warga</caption>
             <thead className="bg-muted/50 text-[11px] uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -533,6 +536,13 @@ function ApplicationDetails({
             <p className="font-semibold text-amber-900 dark:text-amber-200">
               Lengkapi dokumen yang diminta
             </p>
+            <button
+              type="button"
+              onClick={() => setActiveDialog('document')}
+              className="mt-2 rounded-md border px-3 py-1 text-xs"
+            >
+              Buka & lengkapi dokumen
+            </button>
             {responseDeadlineAt ? (
               <p className="mt-1 text-amber-800 dark:text-amber-300">
                 Batas waktu{' '}
@@ -764,6 +774,9 @@ export function CitizenTrackingDashboard() {
 
   return (
     <div className="pb-12">
+      <button type="button" onClick={() => setActiveDialog('document')} className="m-4 rounded-md border px-3 py-1 text-xs">
+        Buka & lengkapi dokumen
+      </button>
       <section className="border-b border-border bg-sky-50 dark:bg-sky-950/30">
         <div className="hero-enter mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
           <nav
@@ -887,6 +900,7 @@ export function CitizenTrackingDashboard() {
         onOpenChange={setIsMobileDetailOpen}
         title={selectedApplication?.serviceName ?? 'Detail pengajuan'}
         contentClassName="inset-x-0 bottom-0 top-auto max-h-[92dvh] max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-t-2xl p-4 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-[85dvh] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:p-6 lg:hidden"
+        modal={false}
       >
         <div className="pb-1">
           {selectedApplication ? (
@@ -924,6 +938,7 @@ export function CitizenTrackingDashboard() {
             Kirim pesan (simulasi)
           </Button>
         }
+      modal={false}
       >
         <form id="contact-agency-form" onSubmit={handleContactSubmit} className="space-y-3">
           <label htmlFor="agency-message" className="block font-medium">
@@ -943,6 +958,19 @@ export function CitizenTrackingDashboard() {
             dikirim pada demo ini.
           </p>
         </form>
+      </Modal>
+      <Modal
+        open={activeDialog === 'document' && Boolean(selectedApplication)}
+        onOpenChange={(open) => setActiveDialog(open ? 'document' : null)}
+        title="Lengkapi dokumen"
+      >
+        <label htmlFor="supporting-document" className="block font-medium">
+          Dokumen pendukung
+        </label>
+        <input id="supporting-document" type="file" className="mt-2" />
+        <button type="button" className="mt-3 rounded-md border px-3 py-1 text-xs">
+          Simpan pilihan (simulasi)
+        </button>
       </Modal>
     </div>
   );

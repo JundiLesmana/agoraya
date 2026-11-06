@@ -244,7 +244,7 @@ export function ReportQuickActions({
               <Link href={reportHref()}>Buat laporan</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/report/tracking">Lacak laporan</Link>
+              <Link href="/tracking">Lihat contoh pelacakan</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/#recent-reports">Lihat laporan terbaru</Link>

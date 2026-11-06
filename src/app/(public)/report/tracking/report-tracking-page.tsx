@@ -514,6 +514,7 @@ export function ReportTrackingPage({
             title="Detail laporan"
             description={`${report.reportNumber} · ${status.label}`}
             contentClassName="max-h-[90vh] max-w-4xl overflow-y-auto"
+            modal={false}
           >
             <article
               aria-labelledby="tracked-report-title"
