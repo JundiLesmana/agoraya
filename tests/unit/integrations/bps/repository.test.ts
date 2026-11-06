@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type * as schema from "@/lib/db/schema/index";
+import { bpsStatistics } from "@/lib/db/schema";
 import { selectPublicBpsStatistics } from "@/modules/integrations/bps/repository";
 
 const simulatedRows = [
@@ -30,24 +31,28 @@ const bpsApiRows = [
 function fakeDatabase(
   firstCall: unknown[],
   secondCall: unknown[],
-): PostgresJsDatabase<typeof schema> {
+): { database: PostgresJsDatabase<typeof schema>; whereCalls: unknown[]; orderByCalls: unknown[] } {
   let callIndex = 0;
-  return {
+  const whereCalls: unknown[] = [];
+  const orderByCalls: unknown[] = [];
+  const database = {
     select: () => ({
       from: () => ({
-        where: () => {
+        where: (condition: unknown) => {
+          whereCalls.push(condition);
           const rows = callIndex === 0 ? firstCall : secondCall ?? [];
           callIndex += 1;
-          return { orderBy: () => rows };
+          return { orderBy: (ordering: unknown) => { orderByCalls.push(ordering); return rows; } };
         },
       }),
     }),
   } as unknown as PostgresJsDatabase<typeof schema>;
+  return { database, whereCalls, orderByCalls };
 }
 
 describe("selectPublicBpsStatistics", () => {
   it("mengutamakan data BPS_API dan tidak fallback ke SIMULATED saat BPS_API tersedia", async () => {
-    const database = fakeDatabase(bpsApiRows, simulatedRows);
+    const { database } = fakeDatabase(bpsApiRows, simulatedRows);
 
     const { rows, source } = await selectPublicBpsStatistics(database);
 
@@ -57,7 +62,7 @@ describe("selectPublicBpsStatistics", () => {
   });
 
   it("fallback ke SIMULATED saat data BPS_API belum ada", async () => {
-    const database = fakeDatabase([], simulatedRows);
+    const { database } = fakeDatabase([], simulatedRows);
 
     const { rows, source } = await selectPublicBpsStatistics(database);
 
@@ -67,11 +72,28 @@ describe("selectPublicBpsStatistics", () => {
   });
 
   it("mengembalikan source null dan data kosong saat tidak ada data sama sekali", async () => {
-    const database = fakeDatabase([], []);
+    const { database } = fakeDatabase([], []);
 
     const { rows, source } = await selectPublicBpsStatistics(database);
 
     expect(source).toBeNull();
     expect(rows).toHaveLength(0);
+  });
+
+  it("meneruskan filter indikator dan wilayah ke kueri database", async () => {
+    const { database, whereCalls, orderByCalls } = fakeDatabase(
+      [],
+      simulatedRows,
+    );
+
+    await selectPublicBpsStatistics(database, {
+      indicatorCode: "IND_KEMISKINAN",
+      regionCode: "31",
+    });
+
+    // Kueri BPS_API (kosong) lalu fallback ke SIMULATED.
+    expect(whereCalls).toHaveLength(2);
+    expect(whereCalls.every((call) => call != null && typeof call === "object")).toBe(true);
+    expect(orderByCalls.every((call) => call === bpsStatistics.lastSyncedAt)).toBe(true);
   });
 });
