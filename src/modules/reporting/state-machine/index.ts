@@ -5,6 +5,7 @@ const transitions: Readonly<Record<ReportStatus, readonly ReportStatus[]>> = {
   verified: ["in_progress"],
   in_progress: ["resolved"],
   resolved: ["closed"],
+  rejected: [],
   closed: [],
 };
 

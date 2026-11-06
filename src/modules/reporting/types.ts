@@ -3,6 +3,7 @@ export const reportStatuses = [
   "verified",
   "in_progress",
   "resolved",
+  "rejected",
   "closed",
 ] as const;
 export type ReportStatus = (typeof reportStatuses)[number];

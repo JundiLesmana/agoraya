@@ -4,6 +4,8 @@ import type {
   HealthApplicationPayload,
   HealthApplicationPayloadByServiceType,
 } from "@/lib/health-applications/types";
+import { persistServiceApplication } from "@/lib/service-applications/persistence";
+import { logger } from "@/lib/logger";
 
 const commonDataSchema = {
   namaPemohon: z.string().trim().min(1).max(200),
@@ -95,9 +97,33 @@ export async function POST(request: Request) {
   }
 
   const routeKey = `health:${serviceParsed.data.serviceId}`;
-  return NextResponse.json({
-    valid: true,
-    routeKey,
-    received: serviceParsed.data,
-  });
+  try {
+    const persisted = await persistServiceApplication(serviceParsed.data);
+    if (!persisted.ok) {
+      return NextResponse.json(
+        { error: persisted.error },
+        { status: persisted.status },
+      );
+    }
+    return NextResponse.json({
+      valid: true,
+      routeKey,
+      trackingNumber: persisted.trackingNumber,
+      submittedAt: persisted.submittedAt,
+      received: serviceParsed.data,
+    });
+  } catch (error) {
+    logger.error("health_applications.persist_failed", {
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      routeKey,
+    });
+    return NextResponse.json(
+      {
+        error:
+          "Pengajuan layanan kesehatan gagal disimpan. Silakan coba kembali.",
+      },
+      { status: 500 },
+    );
+  }
 }

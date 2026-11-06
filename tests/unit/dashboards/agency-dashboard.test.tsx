@@ -1,174 +1,168 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { AgencyDashboard } from "@/app/(asn)/asn/reporting/_components/agency-dashboard";
+/** @vitest-environment jsdom */
+
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AgencyDashboard } from "@/app/(asn)/asn/dashboard/_components/agency-dashboard";
 import {
   maskApplicantName,
-  maskNik,
+  maskEmail,
   maskPhone,
-} from "@/app/(asn)/asn/reporting/_components/agency-dashboard-data";
+} from "@/app/(asn)/asn/dashboard/_components/agency-dashboard-data";
 
-describe("agency applicant masking", () => {
-  it("masks NIK and phone numbers while retaining only their last four digits", () => {
-    expect(maskNik("0000000000001001")).toBe("••••••••••••1001");
-    expect(maskPhone("080000000101")).toBe("••••••••0101");
-  });
+const report = {
+  id: "11111111-1111-4111-8111-111111111111",
+  title: "Jalan berlubang di Jalan Melati",
+  description:
+    "Jalan berlubang cukup besar dan sudah beberapa kali menyebabkan pengendara hampir terjatuh.",
+  category: "Infrastruktur",
+  status: "submitted",
+  submittedAt: "2026-10-27T08:15:00.000Z",
+  responseDueAt: "2026-10-30T08:15:00.000Z",
+  reportNumber: "LP-20261027-ABC123",
+  subcategory: "Jalan rusak",
+  province: "Jawa Barat",
+  city: "Kota Bandung",
+  address: "Jl. Melati",
+  reporterName: "Siti Contoh",
+  reporterEmail: "siti@example.com",
+  reporterPhone: "081234567890",
+  isPublic: true,
+  showIdentity: true,
+  attachments: ["jalan.jpg"],
+};
 
-  it("masks short values completely", () => {
-    expect(maskNik("1234")).toBe("••••");
-    expect(maskPhone("12")).toBe("••");
-  });
+function mockReports(reports = [report]) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ reports }),
+    }),
+  );
+}
 
-  it("masks applicant names after the first name", () => {
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("agency report privacy helpers", () => {
+  it("masks phone numbers and emails while retaining limited identifying information", () => {
+    expect(maskPhone("081234567890")).toBe("••••••••7890");
+    expect(maskEmail("siti@example.com")).toBe("s***@example.com");
     expect(maskApplicantName("Siti Contoh")).toBe("Siti C***");
+  });
+
+  it("does not imply an anonymous report has a name", () => {
+    expect(maskApplicantName("Pelapor anonim")).toBe("Pelapor anonim");
   });
 });
 
 describe("AgencyDashboard", () => {
-  it("renders summary cards and masks identifying details in the list", () => {
+  it("loads persisted reports and masks identifying details in the list", async () => {
+    mockReports();
     render(<AgencyDashboard />);
 
-    expect(screen.getByText("Total pengajuan masuk")).toBeTruthy();
-    expect(screen.getByText("Sedang diproses")).toBeTruthy();
-    expect(screen.getByText("Perlu tindakan")).toBeTruthy();
-    expect(screen.getAllByText("Selesai").length).toBeGreaterThan(0);
-
-    const table = screen.getByRole("table", {
-      name: "Daftar pengajuan layanan instansi",
+    const table = await screen.findByRole("table", {
+      name: "Daftar laporan tersimpan",
     });
-    expect(within(table).getByText("PGD-261027-00128")).toBeTruthy();
-    expect(within(table).getByText(/NIK •{12}1001/)).toBeTruthy();
-    expect(within(table).queryByText("0000000000001001")).toBeNull();
+    expect(within(table).getByText("LP-20261027-ABC123")).toBeTruthy();
+    expect(
+      within(table).getByText("Jalan berlubang di Jalan Melati"),
+    ).toBeTruthy();
+    expect(within(table).getByText("Siti C***")).toBeTruthy();
+    expect(within(table).queryByText("081234567890")).toBeNull();
+    expect(screen.getByText("Total laporan masuk")).toBeTruthy();
   });
 
-  it("searches and filters by applicant, tracking number, status, and service type", () => {
+  it("filters persisted reports by title, status, and category", async () => {
+    mockReports([
+      report,
+      {
+        ...report,
+        id: "22222222-2222-4222-8222-222222222222",
+        title: "Sampah menumpuk",
+        category: "Lingkungan",
+        status: "in_progress",
+        reportNumber: "LP-20261026-DEF456",
+        subcategory: "Sampah menumpuk",
+      },
+    ]);
     render(<AgencyDashboard />);
-    const table = screen.getByRole("table", {
-      name: "Daftar pengajuan layanan instansi",
-    });
-    const search = screen.getByRole("textbox", {
-      name: "Cari nomor pelacakan atau nama pemohon",
-    });
 
-    fireEvent.change(search, { target: { value: "PGD-261026-00035" } });
-    expect(within(table).getByText("Rambu lalu lintas rusak")).toBeTruthy();
+    const table = await screen.findByRole("table", {
+      name: "Daftar laporan tersimpan",
+    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Cari nomor laporan atau judul" }),
+      {
+        target: { value: "Sampah" },
+      },
+    );
+    expect(within(table).getByText("Sampah menumpuk")).toBeTruthy();
     expect(
-      within(table).queryByText("Lampu jalan padam di Jl. Melati"),
+      within(table).queryByText("Jalan berlubang di Jalan Melati"),
     ).toBeNull();
 
-    fireEvent.change(search, { target: { value: "Siti Contoh" } });
-    expect(within(table).getByText("Permintaan perbaikan halte")).toBeTruthy();
-
-    fireEvent.change(search, { target: { value: "" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter status" }), {
-      target: { value: "Perlu Dokumen" },
-    });
-    expect(within(table).getByText("Permintaan perbaikan halte")).toBeTruthy();
-    expect(within(table).queryByText("Rambu lalu lintas rusak")).toBeNull();
-
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter status" }), {
-      target: { value: "all" },
-    });
     fireEvent.change(
-      screen.getByRole("combobox", { name: "Filter jenis layanan" }),
+      screen.getByRole("textbox", { name: "Cari nomor laporan atau judul" }),
       {
-        target: { value: "Permohonan fasilitas" },
+        target: { value: "" },
       },
     );
-    expect(within(table).getByText("Permohonan zebra cross")).toBeTruthy();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter kategori" }),
+      {
+        target: { value: "Infrastruktur" },
+      },
+    );
     expect(
-      within(table).queryByText("Lampu jalan padam di Jl. Melati"),
-    ).toBeNull();
+      within(table).getByText("Jalan berlubang di Jalan Melati"),
+    ).toBeTruthy();
+    expect(within(table).queryByText("Sampah menumpuk")).toBeNull();
   });
 
-  it("shows details, reveals sensitive mock data on request, and records a local status update", () => {
+  it("shows report details with masked contact data until explicitly revealed", async () => {
+    mockReports();
     render(<AgencyDashboard />);
+    await screen.findByText("LP-20261027-ABC123");
     fireEvent.click(
-      screen.getByRole("button", { name: "Lihat detail PGD-261027-00128" }),
+      screen.getByRole("button", { name: "Lihat detail LP-20261027-ABC123" }),
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Detail pengajuan" });
+    const dialog = screen.getByRole("dialog", { name: "Detail laporan" });
+    expect(within(dialog).getByText("Siti C***")).toBeTruthy();
+    expect(within(dialog).getByText("s***@example.com")).toBeTruthy();
+    expect(within(dialog).getByText("••••••••7890")).toBeTruthy();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Tampilkan data pelapor" }),
+    );
+    expect(within(dialog).getByText("siti@example.com")).toBeTruthy();
+    expect(within(dialog).getByText("081234567890")).toBeTruthy();
     expect(
-      within(dialog).getByText("Foto lokasi dan titik lampu.jpg"),
+      within(dialog).getByText("Jl. Melati, Kota Bandung, Jawa Barat"),
     ).toBeTruthy();
-    expect(within(dialog).getByText("••••••••••••1001")).toBeTruthy();
-    expect(within(dialog).queryByText("0000000000001001")).toBeNull();
-    expect(within(dialog).getByText("Warga S*** A***")).toBeTruthy();
-    expect(within(dialog).queryByText("Warga Simulasi A")).toBeNull();
+    expect(within(dialog).getByText("jalan.jpg")).toBeTruthy();
+  });
 
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Tampilkan data pemohon" }),
-    );
-    expect(within(dialog).getByText("0000000000001001")).toBeTruthy();
-    expect(within(dialog).getByText("080000000101")).toBeTruthy();
-    expect(within(dialog).getByText("Warga Simulasi A")).toBeTruthy();
-
-    fireEvent.change(
-      within(dialog).getByRole("combobox", { name: "Status pengajuan baru" }),
-      {
-        target: { value: "Selesai" },
-      },
-    );
-    fireEvent.change(
-      within(dialog).getByRole("combobox", { name: "Visibilitas catatan" }),
-      {
-        target: { value: "public" },
-      },
-    );
-    fireEvent.change(
-      within(dialog).getByRole("textbox", { name: "Catatan tanggapan" }),
-      {
-        target: { value: "Perbaikan telah selesai." },
-      },
-    );
-    fireEvent.click(
-      within(dialog).getByRole("button", {
-        name: "Simpan pembaruan (simulasi)",
+  it("shows backend errors rather than presenting a success-shaped empty state", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Gagal memuat laporan dari basis data." }),
       }),
     );
-
-    expect(
-      within(dialog).getByText(
-        "Pembaruan hanya tersimpan sementara di pratinjau ini.",
-      ),
-    ).toBeTruthy();
-    expect(within(dialog).getByText("Perbaikan telah selesai.")).toBeTruthy();
-    expect(within(dialog).getByText(/Catatan publik/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Tutup dialog" }));
-    const table = screen.getByRole("table", {
-      name: "Daftar pengajuan layanan instansi",
+    render(<AgencyDashboard />);
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toContain(
+        "Gagal memuat laporan dari basis data.",
+      );
     });
-    expect(within(table).getByText("PGD-261027-00128")).toBeTruthy();
-    expect(within(table).getAllByText("Selesai").length).toBeGreaterThan(0);
-  });
-
-  it("does not allow editing an application already marked complete", () => {
-    render(<AgencyDashboard />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Lihat detail PGD-261022-00011" }),
-    );
-
-    const dialog = screen.getByRole("dialog", { name: "Detail pengajuan" });
-    expect(
-      within(dialog).getByText(/Pengajuan selesai dan tidak dapat diubah lagi/),
-    ).toBeTruthy();
-    expect(
-      within(dialog).queryByRole("button", {
-        name: "Simpan pembaruan (simulasi)",
-      }),
-    ).toBeNull();
-  });
-
-  it("shows a useful empty state when filters find no applications", () => {
-    render(<AgencyDashboard />);
-    fireEvent.change(
-      screen.getByRole("textbox", {
-        name: "Cari nomor pelacakan atau nama pemohon",
-      }),
-      {
-        target: { value: "tidak ada" },
-      },
-    );
-
-    expect(screen.getByText("Pengajuan tidak ditemukan")).toBeTruthy();
   });
 });

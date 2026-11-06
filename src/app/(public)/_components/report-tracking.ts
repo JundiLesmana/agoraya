@@ -35,6 +35,8 @@ export function determineActiveTrackingNode(status: ReportStatus): number {
       return 1;
     case "in_progress":
       return 2;
+    case "rejected":
+      return 0;
     case "resolved":
     case "closed":
       return 3;

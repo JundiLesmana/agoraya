@@ -10,6 +10,7 @@ export * from './bps-snapshot';
 export * from './citizen';
 export * from './datasets';
 export * from './project-progress';
+export * from './service-applications';
 
 import * as enums from './enums';
 import * as foundation from './foundation';
@@ -23,6 +24,7 @@ import * as bpsSnapshot from './bps-snapshot';
 import * as citizen from './citizen';
 import * as datasets from './datasets';
 import * as projectProgress from './project-progress';
+import * as serviceApplications from './service-applications';
 
-export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...datasets, ...projectProgress } as const;
+export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...datasets, ...projectProgress , ...serviceApplications} as const;
 export { enums };
