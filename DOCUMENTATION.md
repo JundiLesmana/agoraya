@@ -1289,6 +1289,28 @@ Jalankan perintah database dan seed setelah mengekspor variabel `.env.local`
 seperti pada Quick Start. Semua data seed bersifat sintetis; jangan gunakan
 data pribadi warga atau kredensial production untuk pengembangan lokal.
 
+### 10.8 Memulihkan tabel laporan warga yang hilang
+
+Jika `POST /api/reports` gagal dengan PostgreSQL `42P01` dan pesan
+`relation "ticket_submission_details" does not exist`, periksa dahulu bahwa
+`DATABASE_URL_UNPOOLED` mengarah ke database production yang benar. Jika hasil
+`to_regclass` adalah `NULL`, jalankan hanya migrasi tabel laporan berikut dari
+PowerShell; ini tidak menjalankan migrasi lain:
+
+```powershell
+psql "$env:DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 -c "SELECT current_database(), to_regclass('public.ticket_submission_details');"
+psql "$env:DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 -f db/migrations/0012_citizen_report_submissions.sql
+psql "$env:DATABASE_URL_UNPOOLED" -v ON_ERROR_STOP=1 -c "SELECT to_regclass('public.ticket_submission_details');"
+```
+
+Pastikan pemeriksaan terakhir menghasilkan `ticket_submission_details`.
+Eksekusi langsung ini tidak memperbarui migration journal. Sebelum menjalankan
+migrasi lain, cocokkan journal dengan skema database dan tinjau seluruh migrasi
+yang masih tertunda; jangan menjalankan antrean migrasi yang belum diverifikasi.
+Pada worktree ini, `0015_next_human_fly.sql` mencoba membuat ulang objek yang
+sudah dibuat oleh migrasi sebelumnya (termasuk `identity_login_attempts` dari
+migrasi `0006`); koreksi migrasi tersebut sebelum menjalankan `pnpm db:migrate`.
+
 ## 11. Testing Strategy
 
 ### 11.1 Test Pyramid

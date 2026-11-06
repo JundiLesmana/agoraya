@@ -65,7 +65,7 @@ describe("TrackingStatisticsPage", () => {
       within(serviceNavigation)
         .getByRole("link", { name: "Ruang Instansi" })
         .getAttribute("href"),
-    ).toBe("/asn/reporting");
+    ).toBe("/asn/dashboard");
     expect(
       within(serviceNavigation)
         .getByRole("link", { name: "Ruang Statistik" })

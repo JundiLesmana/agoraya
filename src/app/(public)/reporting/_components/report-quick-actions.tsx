@@ -120,7 +120,7 @@ export function ReportQuickActions({
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-11">
-                <Link href="/tracking">Lacak laporan</Link>
+                <Link href="/report/tracking">Lacak laporan</Link>
               </Button>
             </div>
             <p className="text-muted-foreground mt-3 text-xs">

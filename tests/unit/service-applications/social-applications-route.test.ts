@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/social-applications/route";
+import { persistServiceApplication } from "@/lib/service-applications/persistence";
+
+vi.mock("@/lib/service-applications/persistence", () => ({
+  persistServiceApplication: vi.fn(),
+}));
 
 function createPayload(serviceType: "KebutuhanDasar" | "DukunganKeluarga" | "BantuanDarurat") {
   if (serviceType === "KebutuhanDasar") {
@@ -60,6 +65,20 @@ function createPayload(serviceType: "KebutuhanDasar" | "DukunganKeluarga" | "Ban
 }
 
 describe("social applications API", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(persistServiceApplication).mockImplementation(async (payload) => ({
+      ok: true,
+      trackingNumber: "SCL-261105-00001",
+      submittedAt: "2026-11-05T10:00:00.000Z",
+      routeKey: `${payload.category}:${payload.serviceId}`,
+    }));
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("accepts kebutuhan dasar payloads with isolated route key", async () => {
     const response = await POST(
       new Request("http://localhost/api/social-applications", {
@@ -73,7 +92,11 @@ describe("social applications API", () => {
     await expect(response.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "social:kebutuhan-dasar",
+      trackingNumber: "SCL-261105-00001",
     });
+    expect(persistServiceApplication).toHaveBeenCalledWith(
+      expect.objectContaining({ category: "social", serviceType: "KebutuhanDasar" }),
+    );
   });
 
   it("accepts each social service independently from the others", async () => {
@@ -97,12 +120,14 @@ describe("social applications API", () => {
     await expect(familyResponse.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "social:dukungan-keluarga",
+      trackingNumber: "SCL-261105-00001",
     });
 
     expect(emergencyResponse.status).toBe(200);
     await expect(emergencyResponse.json()).resolves.toMatchObject({
       valid: true,
       routeKey: "social:bantuan-darurat",
+      trackingNumber: "SCL-261105-00001",
     });
   });
 

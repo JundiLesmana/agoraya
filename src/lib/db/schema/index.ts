@@ -9,6 +9,7 @@ export * from './analytics';
 export * from './citizen';
 export * from './datasets';
 export * from './project-progress';
+export * from './service-applications';
 
 import * as enums from './enums';
 import * as foundation from './foundation';
@@ -21,6 +22,7 @@ import * as analytics from './analytics';
 import * as citizen from './citizen';
 import * as datasets from './datasets';
 import * as projectProgress from './project-progress';
+import * as serviceApplications from './service-applications';
 
-export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...citizen, ...datasets, ...projectProgress } as const;
+export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...citizen, ...datasets, ...projectProgress, ...serviceApplications } as const;
 export { enums };

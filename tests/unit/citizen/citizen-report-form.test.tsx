@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReportForm } from "@/app/(citizen)/citizen/reporting/_components/report-form";
 
 function completeDetails() {
@@ -34,6 +34,10 @@ function advanceToAttachments() {
 }
 
 describe("ReportForm", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("starts at details when given a valid category", () => {
     render(<ReportForm initialCategory="Infrastruktur" />);
 
@@ -190,7 +194,15 @@ describe("ReportForm", () => {
     ).toHaveLength(5);
   });
 
-  it("requires valid contact details and never reports a false submission success", () => {
+  it("saves all report fields and displays the persisted report number", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        reportNumber: "LP-20261106-ABC123",
+        submittedAt: "2026-11-06T00:00:00.000Z",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
     render(<ReportForm initialCategory="Infrastruktur" />);
     completeDetails();
     fireEvent.click(screen.getByRole("button", { name: /lanjut/i }));
@@ -210,9 +222,35 @@ describe("ReportForm", () => {
     expect(submitButton.hasAttribute("disabled")).toBe(false);
 
     fireEvent.click(submitButton);
-    expect(screen.getByRole("alert").textContent).toContain(
-      "Pengiriman laporan belum tersedia",
+    await waitFor(() => {
+      expect(screen.getByRole("status").textContent).toContain(
+        "LP-20261106-ABC123",
+      );
+    });
+    const trackingLink = screen
+      .getByRole("status")
+      .querySelector<HTMLAnchorElement>(
+        'a[href="/report/tracking?reportNumber=LP-20261106-ABC123"]',
+      );
+    expect(trackingLink).not.toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/reports",
+      expect.objectContaining({ method: "POST" }),
     );
-    expect(screen.queryByText(/laporan terkirim/i)).toBeNull();
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(requestBody).toMatchObject({
+      category: "Infrastruktur",
+      subcategory: "Jalan rusak",
+      title: "Jalan berlubang di Jalan Melati",
+      province: "Jawa Barat",
+      city: "Kota Bandung",
+      location: "Jl. Melati, Kelurahan Sukamaju",
+      email: "warga@example.com",
+      phone: "081234567890",
+      isPublic: true,
+      showIdentity: false,
+      attachments: [],
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

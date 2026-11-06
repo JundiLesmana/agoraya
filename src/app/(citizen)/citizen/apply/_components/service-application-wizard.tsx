@@ -818,12 +818,13 @@ export function ServiceApplicationWizard() {
     setStep(3);
   }
 
-  function submitApplication(event: React.FormEvent<HTMLFormElement>) {
+  async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!confirmed || !selectedService) {
       setFormError("Centang pernyataan kebenaran sebelum melanjutkan.");
       return;
     }
+    // TODO(#86): wire this generic wizard to persisted submission endpoints per catalog type.
     setTrackingNumber(createTrackingNumber(selectedService));
   }
 

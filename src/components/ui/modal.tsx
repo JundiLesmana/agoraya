@@ -22,6 +22,8 @@ export interface ModalProps {
   contentClassName?: string;
   /** Show the top-right close button (default true). */
   showCloseButton?: boolean;
+  /** Whether the dialog is modal (default true). */
+  modal?: boolean;
 }
 
 /**
@@ -38,12 +40,13 @@ function Modal({
   footer,
   contentClassName,
   showCloseButton = true,
+  modal = true,
 }: ModalProps) {
   const titleId = React.useId();
   const descriptionId = React.useId();
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={onOpenChange} modal={modal}>
       <Dialog.Portal>
         <Dialog.Overlay aria-hidden="true" className="fixed inset-0 z-50 bg-black/70" />
         <Dialog.Content

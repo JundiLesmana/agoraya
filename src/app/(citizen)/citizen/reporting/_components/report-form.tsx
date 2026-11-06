@@ -138,9 +138,7 @@ function getInitialValues(
     ? getSubcategories(validCategory as (typeof CATEGORIES)[number])
     : [];
   const validSubcategory =
-    subcategory && subcategoryOptions.includes(subcategory)
-      ? subcategory
-      : "";
+    subcategory && subcategoryOptions.includes(subcategory) ? subcategory : "";
   return {
     category: validCategory,
     subcategory: validSubcategory,
@@ -241,6 +239,10 @@ export function ReportForm({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [fileError, setFileError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionReceipt, setSubmissionReceipt] = useState<{
+    reportNumber: string;
+  } | null>(null);
   const previewUrls = useRef(new Set<string>());
 
   useEffect(
@@ -267,10 +269,12 @@ export function ReportForm({
   ) {
     setValues((current) => ({ ...current, [key]: value }));
     setSubmitError("");
+    setSubmissionReceipt(null);
   }
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
+    setSubmissionReceipt(null);
     const nextAttachments: Attachment[] = [];
     const errors: string[] = [];
     const availableSlots = MAX_FILES - attachments.length;
@@ -314,6 +318,7 @@ export function ReportForm({
   }
 
   function removeAttachment(id: string) {
+    setSubmissionReceipt(null);
     const attachment = attachments.find((item) => item.id === id);
     if (attachment?.previewUrl) {
       URL.revokeObjectURL(attachment.previewUrl);
@@ -323,12 +328,49 @@ export function ReportForm({
     setFileError("");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!validateStep(3, values)) return;
-    setSubmitError(
-      "Pengiriman laporan belum tersedia. Tidak ada data atau file yang dikirim maupun disimpan. Jangan masukkan informasi pribadi yang sebenarnya sampai layanan aktif.",
-    );
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...values,
+          attachments: attachments.map(({ file }) => file.name),
+        }),
+      });
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof payload === "object" &&
+          payload !== null &&
+          "error" in payload &&
+          typeof payload.error === "string"
+            ? payload.error
+            : "Laporan gagal disimpan. Silakan coba kembali.";
+        throw new Error(message);
+      }
+      if (
+        typeof payload !== "object" ||
+        payload === null ||
+        !("reportNumber" in payload) ||
+        typeof payload.reportNumber !== "string"
+      ) {
+        throw new Error("Respons penyimpanan laporan tidak valid.");
+      }
+      setSubmissionReceipt({ reportNumber: payload.reportNumber });
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Laporan gagal disimpan. Periksa koneksi lalu coba kembali.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const titleError =
@@ -433,10 +475,33 @@ export function ReportForm({
         </div>
 
         <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
-          Pratinjau formulir: pengiriman belum aktif. Jangan masukkan data
-          pribadi yang sebenarnya; isian hanya berada di perangkat ini dan
-          lampiran tidak diunggah.
+          Laporan dan informasi kontak akan disimpan untuk ditindaklanjuti oleh
+          instansi. Berkas lampiran saat ini belum diunggah; hanya nama berkas
+          yang disimpan.
         </div>
+
+        {submissionReceipt ? (
+          <div
+            role="status"
+            className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+          >
+            <p className="font-semibold">Laporan berhasil disimpan.</p>
+            <p className="mt-1">
+              Nomor laporan:{" "}
+              <span className="font-mono">
+                {submissionReceipt.reportNumber}
+              </span>
+            </p>
+            <Button asChild className="mt-3">
+              <Link
+                href={`/report/tracking?reportNumber=${encodeURIComponent(submissionReceipt.reportNumber)}`}
+              >
+                Lacak laporan
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        ) : null}
 
         <form onSubmit={handleSubmit} noValidate>
           {step === 0 ? (
@@ -448,36 +513,41 @@ export function ReportForm({
                 Pilih kategori yang paling mendekati masalah Anda.
               </p>
               <div className="grid gap-3 sm:grid-cols-3">
-                {CATEGORY_CARDS.map(({ label, category, description, icon: Icon }) => {
-                  const selected = values.category === category;
-                  return (
-                    <label
-                      key={category}
-                      className={`focus-within:ring-primary flex cursor-pointer flex-col items-center gap-3 rounded-lg border p-4 transition-colors focus-within:ring-2 ${
-                        selected
-                          ? "border-primary bg-primary/5"
-                          : "hover:bg-muted/50"
-                      }`}
-                    >
-                      <Icon aria-hidden="true" className="text-primary size-5" />
-                      <span className="font-medium">{label}</span>
-                      <span className="text-muted-foreground text-xs text-center">
-                        {description}
-                      </span>
-                      <input
-                        type="radio"
-                        name="category"
-                        value={category}
-                        checked={selected}
-                        onChange={() => {
-                          updateValue("category", category);
-                          updateValue("subcategory", "");
-                        }}
-                        className="sr-only"
-                      />
-                    </label>
-                  );
-                })}
+                {CATEGORY_CARDS.map(
+                  ({ label, category, description, icon: Icon }) => {
+                    const selected = values.category === category;
+                    return (
+                      <label
+                        key={category}
+                        className={`focus-within:ring-primary flex cursor-pointer flex-col items-center gap-3 rounded-lg border p-4 transition-colors focus-within:ring-2 ${
+                          selected
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <Icon
+                          aria-hidden="true"
+                          className="text-primary size-5"
+                        />
+                        <span className="font-medium">{label}</span>
+                        <span className="text-muted-foreground text-center text-xs">
+                          {description}
+                        </span>
+                        <input
+                          type="radio"
+                          name="category"
+                          value={category}
+                          checked={selected}
+                          onChange={() => {
+                            updateValue("category", category);
+                            updateValue("subcategory", "");
+                          }}
+                          className="sr-only"
+                        />
+                      </label>
+                    );
+                  },
+                )}
               </div>
               {!validateStep(0, values) ? (
                 <FieldError>
@@ -749,8 +819,7 @@ export function ReportForm({
               <div>
                 <h2 className="text-lg font-semibold">Verifikasi identitas</h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Email dan nomor HP diperlukan untuk tindak lanjut. Data belum
-                  dikirim atau disimpan.
+                  Email dan nomor HP diperlukan untuk tindak lanjut laporan.
                 </p>
               </div>
               <fieldset className="space-y-3">
@@ -870,8 +939,8 @@ export function ReportForm({
                   aria-hidden="true"
                   className="mt-0.5 size-4 shrink-0"
                 />
-                Data identitas dan lampiran tidak disimpan atau dikirim dari
-                formulir ini.
+                Data kontak disimpan secara terbatas untuk tindak lanjut. Berkas
+                asli tidak diunggah melalui formulir ini.
               </p>
             </div>
           ) : null}
@@ -911,8 +980,19 @@ export function ReportForm({
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={!validateStep(step, values)}>
-                Submit laporan
+              <Button
+                type="submit"
+                disabled={
+                  !validateStep(step, values) ||
+                  isSubmitting ||
+                  submissionReceipt !== null
+                }
+              >
+                {isSubmitting
+                  ? "Menyimpan laporan…"
+                  : submissionReceipt
+                    ? "Laporan terkirim"
+                    : "Submit laporan"}
                 <Check aria-hidden="true" className="size-4" />
               </Button>
             )}
@@ -922,10 +1002,10 @@ export function ReportForm({
         <p className="text-muted-foreground mt-4 text-xs">
           Ingin melihat halaman lain?{" "}
           <Link
-            href="/citizen/service"
+            href="/report/tracking"
             className="text-primary font-medium underline underline-offset-4"
           >
-            Lacak status laporan
+            Lacak laporan secara publik
           </Link>
         </p>
       </section>
