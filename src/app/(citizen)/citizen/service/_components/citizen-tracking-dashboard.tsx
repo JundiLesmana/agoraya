@@ -975,7 +975,11 @@ export function CitizenTrackingDashboard() {
           Dokumen pendukung
         </label>
         <input id="supporting-document" type="file" className="mt-2" />
-        <button type="button" className="mt-3 rounded-md border px-3 py-1 text-xs">
+        <button
+          type="button"
+          onClick={() => setInteractionNotice("Berkas belum dikirim")}
+          className="mt-3 rounded-md border px-3 py-1 text-xs"
+        >
           Simpan pilihan (simulasi)
         </button>
       </Modal>

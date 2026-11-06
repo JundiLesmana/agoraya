@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { CitizenTrackingDashboard } from "@/app/(citizen)/citizen/service/_components/citizen-tracking-dashboard";
 import CitizenTrackingPage from "@/app/(citizen)/citizen/service/page";
 import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
@@ -7,6 +7,65 @@ import {
   formatDateTimeWib,
   getDaysUntilDeadline,
 } from "@/app/(citizen)/citizen/service/_components/tracking-format";
+
+const TEST_APPLICATIONS = [
+  {
+    id: "app-1",
+    trackingNumber: "PGD-261010-00001",
+    category: "social",
+    serviceType: "kebersihan",
+    serviceId: "svc-1",
+    routeKey: "sosial-kesehatan",
+    serviceName: "Lampu jalan padam di Jl. Melati",
+    agency: "Dinas Pekerjaan Umum",
+    status: "in_progress",
+    applicantName: "Warga Contoh",
+    contactEmail: "warga@example.com",
+    payload: {},
+    submittedAt: "2026-10-10T08:00:00.000Z",
+    updatedAt: "2026-10-11T08:00:00.000Z",
+  },
+  {
+    id: "app-2",
+    trackingNumber: "BSL-261010-00051",
+    category: "social",
+    serviceType: "pendidikan",
+    serviceId: "svc-2",
+    routeKey: "sosial-pendidikan",
+    serviceName: "Pengajuan pendidikan",
+    agency: "Dinas Pendidikan",
+    status: "verified",
+    applicantName: "Warga Contoh 2",
+    contactEmail: "warga2@example.com",
+    payload: {},
+    submittedAt: "2026-10-09T08:00:00.000Z",
+    updatedAt: "2026-10-10T08:00:00.000Z",
+  },
+  {
+    id: "app-3",
+    trackingNumber: "PGD-261010-00003",
+    category: "permit",
+    serviceType: "izin",
+    serviceId: "svc-3",
+    routeKey: "perizinan-kesehatan",
+    serviceName: "Pencairan Bantuan Sosial",
+    agency: "Dinas Sosial",
+    status: "resolved",
+    applicantName: "Warga Contoh 3",
+    contactEmail: "warga3@example.com",
+    payload: {},
+    submittedAt: "2026-10-08T08:00:00.000Z",
+    updatedAt: "2026-10-09T08:00:00.000Z",
+  },
+];
+
+function mockServiceApplicationsFetch() {
+  const fetchMock = vi.fn().mockResolvedValue(
+    Response.json({ applications: TEST_APPLICATIONS }),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
 
 describe("tracking date helpers", () => {
   it("formats date and time in WIB", () => {
@@ -23,19 +82,33 @@ describe("tracking date helpers", () => {
 });
 
 describe("CitizenTrackingDashboard", () => {
-  it("serves the tracking dashboard at the /tracking route", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("serves the tracking dashboard at the /tracking route", async () => {
+    mockServiceApplicationsFetch();
     render(<CitizenTrackingPage />);
 
-    expect(
-      screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
-    ).toBeTruthy();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
     expect(
       screen.getByRole("textbox", { name: "Cari nomor pelacakan" }),
     ).toBeTruthy();
   });
 
-  it("renders the four summary cards, service table, education, and selected details", () => {
+  it("renders the four summary cards, service table, education, and selected details", async () => {
+    mockServiceApplicationsFetch();
     render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
 
     const heroTitle = screen.getByRole("heading", { name: "Ruang Warga" });
     expect(heroTitle).toBeTruthy();
@@ -92,8 +165,16 @@ describe("CitizenTrackingDashboard", () => {
     expect(currentBreadcrumb.className).toContain("text-primary");
   });
 
-  it("validates tracking number format and finds a matching application", () => {
+  it("validates tracking number format and finds a matching application", async () => {
+    mockServiceApplicationsFetch();
     render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
+
     const trackingInput = screen.getByRole("textbox", {
       name: "Cari nomor pelacakan",
     });
@@ -120,8 +201,15 @@ describe("CitizenTrackingDashboard", () => {
     );
   });
 
-  it("keeps the selected details when category and status filters change", () => {
+  it("keeps the selected details when category and status filters change", async () => {
+    mockServiceApplicationsFetch();
     render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
 
     fireEvent.change(
       screen.getByRole("combobox", { name: "Kategori layanan" }),
@@ -148,10 +236,17 @@ describe("CitizenTrackingDashboard", () => {
     ).toContain("Lampu jalan padam di Jl. Melati");
   });
 
-  it("provides a local-only document action without pretending to upload a file", () => {
+  it("provides a local-only document action without pretending to upload a file", async () => {
+    mockServiceApplicationsFetch();
     render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
     fireEvent.click(
-      screen.getByRole("button", { name: /Buka & lengkapi dokumen/ }),
+      screen.getAllByRole("button", { name: /Buka & lengkapi dokumen/ })[0],
     );
 
     const dialog = screen.getByRole("dialog", { name: "Lengkapi dokumen" });
