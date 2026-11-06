@@ -216,6 +216,7 @@ function ApplicationList({
   onTrackingSearch,
   searchError,
   searchMessage,
+  onOpenDocumentDialog,
 }: {
   applications: readonly TrackingApplication[];
   totalApplications: number;
@@ -234,6 +235,7 @@ function ApplicationList({
   onTrackingSearch: (event: React.FormEvent<HTMLFormElement>) => void;
   searchError: string;
   searchMessage: string;
+  onOpenDocumentDialog: () => void;
 }) {
   return (
     <Card className="gap-0 overflow-hidden rounded-xl shadow-sm">
@@ -341,7 +343,7 @@ function ApplicationList({
         </p>
       ) : applications.length ? (
         <div className="overflow-x-auto border-t border-border">
-          <button type="button" onClick={() => setActiveDialog('document')} className="m-4 rounded-md border px-3 py-1 text-xs">
+          <button type="button" onClick={onOpenDocumentDialog} className="m-4 rounded-md border px-3 py-1 text-xs">
             Buka & lengkapi dokumen
           </button>
           <table aria-label="Daftar pengajuan layanan warga" className="w-full min-w-[600px] border-collapse text-left text-sm">
@@ -426,9 +428,11 @@ function ChevronRightIcon() {
 function ApplicationDetails({
   application,
   onContact,
+  onOpenDocumentDialog,
 }: {
   application: TrackingApplication;
   onContact: () => void;
+  onOpenDocumentDialog: () => void;
 }) {
   const steps = ['Diterima', 'Verifikasi', 'Diproses', 'Selesai'];
   const timelineHeadingId = React.useId();
@@ -538,7 +542,7 @@ function ApplicationDetails({
             </p>
             <button
               type="button"
-              onClick={() => setActiveDialog('document')}
+              onClick={onOpenDocumentDialog}
               className="mt-2 rounded-md border px-3 py-1 text-xs"
             >
               Buka & lengkapi dokumen
@@ -853,6 +857,7 @@ export function CitizenTrackingDashboard() {
               onTrackingSearch={handleTrackingSearch}
               searchError={searchError}
               searchMessage={searchMessage}
+              onOpenDocumentDialog={() => setActiveDialog('document')}
             />
             <aside className="hidden lg:block">
               {selectedApplication ? (
@@ -863,6 +868,7 @@ export function CitizenTrackingDashboard() {
                     setInteractionNotice('');
                     setActiveDialog('contact');
                   }}
+                  onOpenDocumentDialog={() => setActiveDialog('document')}
                 />
               ) : (
                 <Card className="rounded-xl p-8 text-center text-sm text-muted-foreground">
@@ -911,6 +917,7 @@ export function CitizenTrackingDashboard() {
                 setContactMessage('');
                 setActiveDialog('contact');
               }}
+              onOpenDocumentDialog={() => setActiveDialog('document')}
             />
           ) : null}
         </div>
