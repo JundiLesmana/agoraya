@@ -19,15 +19,59 @@ describe("regional statistics page", () => {
     );
     const indicatorSection = indicatorHeading.closest("section");
     const publicationSection = publicationTitle.closest("section");
+    const apiSection = screen
+      .getByText("Indikator Teragregasi dari API Analitik")
+      .closest("section");
 
     expect(
       screen.getAllByText("Publikasi terbaru dari operator statistik"),
     ).toHaveLength(1);
-    expect(indicatorSection?.nextElementSibling).toBe(publicationSection);
+    expect(indicatorSection).toBeTruthy();
+    expect(apiSection).toBeTruthy();
+    expect(publicationSection).toBeTruthy();
+    if (indicatorSection && apiSection && publicationSection) {
+      // Urutan bagian: indikator regional → bagian API teragregasi → publikasi operator.
+      expect(
+        Node.DOCUMENT_POSITION_FOLLOWING &
+          indicatorSection.compareDocumentPosition(apiSection),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(
+        Node.DOCUMENT_POSITION_FOLLOWING &
+          apiSection.compareDocumentPosition(publicationSection),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    }
     expect(publicationSection?.className).toBe("w-full");
   });
 
-  it("renders the dashboard structure and active public-data tab", () => {
+  it("renders the dashboard structure and active public-data tab", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/analytics/statistics")) {
+        return Response.json({
+          source: "SIMULATED",
+          data: [
+            {
+              year: 2021,
+              value: 11.04,
+              regionCode: "31",
+              indicatorCode: "IND_KEMISKINAN",
+            },
+            {
+              year: 2025,
+              value: 8.7,
+              regionCode: "31",
+              indicatorCode: "IND_KEMISKINAN",
+            },
+          ],
+        });
+      }
+      if (url.includes("indonesia-provinces.geojson")) {
+        return Response.json({ type: "FeatureCollection", features: [] });
+      }
+      return Response.json({});
+    });
+    globalThis.fetch = fetchMock;
+
     render(<StatisticsPage />);
 
     const title = screen.getByRole("heading", {
@@ -62,15 +106,29 @@ describe("regional statistics page", () => {
     ).toBeTruthy();
     expect(screen.queryByText("Indikator tahunan · simulasi")).toBeNull();
     expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
-    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
-      0,
-    );
+    // Grafik dan peta teragregasi berhasil dimuat dari API analitik (mock),
+    // sehingga kedua badge sumber tampil dan tidak ada pesan error.
+    expect(
+      fetchMock.mock.calls.length,
+      `fetch dipanggil ${fetchMock.mock.calls.length} kali`,
+    ).toBeGreaterThanOrEqual(2);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes("latest=true"),
+      ),
+    ).toBe(true);
+    expect(screen.queryByText("Gagal memuat grafik statistik.")).toBeNull();
+    expect(screen.queryByText("Peta wilayah tidak dapat dimuat.")).toBeNull();
     expect(
       screen.queryByText(/Potret Jawa Barat: Perbandingan utama 2024 vs 2025/),
     ).toBeNull();
     expect(
       screen.getByText("Selisih kecil, konteks tetap penting."),
     ).toBeTruthy();
+    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
+      2,
+    );
   });
 
   it("applies shareable filters to cards and indicator table and supports search", () => {
