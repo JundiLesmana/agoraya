@@ -17,43 +17,53 @@ const insertCalls = vi.hoisted(
       readonly set: Record<string, unknown>;
     }>,
 );
+const transactionCalls = vi.hoisted(() => ({ count: 0 }));
+const pruneCalls = vi.hoisted(() => ({ count: 0 }));
 
 let rowsToReturn: unknown[] = [];
 
 vi.mock("@/lib/db", () => {
+  const database = {
+    insert: vi.fn((table: unknown) => {
+      let values: Record<string, unknown>[] = [];
+      const builder = {
+        values: vi.fn((inputRows: Record<string, unknown>[]) => {
+          values = inputRows;
+          return builder;
+        }),
+        onConflictDoUpdate: vi.fn(
+          (config: { target: unknown[]; set: Record<string, unknown> }) => {
+            insertCalls.push({
+              table,
+              values,
+              targetNames: config.target.map(
+                (target) =>
+                  (target as { name?: string }).name ?? String(target),
+              ),
+              setKeys: Object.keys(config.set),
+              set: config.set,
+            });
+            return builder;
+          },
+        ),
+        returning: vi.fn(async () => rowsToReturn),
+      };
+      return builder;
+    }),
+    execute: vi.fn(async () => {
+      pruneCalls.count += 1;
+      return [];
+    }),
+  };
+  const transaction = vi.fn(
+    async (callback: (transaction: typeof database) => Promise<unknown>) => {
+      transactionCalls.count += 1;
+      return callback(database);
+    },
+  );
   return {
     db: vi.fn(
-      () =>
-        ({
-          insert: vi.fn((table: unknown) => {
-            let values: Record<string, unknown>[] = [];
-            const self = {
-              values: vi.fn((inputRows: Record<string, unknown>[]) => {
-                values = inputRows;
-                return self;
-              }),
-              onConflictDoUpdate: vi.fn(
-                (config: {
-                  target: unknown[];
-                  set: Record<string, unknown>;
-                }) => {
-                  insertCalls.push({
-                    table,
-                    values,
-                    targetNames: config.target.map(
-                      (t) => (t as { name?: string }).name ?? String(t),
-                    ),
-                    setKeys: Object.keys(config.set),
-                    set: config.set,
-                  });
-                  return self;
-                },
-              ),
-              returning: vi.fn(async () => rowsToReturn),
-            };
-            return self;
-          }),
-        }) as unknown as PostgresJsDatabase,
+      () => ({ ...database, transaction }) as unknown as PostgresJsDatabase,
     ),
   };
 });
@@ -69,6 +79,8 @@ const baseInput: BpsStatisticsInput = {
 beforeEach(() => {
   vi.clearAllMocks();
   insertCalls.length = 0;
+  transactionCalls.count = 0;
+  pruneCalls.count = 0;
   rowsToReturn = [];
 });
 
@@ -83,11 +95,19 @@ describe("upsertBpsStatistics", () => {
     const result = await upsertBpsStatistics(inputs);
 
     expect(db).toHaveBeenCalledTimes(1);
+    expect(transactionCalls.count).toBe(1);
+    expect(pruneCalls.count).toBe(1);
     expect(insertCalls).toHaveLength(1);
     const call = insertCalls[0];
     expect(call.table).toBe(bpsStatistics);
     expect(call.targetNames).toEqual(["indicator_code", "region_code", "year"]);
-    expect(call.setKeys).toEqual(["value", "lastSyncedAt"]);
+    expect(call.setKeys).toEqual([
+      "value",
+      "unit",
+      "sourceLabel",
+      "lastSyncedAt",
+    ]);
+    expect(call.set.sourceLabel).toBe("BPS_API");
     expect(call.set.lastSyncedAt).toBeInstanceOf(Date);
     expect(typeof call.set.value).toBe("object");
     expect(call.values).toHaveLength(2);
@@ -110,6 +130,17 @@ describe("upsertBpsStatistics", () => {
 
     expect(result).toEqual({ count: 0, rows: [] });
     expect(insertCalls).toHaveLength(0);
+  });
+
+  it("menolak batch yang melampaui batas storage sebelum membuka transaksi", async () => {
+    const inputs = Array.from({ length: 2_001 }, (_, index) => ({
+      ...baseInput,
+      regionCode: String(index),
+    }));
+
+    await expect(upsertBpsStatistics(inputs)).rejects.toThrow(RangeError);
+    expect(transactionCalls.count).toBe(0);
+    expect(pruneCalls.count).toBe(0);
   });
 
   it("hasil payload identik saat dipanggil berkali-kali dengan data yang sama (idempoten)", async () => {

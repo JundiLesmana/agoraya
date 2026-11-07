@@ -9,10 +9,16 @@ import {
   refreshAnalyticsMaterializedView,
 } from "@/modules/analytics";
 import { BpsHttpAdapter } from "@/modules/integrations/bps/adapter";
+import { upsertBpsDatasetCatalog } from "@/modules/integrations/bps/catalog";
 import { upsertBpsStatistics } from "@/modules/integrations/bps/service";
 
 vi.mock("@/lib/db/client", () => ({
   getDefaultDatabase: vi.fn(),
+}));
+vi.mock("@/lib/env", () => ({
+  getEnv: vi.fn(() => ({
+    BPS_STATISTICS_INDICATORS: "0000:413:0:0",
+  })),
 }));
 vi.mock("@/modules/analytics", () => ({
   refreshAnalyticsMaterializedView: vi.fn(async () => {}),
@@ -22,6 +28,9 @@ vi.mock("@/modules/analytics", () => ({
 }));
 vi.mock("@/modules/integrations/bps/service", () => ({
   upsertBpsStatistics: vi.fn(),
+}));
+vi.mock("@/modules/integrations/bps/catalog", () => ({
+  upsertBpsDatasetCatalog: vi.fn(),
 }));
 vi.mock("@/modules/integrations/bps/adapter", () => {
   const fetchJson = vi.fn();
@@ -33,11 +42,21 @@ vi.mock("@/modules/integrations/bps/adapter", () => {
 
 const SECRET = "a-test-cron-secret-with-at-least-32-bytes";
 
-const mockGetDefaultDatabase = getDefaultDatabase as unknown as ReturnType<typeof vi.fn>;
-const mockRefresh = refreshAnalyticsMaterializedView as unknown as ReturnType<typeof vi.fn>;
-const mockInvalidate = invalidateAggregateCache as unknown as ReturnType<typeof vi.fn>;
-const mockIsConfigured = isAnalyticsRefreshSecretConfigured as unknown as ReturnType<typeof vi.fn>;
-const mockIsAuthorized = isAuthorizedAnalyticsRefresh as unknown as ReturnType<typeof vi.fn>;
+const mockGetDefaultDatabase = getDefaultDatabase as unknown as ReturnType<
+  typeof vi.fn
+>;
+const mockRefresh = refreshAnalyticsMaterializedView as unknown as ReturnType<
+  typeof vi.fn
+>;
+const mockInvalidate = invalidateAggregateCache as unknown as ReturnType<
+  typeof vi.fn
+>;
+const mockIsConfigured =
+  isAnalyticsRefreshSecretConfigured as unknown as ReturnType<typeof vi.fn>;
+const mockIsAuthorized = isAuthorizedAnalyticsRefresh as unknown as ReturnType<
+  typeof vi.fn
+>;
+const mockUpsertCatalog = upsertBpsDatasetCatalog as ReturnType<typeof vi.fn>;
 const mockUpsert = upsertBpsStatistics as unknown as ReturnType<typeof vi.fn>;
 
 let mockFetchJson!: ReturnType<typeof vi.fn>;
@@ -50,7 +69,7 @@ beforeEach(() => {
   mockIsAuthorized.mockReturnValue(true);
   mockGetDefaultDatabase.mockReturnValue(fakeDb);
   mockUpsert.mockResolvedValue({ count: 0, rows: [] });
-  mockFetchJson = (new BpsHttpAdapter()).fetchJson as ReturnType<typeof vi.fn>;
+  mockFetchJson = new BpsHttpAdapter().fetchJson as ReturnType<typeof vi.fn>;
   mockFetchJson.mockClear();
 });
 
@@ -84,14 +103,26 @@ describe("GET /api/cron/analytics/refresh", () => {
     expect(body.bpsSynced).toBe(false);
     expect(body.bpsError).toBe("BPS API down");
     expect(mockUpsert).not.toHaveBeenCalled();
+    expect(mockUpsertCatalog).not.toHaveBeenCalled();
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
   it("mengembalikan 200 dan menuliskan data BPS_API saat BPS API sukses", async () => {
-    mockFetchJson.mockResolvedValue({
-      data: [{ kode: "3171", nilai: 100, tahun: 2024 }],
-    });
+    mockFetchJson
+      .mockResolvedValueOnce({
+        status: "OK",
+        data: [{ page: 1, pages: 1 }, [{ th_id: 124, th: "2024" }]],
+      })
+      .mockResolvedValueOnce({
+        status: "OK",
+        var: [{ val: 413, label: "IPM", unit: "Indeks" }],
+        tahun: [{ val: 124, label: "2024" }],
+        turvar: [{ val: 0, label: "Tidak ada" }],
+        turtahun: [{ val: 0, label: "Tahunan" }],
+        vervar: [{ val: 1100, label: "ACEH" }],
+        datacontent: { "110041301240": 74.03 },
+      });
     mockUpsert.mockResolvedValue({ count: 1, rows: [] });
 
     const response = await GET(
@@ -105,5 +136,6 @@ describe("GET /api/cron/analytics/refresh", () => {
     expect(body.bpsSynced).toBe(true);
     expect(body.bpsCount).toBe(1);
     expect(mockUpsert).toHaveBeenCalledTimes(1);
+    expect(mockUpsertCatalog).toHaveBeenCalledTimes(1);
   });
 });

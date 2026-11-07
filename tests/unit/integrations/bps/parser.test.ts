@@ -2,69 +2,132 @@ import { describe, expect, it } from "vitest";
 
 import {
   BpsResponseError,
-  BpsResponseSchema,
+  parseBpsIndicatorSelectors,
   parseBpsResponse,
+  parseLatestBpsYear,
 } from "@/modules/integrations/bps";
 
-const bpsResponse = {
-  status: 200,
-  message: "OK",
+const selector = {
+  domain: "0000",
+  indicatorId: "413",
+  turvarId: "0",
+  turtahunId: "0",
+};
+
+const yearList = {
+  status: "OK",
   data: [
-    {
-      kode: "3171",
-      nilai: "11.04",
-      tahun: 2023,
-      satuan_detail: "persen",
-      last_updated: "2024-01-01",
-      note: "coba",
-    },
-    { kode: "3172", nilai: "12.5", tahun: 2023, extra: { nested: true } },
-    { kode: "3173", nilai: "13.75", tahun: 2022 },
+    { page: 1, pages: 2, per_page: 10, count: 10, total: 15 },
+    [
+      { th_id: 123, th: "2023", var_id: 413, var_name: "IPM" },
+      { th_id: 124, th: "2024", var_id: 413, var_name: "IPM" },
+    ],
   ],
 };
 
-describe("bps parser", () => {
-  it("mengembalikan hanya field yang relevan dan mengonversi nilai string ke number", () => {
-    const result = parseBpsResponse(bpsResponse);
+const bpsResponse = {
+  status: "OK",
+  "data-availability": "available",
+  var: [
+    {
+      val: 413,
+      label: "Indeks Pembangunan Manusia",
+      unit: "Indeks",
+      note: "metadata yang tidak disimpan",
+    },
+  ],
+  tahun: [{ val: 124, label: "2024" }],
+  turvar: [{ val: "0", label: "Tidak ada" }],
+  turtahun: [{ val: 0, label: "Tahunan" }],
+  vervar: [
+    { val: 1100, label: "ACEH" },
+    { val: 1101, label: "Simeulue" },
+  ],
+  datacontent: {
+    "110041301240": 74.03,
+    "110141301240": "69.01",
+    ignored: 999,
+  },
+};
 
-    expect(result).toEqual([
-      { regionCode: "3171", value: 11.04, year: 2023 },
-      { regionCode: "3172", value: 12.5, year: 2023 },
-      { regionCode: "3173", value: 13.75, year: 2022 },
-    ]);
-    expect(result).toHaveLength(3);
-    for (const record of result) {
-      expect(Object.keys(record)).toEqual(["regionCode", "value", "year"]);
-      expect(typeof record.value).toBe("number");
-      expect(typeof record.year).toBe("number");
-    }
-  });
-
-  it("memvalidasi skema respons melalui BpsResponseSchema", () => {
-    const parsed = BpsResponseSchema.parse(bpsResponse);
-    expect(parsed.data).toHaveLength(3);
-    expect(parsed.data[0]).toEqual({ kode: "3171", nilai: 11.04, tahun: 2023 });
-  });
-
-  it("melempar BpsResponseError yang mengandung ZodIssue untuk respons rusak", () => {
-    expect(() => parseBpsResponse({ data: [] })).toThrow(BpsResponseError);
-
-    try {
-      parseBpsResponse({ data: [{ kode: "", nilai: "abc", tahun: 999 }] });
-    } catch (error) {
-      expect(error).toBeInstanceOf(BpsResponseError);
-      const zodError = error as BpsResponseError;
-      expect(zodError.issues.length).toBeGreaterThan(0);
-      return;
-    }
-    expect.fail("harus melempar BpsResponseError");
-  });
-
-  it("menolak respons yang nilainya bukan angka valid", () => {
+describe("BPS parser", () => {
+  it("mengurai konfigurasi indikator dan menolak entri invalid atau duplikat", () => {
+    expect(parseBpsIndicatorSelectors("0000:413:0:0")).toEqual([selector]);
+    expect(() => parseBpsIndicatorSelectors("../../../key")).toThrow(
+      BpsResponseError,
+    );
     expect(() =>
-      parseBpsResponse({
-        data: [{ kode: "3171", nilai: "tidak-angka", tahun: 2023 }],
-      }),
+      parseBpsIndicatorSelectors("0000:413:0:0,0000:413:0:0"),
+    ).toThrow(BpsResponseError);
+  });
+
+  it("memilih tahun terbaru dari metadata BPS, bukan urutan payload", () => {
+    expect(parseLatestBpsYear(yearList)).toEqual({ yearId: "124", year: 2024 });
+    expect(() => parseLatestBpsYear({ status: "error" })).toThrow(
+      BpsResponseError,
+    );
+  });
+
+  it("memvalidasi respons native dan hanya mengekstrak agregat terpilih", () => {
+    expect(parseBpsResponse(bpsResponse, selector, "124", 2024)).toEqual([
+      {
+        indicatorCode: "bps:0000:413:0:0",
+        regionCode: "1100",
+        value: 74.03,
+        year: 2024,
+        unit: "Indeks",
+      },
+      {
+        indicatorCode: "bps:0000:413:0:0",
+        regionCode: "1101",
+        value: 69.01,
+        year: 2024,
+        unit: "Indeks",
+      },
+    ]);
+  });
+
+  it("menolak respons rusak dan dimensi indikator yang tidak cocok", () => {
+    expect(() =>
+      parseBpsResponse({ status: "error" }, selector, "124", 2024),
+    ).toThrow(BpsResponseError);
+    expect(() =>
+      parseBpsResponse(
+        bpsResponse,
+        { ...selector, turtahunId: "99" },
+        "124",
+        2024,
+      ),
+    ).toThrow(BpsResponseError);
+    expect(() =>
+      parseBpsResponse(
+        {
+          ...bpsResponse,
+          datacontent: { "110041301240": "bukan-angka" },
+        },
+        selector,
+        "124",
+        2024,
+      ),
+    ).toThrow(BpsResponseError);
+  });
+
+  it("menolak payload agregat yang melampaui batas sinkronisasi", () => {
+    const regions = Array.from({ length: 2_001 }, (_, index) => ({
+      val: index + 1,
+      label: `wilayah ${index + 1}`,
+    }));
+    const values = Object.fromEntries(
+      regions.map((region) => [`${region.val}41301240`, 10]),
+    );
+
+    expect(() =>
+      parseBpsResponse(
+        { ...bpsResponse, vervar: regions, datacontent: values },
+        selector,
+        "124",
+        2024,
+      ),
     ).toThrow(BpsResponseError);
   });
 });
