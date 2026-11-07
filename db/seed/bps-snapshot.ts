@@ -79,27 +79,28 @@ export async function seedBpsSnapshots(
 }
 
 export const BPS_STATISTICS_SIMULATED_SEEDS = [
-  {
-    indicatorCode: "IND_PENDUDUK",
-    regionCode: "3171",
-    year: 2024,
-    value: 10562088,
-    unit: "jiwa",
-  },
-  {
-    indicatorCode: "IND_KEMISKINAN",
-    regionCode: "3201",
-    year: 2024,
-    value: 3420000,
-    unit: "orang",
-  },
-  {
-    indicatorCode: "IND_IPM",
-    regionCode: "NASIONAL",
-    year: 2023,
-    value: 72.29,
-    unit: "indeks",
-  },
+  /**
+   * Tingkat kemiskinan (IND_KEMISKINAN) per provinsi — data simulasi untuk
+   * demo dashboard publik. Kode wilayah pakai kode provinsi BPS (2 digit,
+   * misal `31` = DKI Jakarta) agar cocok dengan GeoJSON statis di /public.
+   */
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "31", year: 2021, value: 11.04, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "31", year: 2022, value: 10.50, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "31", year: 2023, value: 9.80, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "31", year: 2024, value: 9.20, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "31", year: 2025, value: 8.70, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "32", year: 2024, value: 7.40, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "32", year: 2025, value: 7.10, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "33", year: 2024, value: 9.10, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "33", year: 2025, value: 8.80, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "35", year: 2024, value: 10.20, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "35", year: 2025, value: 9.90, unit: "persen" },
+  { indicatorCode: "IND_KEMISKINAN", regionCode: "36", year: 2024, value: 8.30, unit: "persen" },
+  { indicatorCode: "IND_PENDUDUK", regionCode: "31", year: 2024, value: 10562088, unit: "jiwa" },
+  { indicatorCode: "IND_PENDUDUK", regionCode: "32", year: 2024, value: 48200000, unit: "jiwa" },
+  { indicatorCode: "IND_PENDUDUK", regionCode: "33", year: 2024, value: 37000000, unit: "jiwa" },
+  { indicatorCode: "IND_PENDUDUK", regionCode: "35", year: 2024, value: 40000000, unit: "jiwa" },
+  { indicatorCode: "IND_IPM", regionCode: "NASIONAL", year: 2023, value: 72.29, unit: "indeks" },
 ] as const;
 
 /**
