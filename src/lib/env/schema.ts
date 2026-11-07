@@ -1,8 +1,10 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const EnvSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
+  NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 
   DATABASE_URL: z.string().url(),
   DATABASE_URL_UNPOOLED: z.string().url().optional(),
@@ -21,8 +23,18 @@ export const EnvSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
 
   BPS_API_KEY: z.string().optional(),
+  BPS_STATISTICS_INDICATORS: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(500)
+      .default("0000:413:0:0,0000:192:434:61,0000:1886:585:0,0000:847:0:0"),
+  ),
 
-  AI_PROVIDER: z.enum(['gemini', 'cerebras', 'groq', 'openrouter']).optional(),
+  AI_PROVIDER: z.enum(["gemini", "cerebras", "groq", "openrouter"]).optional(),
   AI_API_KEY: z.string().optional(),
 });
 
