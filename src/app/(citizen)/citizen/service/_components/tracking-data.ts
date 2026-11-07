@@ -29,6 +29,7 @@ export interface TrackingApplication {
   category: TrackingCategory;
   status: TrackingStatus;
   submittedAt: string;
+  updatedAt: string;
   targetAt: string | null;
   deadlineAt?: string;
   currentStep: number;
@@ -38,6 +39,8 @@ export interface TrackingApplication {
   team: string;
   responseEstimate: string;
   timeline: TrackingTimelineItem[];
+  applicantName: string;
+  contactEmail: string;
 }
 
 export interface StoredServiceApplication {
@@ -138,6 +141,7 @@ export function mapStoredServiceApplication(
     category,
     status,
     submittedAt,
+    updatedAt,
     targetAt: null,
     currentStep: getStep(status),
     progressLabel: status,
@@ -149,6 +153,8 @@ export function mapStoredServiceApplication(
     team: "Belum ditentukan",
     responseEstimate: "Belum tersedia",
     timeline,
+    applicantName: application.applicantName,
+    contactEmail: application.contactEmail,
   };
 }
 
