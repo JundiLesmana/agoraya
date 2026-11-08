@@ -29,3 +29,11 @@ export {
   validatedProjectPrioritizationConfig,
   PROJECT_PRIORITIZATION_CONFIG_VERSION,
 } from "./config";
+export { ALGORITHM_VERSION } from "./service";
+export {
+  createPrioritizationRun,
+  listPrioritizationRuns,
+  getPrioritizationRun,
+  type PrioritizationRunResult,
+  type PrioritizationRunDetail,
+} from "./service";
