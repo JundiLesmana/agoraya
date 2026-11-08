@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth/guards";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const ASN_PAGES = [
   { href: "/asn/dashboard", label: "Dashboard Laporan" },
@@ -37,20 +38,23 @@ export default async function AsnLayout({
               Agoraya
             </span>
           </Link>
-          <nav
-            aria-label="Navigasi laman ASN"
-            className="flex flex-wrap gap-x-1 gap-y-2"
-          >
-            {ASN_PAGES.map((page) => (
-              <Link
-                key={page.href}
-                href={page.href}
-                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium"
-              >
-                {page.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex flex-wrap items-center gap-3">
+            <nav
+              aria-label="Navigasi laman ASN"
+              className="flex flex-wrap gap-x-1 gap-y-2"
+            >
+              {ASN_PAGES.map((page) => (
+                <Link
+                  key={page.href}
+                  href={page.href}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md px-3 py-2 text-sm font-medium"
+                >
+                  {page.label}
+                </Link>
+              ))}
+            </nav>
+            <ThemeToggle compact />
+          </div>
         </div>
       </header>
       {children}

@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import * as React from "react";
 import {
   CheckCircle2,
@@ -18,12 +19,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import {
   agencyDashboardResponseSchema,
   maskApplicantName,
-  maskEmail,
   maskPhone,
   serviceApplicationsResponseSchema,
   toAgencyApplication,
@@ -99,9 +98,6 @@ export function AgencyDashboard() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [serviceFilter, setServiceFilter] = React.useState("all");
-  const [selectedApplication, setSelectedApplication] =
-    React.useState<AgencyApplication | null>(null);
-  const [showSensitiveDetails, setShowSensitiveDetails] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
@@ -378,16 +374,13 @@ export function AgencyDashboard() {
                       <StatusBadge status={application.status} />
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        aria-label={`Lihat detail ${application.trackingNumber}`}
-                        onClick={() => {
-                          setSelectedApplication(application);
-                          setShowSensitiveDetails(false);
-                        }}
-                      >
-                        Detail
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          href={`/review?kind=${application.kind}&id=${application.id}`}
+                          aria-label={`Lihat detail ${application.trackingNumber}`}
+                        >
+                          Detail
+                        </Link>
                       </Button>
                     </td>
                   </tr>
@@ -433,158 +426,6 @@ export function AgencyDashboard() {
         </div>
       </section>
 
-      <Modal
-        open={selectedApplication !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedApplication(null);
-        }}
-        title="Detail laporan"
-        description={
-          selectedApplication
-            ? `${selectedApplication.trackingNumber} · ${selectedApplication.serviceName}`
-            : undefined
-        }
-        contentClassName="fixed inset-0 left-auto top-0 h-dvh w-full max-w-2xl translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none border-l p-0 sm:inset-y-0 sm:right-0 sm:h-dvh sm:max-w-2xl sm:rounded-none"
-      >
-        {selectedApplication ? (
-          <div className="space-y-6 px-5 pt-2 pb-6 sm:px-7">
-            <StatusBadge status={selectedApplication.status} />
-            <section className="space-y-3">
-              <h3 className="font-semibold">Informasi pelapor</h3>
-              <dl className="grid gap-x-4 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground text-xs">Nama</dt>
-                  <dd className="mt-1 font-medium">
-                    {showSensitiveDetails
-                      ? selectedApplication.applicantName === "Pelapor anonim"
-                        ? "Tidak ditampilkan"
-                        : selectedApplication.applicantName
-                      : maskApplicantName(selectedApplication.applicantName)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Nomor laporan
-                  </dt>
-                  <dd className="mt-1 font-mono text-xs">
-                    {selectedApplication.trackingNumber}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">Email</dt>
-                  <dd className="mt-1">
-                    {showSensitiveDetails
-                      ? selectedApplication.email
-                      : maskEmail(selectedApplication.email)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Nomor telepon
-                  </dt>
-                  <dd className="mt-1 font-mono">
-                    {showSensitiveDetails
-                      ? selectedApplication.phone
-                      : maskPhone(selectedApplication.phone)}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground text-xs">Lokasi</dt>
-                  <dd className="mt-1">
-                    {showSensitiveDetails
-                      ? selectedApplication.address
-                      : selectedApplication.address === "-"
-                        ? "-"
-                        : "Alamat disamarkan"}
-                  </dd>
-                </div>
-              </dl>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSensitiveDetails((visible) => !visible)}
-              >
-                {showSensitiveDetails
-                  ? "Samarkan data pelapor"
-                  : "Tampilkan data pelapor"}
-              </Button>
-              <p className="text-muted-foreground text-xs">
-                {selectedApplication.kind === "service_application" ? (
-                  <>
-                    Jenis: Pengajuan layanan ({selectedApplication.routeKey}).
-                    Instansi/kategori: {selectedApplication.category} ·{" "}
-                    {selectedApplication.subcategory}.
-                  </>
-                ) : (
-                  <>
-                    Visibilitas laporan:{" "}
-                    {selectedApplication.isPublic ? "Publik" : "Privat"}.
-                    {selectedApplication.showIdentity
-                      ? " Identitas boleh ditampilkan."
-                      : " Identitas disamarkan."}
-                  </>
-                )}
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="font-semibold">Detail laporan</h3>
-              <p className="rounded-lg border p-4 text-sm">
-                {selectedApplication.description}
-              </p>
-              <dl className="grid gap-x-4 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground text-xs">Kategori</dt>
-                  <dd className="mt-1">
-                    {selectedApplication.category} ·{" "}
-                    {selectedApplication.subcategory}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Tanggal masuk
-                  </dt>
-                  <dd className="mt-1">
-                    {formatDateTimeWib(selectedApplication.submittedAt)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Target respons
-                  </dt>
-                  <dd className="mt-1">
-                    {selectedApplication.targetAt &&
-                    selectedApplication.targetAt !==
-                      selectedApplication.submittedAt
-                      ? formatDateTimeWib(selectedApplication.targetAt)
-                      : "-"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="font-semibold">Nama lampiran</h3>
-              {selectedApplication.documents.length ? (
-                <ul className="list-inside list-disc rounded-lg border p-4 text-sm">
-                  {selectedApplication.documents.map((document) => (
-                    <li key={document.name}>{document.name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  Tidak ada lampiran.
-                </p>
-              )}
-              <p className="text-muted-foreground text-xs">
-                {selectedApplication.kind === "service_application"
-                  ? "Lampiran formulir layanan belum terintegrasi penyimpanannya."
-                  : "Berkas asli belum diunggah; yang tersimpan adalah nama berkas yang dipilih."}
-              </p>
-            </section>
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 }
