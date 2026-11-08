@@ -62,3 +62,54 @@ export interface WhatIfScenario {
   readonly deltas: Readonly<Record<string, number>>;
 }
 
+export type PrioritizationCriterionKey = "physical_progress" | "financial_progress" | "contract_value";
+
+export interface CriterionSourceIdentity {
+  readonly kind: "submitted_report" | "initial_field" | "project_field";
+  readonly periodYear?: number;
+  readonly periodMonth?: number;
+  readonly submittedAt?: string;
+  readonly field?: string;
+}
+
+export interface ProjectCriterionValue {
+  readonly value: number;
+  readonly source: CriterionSourceIdentity;
+}
+
+export interface ProjectPrioritizationProjectInput {
+  readonly projectId: string;
+  readonly status: string;
+  readonly physicalProgress: ProjectCriterionValue;
+  readonly financialProgress: ProjectCriterionValue;
+  readonly contractValue: number;
+  readonly progressDataAvailable: boolean;
+}
+
+export interface ProjectPrioritizationConfig {
+  readonly version: string;
+  readonly weights: Readonly<Record<PrioritizationCriterionKey, number>>;
+}
+
+export interface CriterionBreakdown {
+  readonly criterion: PrioritizationCriterionKey;
+  readonly sourceValue: number;
+  readonly normalizedValue: number;
+  readonly weight: number;
+  readonly contribution: number;
+  readonly source: CriterionSourceIdentity;
+}
+
+export interface ProjectPrioritizationResult {
+  readonly projectId: string;
+  readonly score: number;
+  readonly rank: number;
+  readonly breakdown: readonly CriterionBreakdown[];
+}
+
+export const prioritizationCriterionKeys: readonly PrioritizationCriterionKey[] = [
+  "physical_progress",
+  "financial_progress",
+  "contract_value",
+];
+
