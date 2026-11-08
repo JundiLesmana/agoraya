@@ -109,6 +109,11 @@ function getStep(status: TrackingStatus): number {
 
 export function mapStoredServiceApplication(
   application: StoredServiceApplication,
+  publicUpdates: readonly {
+    status: string | null;
+    message: string;
+    createdAt: string;
+  }[] = [],
 ): TrackingApplication {
   const status = getStatus(application.status);
   const category = CATEGORY_LABELS[application.category] ?? "Layanan lainnya";
@@ -125,7 +130,20 @@ export function mapStoredServiceApplication(
     },
   ];
 
-  if (hasStatusUpdate) {
+  if (publicUpdates.length) {
+    timeline.push(
+      ...publicUpdates.map((update) => ({
+        title: update.status
+          ? `Status diperbarui: ${getStatus(update.status)}`
+          : "Pembaruan dari instansi",
+        description: update.message,
+        occurredAt: update.createdAt,
+        completed:
+          getStatus(update.status ?? application.status) === "Selesai" ||
+          getStatus(update.status ?? application.status) === "Ditolak",
+      })),
+    );
+  } else if (hasStatusUpdate) {
     timeline.push({
       title: "Status diperbarui",
       description: `Status pengajuan saat ini: ${status}.`,

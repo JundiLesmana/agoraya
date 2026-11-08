@@ -19,8 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { serviceApplications } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { reviewActivities, serviceApplications } from "@/lib/db/schema";
+import { and, asc, eq } from "drizzle-orm";
 import { formatDateTimeWib, getDaysUntilDeadline } from "../_components/tracking-format";
 import { mapStoredServiceApplication, type TrackingApplication, type TrackingStatus } from "../_components/tracking-data";
 
@@ -99,11 +99,31 @@ async function getCitizenApplicationDetail(id: string, tenantId: string, userId:
     notFound();
   }
 
+  const publicUpdates = await db()
+    .select({
+      status: reviewActivities.status,
+      message: reviewActivities.message,
+      createdAt: reviewActivities.createdAt,
+    })
+    .from(reviewActivities)
+    .where(
+      and(
+        eq(reviewActivities.tenantId, tenantId),
+        eq(reviewActivities.itemType, "service_application"),
+        eq(reviewActivities.itemId, id),
+        eq(reviewActivities.activityType, "public_update"),
+      ),
+    )
+    .orderBy(asc(reviewActivities.createdAt));
+
   return mapStoredServiceApplication({
     ...application,
     submittedAt: application.submittedAt.toISOString(),
     updatedAt: application.updatedAt.toISOString(),
-  });
+  }, publicUpdates.map((update) => ({
+    ...update,
+    createdAt: update.createdAt.toISOString(),
+  })));
 }
 
 function DetailHero({ application }: { application: TrackingApplication }) {

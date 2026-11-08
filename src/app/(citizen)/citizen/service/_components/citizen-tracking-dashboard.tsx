@@ -705,7 +705,9 @@ export function CitizenTrackingDashboard() {
           throw new Error('Data pengajuan yang diterima tidak valid.');
         }
 
-        const mappedApplications = data.applications.map(mapStoredServiceApplication);
+        const mappedApplications = data.applications.map((application) =>
+          mapStoredServiceApplication(application),
+        );
         setApplications(mappedApplications);
         setSelectedId(mappedApplications[0]?.id ?? null);
       } catch (error) {
