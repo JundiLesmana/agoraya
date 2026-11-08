@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -37,17 +37,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { SourceBadge } from "@/components/source-badges";
 import {
   formatPersentase,
   formatRupiah,
   formatRupiahForScreenReader,
 } from "@/lib/public-data-format";
+import { formatRelativeDatasetDate } from "@/lib/dataset-catalog-presentation";
 import {
   getRegencyOptions,
   INDONESIAN_PROVINCES,
 } from "@/lib/indonesia-administrative-areas";
 import { SummaryKpiCards } from "./summary-kpi-cards";
 import { BudgetActualsTrend } from "./budget-actuals-trend";
+import { PublicCategoryDatasets } from "./public-category-datasets";
+
+type AsnDataset = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  category: string;
+  sourceOrganization: string;
+  sourceLabel: "BPS_API" | "SIMULATED" | "CITIZEN_UNVERIFIED";
+  tags: readonly string[];
+  lastUpdatedAt: string;
+  resources: readonly {
+    id: string;
+    title: string;
+    format: string;
+    url: string;
+  }[];
+};
 
 const LEGACY_PROVINCE_VALUES = new Map<string, string>([
   ["Provinsi Jawa Barat", "jabar"],
@@ -393,14 +414,20 @@ function toCsv(rows: readonly (readonly string[])[]): string {
 }
 
 function downloadFile(filename: string, content: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
+  const fileContent = type.toLowerCase().startsWith("text/csv")
+    ? `\uFEFF${content}`
+    : content;
+  const url = URL.createObjectURL(new Blob([fileContent], { type }));
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  try {
+    link.click();
+  } finally {
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 function formatDateRange(months: number, year: string): string {
@@ -482,6 +509,81 @@ export function PublicDataDashboard({
   const [sectorFilter, setSectorFilter] = useState("all");
   const [projectSector, setProjectSector] = useState("all");
   const [projectStatus, setProjectStatus] = useState("all");
+  type AsnDataset = {
+    id: string;
+    slug: string;
+    title: string;
+    summary: string;
+    category: string;
+    sourceOrganization: string;
+    sourceLabel: "BPS_API" | "SIMULATED" | "CITIZEN_UNVERIFIED";
+    tags: readonly string[];
+    lastUpdatedAt: string;
+    resources: readonly {
+      id: string;
+      title: string;
+      format: string;
+      url: string;
+    }[];
+  };
+
+  const ASN_CATEGORY_ORDER = ["Anggaran", "Proyek", "Statistik"] as const;
+
+  const ASN_CATEGORY_INFO: Record<
+    string,
+    { label: string; href: string }
+  > = {
+    Anggaran: { label: "Anggaran", href: "/data/anggaran" },
+    Proyek: { label: "Proyek", href: "/data/project" },
+    Statistik: { label: "Statistik", href: "/data/statistik" },
+  };
+
+  const [asnDatasets, setAsnDatasets] = useState<readonly AsnDataset[]>([]);
+  const [asnDatasetsLoading, setAsnDatasetsLoading] = useState(true);
+  const [asnDatasetsError, setAsnDatasetsError] = useState(false);
+
+  useEffect(() => {
+    let aborted = false;
+    async function loadAsnDatasets() {
+      setAsnDatasetsLoading(true);
+      setAsnDatasetsError(false);
+      try {
+        const response = await fetch("/api/asn/datasets", {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Dataset ASN tidak dapat dimuat.");
+        const payload = await response.json();
+        setAsnDatasets(
+          Array.isArray(payload?.data) ? (payload.data as AsnDataset[]) : [],
+        );
+      } catch {
+        if (!aborted) setAsnDatasetsError(true);
+      } finally {
+        if (!aborted) setAsnDatasetsLoading(false);
+      }
+    }
+
+    void loadAsnDatasets();
+    return () => {
+      aborted = true;
+    };
+  }, []);
+
+  const asnDatasetsByCategory = useMemo(() => {
+    const grouped: Record<string, readonly AsnDataset[]> = {
+      Anggaran: [],
+      Proyek: [],
+      Statistik: [],
+    };
+    for (const dataset of asnDatasets) {
+      const category = dataset.category;
+      if (Object.hasOwn(grouped, category)) {
+        grouped[category] = [...(grouped[category] ?? []), dataset];
+      }
+    }
+    return grouped;
+  }, [asnDatasets]);
+
 
   const selectedRegion =
     REGIONS.find((option) => option.value === region) ?? REGIONS[1];
@@ -1447,6 +1549,9 @@ export function PublicDataDashboard({
                 </div>
               </CardContent>
             </Card>
+            <div className="lg:order-4 lg:col-span-2">
+              <PublicCategoryDatasets category="Anggaran" />
+            </div>
           </div>
         ) : null}
 
@@ -1477,6 +1582,9 @@ export function PublicDataDashboard({
                   <p className="text-muted-foreground mt-1 text-xs">{note}</p>
                 </div>
               ))}
+              <div className="sm:col-span-2 lg:col-span-4">
+                <PublicCategoryDatasets category="Statistik" />
+              </div>
             </CardContent>
           </Card>
         ) : null}
@@ -1769,17 +1877,9 @@ export function PublicDataDashboard({
                   ilustratif.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                onClick={downloadProjectRows}
-                className="gap-2"
-              >
-                <Download className="size-4" aria-hidden="true" />
-                Unduh daftar
-              </Button>
             </div>
             <Card className="border-border overflow-hidden shadow-sm">
-              <div className="border-border grid gap-3 border-b p-4 sm:grid-cols-[minmax(220px,1fr)_180px]">
+              <div className="border-border grid gap-3 border-b p-4 sm:grid-cols-[minmax(220px,1fr)_180px_auto]">
                 <label className="relative">
                   <span className="sr-only">
                     Cari nama proyek atau instansi
@@ -1821,6 +1921,14 @@ export function PublicDataDashboard({
                     { value: "progress", label: "Progres fisik" },
                   ]}
                 />
+                <Button
+                  variant="outline"
+                  onClick={downloadProjectRows}
+                  className="gap-2 sm:justify-self-end"
+                >
+                  <Download className="size-4" aria-hidden="true" />
+                  Unduh daftar
+                </Button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] text-left text-sm">
@@ -2022,6 +2130,7 @@ export function PublicDataDashboard({
                   </Button>
                 </div>
               </div>
+              <PublicCategoryDatasets category="Proyek" />
             </Card>
           </section>
         ) : null}
@@ -2092,6 +2201,81 @@ export function PublicDataDashboard({
               );
             })}
           </div>
+        </section>
+
+        <section
+          id="katalog-data-asn"
+          aria-labelledby="katalog-data-asn-title"
+          className="mt-10 space-y-4 border-t pt-8"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="katalog-data-asn-title" className="text-xl font-semibold tracking-tight">
+                Data Pemerintah dari ASN
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Dataset yang dikirim oleh ASN melalui laman data ASN.
+                Setiap kategori disimpan dan ditampilkan secara terpisah:
+                Anggaran (data/anggaran), Proyek (data/project), dan
+                Statistik (data/statistik).
+              </p>
+            </div>
+          </div>
+          {asnDatasetsLoading ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="bg-muted h-64 animate-pulse rounded-xl" />
+              ))}
+            </div>
+          ) : asnDatasetsError ? (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-16 text-center">
+              <p className="text-destructive font-medium">
+                Data dari ASN gagal dimuat.
+              </p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Muat ulang halaman untuk mencoba kembali.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              {ASN_CATEGORY_ORDER.map((categoryKey) => {
+                const datasets =
+                  asnDatasetsByCategory[categoryKey] ?? [];
+                const info = ASN_CATEGORY_INFO[categoryKey];
+                return (
+                  <div key={categoryKey} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 border-b pb-2">
+                      <h3 className="text-base font-semibold">
+                        {info.label}
+                      </h3>
+                      <Link
+                        href={info.href}
+                        className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary focus-visible:underline"
+                        aria-label={`Lihat semua data ${info.label}`}
+                      >
+                        Lihat {info.label}
+                      </Link>
+                    </div>
+                    {datasets.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {datasets.map((dataset) => (
+                          <AsnDatasetCard key={dataset.id} dataset={dataset} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border px-5 py-12 text-center">
+                        <p className="text-muted-foreground text-sm">
+                          Belum ada dataset {info.label.toLocaleLowerCase(
+                            "id-ID",
+                          )}.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section
@@ -2235,5 +2419,52 @@ export function PublicDataDashboard({
         ) : null}
       </Modal>
     </div>
+  );
+}
+
+function AsnDatasetCard({ dataset }: { dataset: AsnDataset }) {
+  const csvResource = dataset.resources.find(
+    (resource) => resource.format === "CSV",
+  );
+
+  const downloadName = `${dataset.title
+    .toLocaleLowerCase("id-ID")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "dataset"}.csv`;
+
+  return (
+    <Card className="border-border shadow-sm">
+      <CardHeader className="px-4 pt-4 pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-card-foreground text-sm font-semibold leading-none tracking-tight">
+            {dataset.title}
+          </h3>
+          <SourceBadge
+            source={dataset.sourceLabel}
+            label="Input ASN"
+            className="shrink-0 text-[10px]"
+          />
+        </div>
+        <p className="text-muted-foreground mt-1 text-xs line-clamp-2">
+          {dataset.summary}
+        </p>
+        <span className="text-xs text-muted-foreground">
+          Diperbarui {formatRelativeDatasetDate(dataset.lastUpdatedAt)}
+        </span>
+      </CardHeader>
+      <CardContent className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
+        {csvResource ? (
+          <a
+            href={csvResource.url}
+            download={downloadName}
+            className="inline-flex items-center gap-1 text-primary text-xs underline underline-offset-4 hover:text-primary/80"
+            aria-label={`Unduh ${dataset.title}`}
+          >
+            <ArrowDown className="size-3" aria-hidden="true" />
+            CSV
+          </a>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

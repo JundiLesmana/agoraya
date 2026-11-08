@@ -28,7 +28,13 @@ const reviewResponseSchema = z.object({
     .nullable(),
 });
 
-export function BpsDatasetReview({ onPublished }: { onPublished: () => void }) {
+export function BpsDatasetReview({
+  onPublished,
+  refreshKey = 0,
+}: {
+  onPublished: () => void;
+  refreshKey?: number;
+}) {
   const [dataset, setDataset] =
     useState<z.infer<typeof reviewResponseSchema>["dataset"]>(null);
   const [visible, setVisible] = useState(false);
@@ -58,7 +64,7 @@ export function BpsDatasetReview({ onPublished }: { onPublished: () => void }) {
 
     void loadPendingDataset();
     return () => controller.abort();
-  }, []);
+  }, [refreshKey]);
 
   async function publishDataset() {
     setPublishing(true);
