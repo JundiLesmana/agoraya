@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ticketSubmissionDetails, tickets } from "@/lib/db/schema";
+import {
+  reviewActivities,
+  ticketSubmissionDetails,
+  tickets,
+} from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
 import { reportStatuses } from "@/modules/reporting/types";
 
@@ -42,6 +46,11 @@ const publicReportSelection = {
   reporterName: ticketSubmissionDetails.reporterName,
   showIdentity: ticketSubmissionDetails.showIdentity,
   attachmentNames: ticketSubmissionDetails.attachmentNames,
+};
+const trackedReportSelection = {
+  id: tickets.id,
+  tenantId: tickets.tenantId,
+  ...publicReportSelection,
 };
 
 export async function GET(request: Request): Promise<Response> {
@@ -122,7 +131,7 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const [report] = await db()
-      .select(publicReportSelection)
+      .select(trackedReportSelection)
       .from(ticketSubmissionDetails)
       .innerJoin(tickets, eq(ticketSubmissionDetails.ticketId, tickets.id))
       .where(
@@ -143,8 +152,32 @@ export async function GET(request: Request): Promise<Response> {
       );
     }
 
-    const { reporterName, showIdentity, attachmentNames, ...publicReport } =
-      report;
+    const updates = await db()
+      .select({
+        status: reviewActivities.status,
+        message: reviewActivities.message,
+        createdAt: reviewActivities.createdAt,
+      })
+      .from(reviewActivities)
+      .where(
+        and(
+          eq(reviewActivities.tenantId, report.tenantId),
+          eq(reviewActivities.itemType, "report"),
+          eq(reviewActivities.itemId, report.id),
+          eq(reviewActivities.activityType, "public_update"),
+        ),
+      )
+      .orderBy(desc(reviewActivities.createdAt));
+    const {
+      id,
+      tenantId,
+      reporterName,
+      showIdentity,
+      attachmentNames,
+      ...publicReport
+    } = report;
+    void id;
+    void tenantId;
     return NextResponse.json(
       {
         report: {
@@ -154,6 +187,10 @@ export async function GET(request: Request): Promise<Response> {
           attachmentNames: Array.isArray(attachmentNames)
             ? attachmentNames
             : [],
+          publicUpdates: updates.map((update) => ({
+            ...update,
+            createdAt: update.createdAt.toISOString(),
+          })),
         },
       },
       { headers: { "Cache-Control": "no-store" } },

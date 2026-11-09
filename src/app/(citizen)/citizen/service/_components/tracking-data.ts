@@ -70,6 +70,8 @@ export interface TrackingApplication {
   citizenReviewState: 'eligible' | 'accepted' | 'revision_requested' | 'unavailable';
   citizenReviewResult: TrackingReviewResult | null;
   timeline: TrackingTimelineItem[];
+  applicantName: string;
+  contactEmail: string;
 }
 
 export interface StoredServiceApplication {
@@ -188,6 +190,11 @@ function getResolutionDetails(
 
 export function mapStoredServiceApplication(
   application: StoredServiceApplication,
+  publicUpdates: readonly {
+    status: string | null;
+    message: string;
+    createdAt: string;
+  }[] = [],
 ): TrackingApplication {
   const status = getStoredServiceApplicationStatus(application.status);
   const category = CATEGORY_LABELS[application.category] ?? "Layanan lainnya";
@@ -205,7 +212,20 @@ export function mapStoredServiceApplication(
     },
   ];
 
-  if (hasStatusUpdate) {
+  if (publicUpdates.length) {
+    timeline.push(
+      ...publicUpdates.map((update) => ({
+        title: update.status
+          ? `Status diperbarui: ${getStatus(update.status)}`
+          : "Pembaruan dari instansi",
+        description: update.message,
+        occurredAt: update.createdAt,
+        completed:
+          getStatus(update.status ?? application.status) === "Selesai" ||
+          getStatus(update.status ?? application.status) === "Ditolak",
+      })),
+    );
+  } else if (hasStatusUpdate) {
     timeline.push({
       title:
         status === 'Menunggu Tinjauan Warga'
@@ -247,6 +267,8 @@ export function mapStoredServiceApplication(
     citizenReviewState: status === 'Menunggu Tinjauan Warga' ? 'eligible' : status === 'Selesai (Ditutup)' ? 'accepted' : 'unavailable',
     citizenReviewResult: null,
     timeline,
+    applicantName: application.applicantName,
+    contactEmail: application.contactEmail,
   };
 }
 
