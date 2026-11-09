@@ -53,24 +53,6 @@ describe("TrackingStatisticsPage", () => {
     });
     expect(trackingBreadcrumb.getAttribute("href")).toBe("/tracking/stat");
     expect(trackingBreadcrumb.className).toContain("text-primary");
-    const serviceNavigation = screen.getByRole("navigation", {
-      name: "Kategori layanan publik",
-    });
-    expect(
-      within(serviceNavigation)
-        .getByRole("link", { name: "Ruang Warga" })
-        .getAttribute("href"),
-    ).toBe("/citizen/service");
-    expect(
-      within(serviceNavigation)
-        .getByRole("link", { name: "Ruang Instansi" })
-        .getAttribute("href"),
-    ).toBe("/asn/dashboard");
-    expect(
-      within(serviceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("aria-current"),
-    ).toBe("page");
     expect(
       screen.getAllByLabelText(/dibanding periode sebelumnya/),
     ).toHaveLength(4);

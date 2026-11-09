@@ -13,6 +13,15 @@ import type { KycReviewDetail } from "@/modules/kyc/review-detail-service";
 
 interface KycReviewDetailClientProps {
   readonly initialDetail: KycReviewDetail;
+  readonly backHref?: string;
+  readonly title?: string;
+  readonly decisionSubject?: string;
+  readonly citizenProfile?: {
+    readonly phone: string | null;
+    readonly address: string | null;
+    readonly ktpAttachmentUrl: string | null;
+    readonly selfieAttachmentUrl: string | null;
+  };
 }
 
 type Decision = "approved" | "rejected";
@@ -38,7 +47,13 @@ const decisionLabelMap: Record<Decision, string> = {
   rejected: "Tolak",
 };
 
-export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientProps) {
+export function KycReviewDetailClient({
+  initialDetail,
+  backHref = "/admin",
+  title = "Detail review KYC ASN",
+  decisionSubject = "KYC ASN",
+  citizenProfile,
+}: KycReviewDetailClientProps) {
   const [detail, setDetail] = useState(initialDetail);
   const [selectedDecision, setSelectedDecision] = useState<Decision | null>(null);
   const [reason, setReason] = useState("");
@@ -47,15 +62,15 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
 
   const modalDescription = useMemo(() => {
     if (selectedDecision === "approved") {
-      return "Persetujuan akan mengisi slot review berikutnya dan memperbarui status KYC ASN bila memenuhi syarat dual approval.";
+      return `Persetujuan akan mengisi slot review berikutnya dan memperbarui status ${decisionSubject} bila memenuhi syarat dual approval.`;
     }
 
     if (selectedDecision === "rejected") {
-      return "Penolakan akan menghentikan proses review KYC ASN ini. Isi alasan agar petugas lain memahami keputusan ini.";
+      return `Penolakan akan menghentikan proses review ${decisionSubject} ini. Isi alasan agar petugas lain memahami keputusan ini.`;
     }
 
     return undefined;
-  }, [selectedDecision]);
+  }, [decisionSubject, selectedDecision]);
 
   async function submitDecision() {
     if (!selectedDecision) return;
@@ -99,14 +114,14 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2">
           <Link
-            href="/admin"
+            href={backHref}
             className="text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Kembali ke panel admin
+            {citizenProfile ? "Kembali ke daftar KYC warga" : "Kembali ke panel admin"}
           </Link>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Detail review KYC ASN
+              {title}
             </h1>
             <Badge variant={statusVariantMap[detail.status]}>{statusLabelMap[detail.status]}</Badge>
           </div>
@@ -135,18 +150,31 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card>
           <CardHeader>
-            <CardTitle>Informasi ASN</CardTitle>
-            <CardDescription>Data akun dan profil ASN yang sedang direview.</CardDescription>
+            <CardTitle>{citizenProfile ? "Informasi akun warga" : "Informasi ASN"}</CardTitle>
+            <CardDescription>
+              {citizenProfile
+                ? "Data pendaftar yang tersimpan saat registrasi."
+                : "Data akun dan profil ASN yang sedang direview."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <DetailItem label="Nama" value={detail.subject.name} />
             <DetailItem label="Email" value={detail.subject.email} />
             <DetailItem label="NIK" value={detail.subject.nik ?? "-"} mono />
-            <DetailItem label="NIP" value={detail.subject.nip ?? "-"} mono />
             <DetailItem label="Status akun" value={detail.subject.userStatus} />
-            <DetailItem label="OPD" value={detail.subject.opdName ?? "-"} />
-            <DetailItem label="Unit" value={detail.subject.unitName ?? "-"} />
-            <DetailItem label="Jabatan" value={detail.subject.positionName ?? "-"} />
+            {citizenProfile ? (
+              <>
+                <DetailItem label="Nomor telepon" value={citizenProfile.phone ?? "-"} />
+                <DetailItem label="Alamat" value={citizenProfile.address ?? "-"} />
+              </>
+            ) : (
+              <>
+                <DetailItem label="NIP" value={detail.subject.nip ?? "-"} mono />
+                <DetailItem label="OPD" value={detail.subject.opdName ?? "-"} />
+                <DetailItem label="Unit" value={detail.subject.unitName ?? "-"} />
+                <DetailItem label="Jabatan" value={detail.subject.positionName ?? "-"} />
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -163,6 +191,108 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
           </CardContent>
         </Card>
       </div>
+
+      {detail.asnRegistration ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Data pendaftaran ASN</CardTitle>
+              <CardDescription>
+                Informasi identitas, kepegawaian, dan instansi yang dikirim saat
+                pendaftaran.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <DetailItem label="Tempat lahir" value={detail.asnRegistration.birthPlace} />
+              <DetailItem label="Tanggal lahir" value={detail.asnRegistration.birthDate} />
+              <DetailItem label="Nomor telepon" value={detail.asnRegistration.phone} />
+              <DetailItem label="Status kepegawaian" value={detail.asnRegistration.employmentStatus} />
+              <DetailItem label="Nomor induk" value={detail.asnRegistration.employeeNumber} mono />
+              <DetailItem label="Pangkat/golongan" value={detail.asnRegistration.rankGrade} />
+              <DetailItem label="Tanggal pengangkatan" value={detail.asnRegistration.appointmentDate ?? "-"} />
+              <DetailItem label="Jenis instansi" value={detail.asnRegistration.agencyType} />
+              <DetailItem label="Bidang" value={detail.asnRegistration.field} />
+              <DetailItem label="Wilayah tugas" value={[detail.asnRegistration.regencyTask, detail.asnRegistration.provinceTask].filter(Boolean).join(", ") || "-"} />
+              <DetailItem label="Alamat kantor" value={detail.asnRegistration.officeAddress} />
+              <DetailItem label="Email kantor" value={detail.asnRegistration.officialEmail ?? "-"} />
+              <DetailItem label="Telepon kantor" value={detail.asnRegistration.officePhone ?? "-"} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Alamat pendaftar</CardTitle>
+              <CardDescription>
+                Alamat sesuai KTP dan alamat domisili yang disampaikan pemohon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+              <AddressDetails
+                title="Alamat sesuai KTP"
+                address={detail.asnRegistration.ktpAddress}
+                rt={detail.asnRegistration.ktpRt}
+                rw={detail.asnRegistration.ktpRw}
+                village={detail.asnRegistration.ktpVillage}
+                district={detail.asnRegistration.ktpDistrict}
+                regency={detail.asnRegistration.ktpRegency}
+                province={detail.asnRegistration.ktpProvince}
+                postalCode={detail.asnRegistration.ktpPostalCode}
+              />
+              <AddressDetails
+                title={`Alamat domisili${detail.asnRegistration.domicileSameAsKtp ? " (sama dengan KTP)" : ""}`}
+                address={detail.asnRegistration.domicileAddress}
+                rt={detail.asnRegistration.domicileRt}
+                rw={detail.asnRegistration.domicileRw}
+                village={detail.asnRegistration.domicileVillage}
+                district={detail.asnRegistration.domicileDistrict}
+                regency={detail.asnRegistration.domicileRegency}
+                province={detail.asnRegistration.domicileProvince}
+                postalCode={detail.asnRegistration.domicilePostalCode}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dokumen pendaftaran</CardTitle>
+              <CardDescription>
+                Berkas yang diunggah bersama pengajuan ASN.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              {detail.asnRegistration.attachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Dokumen pengajuan lama belum tersimpan pada sistem.
+                </p>
+              ) : (
+                detail.asnRegistration.attachments.map((attachment) => (
+                  <DocumentLink
+                    key={attachment.type}
+                    label={getAttachmentLabel(attachment.type)}
+                    fileName={attachment.fileName}
+                    href={attachment.url}
+                  />
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </>
+      ) : null}
+
+      {citizenProfile ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Dokumen pendaftaran</CardTitle>
+            <CardDescription>
+              Berkas yang diunggah pemohon saat mendaftar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <DocumentLink label="Foto KTP" href={citizenProfile.ktpAttachmentUrl} />
+            <DocumentLink label="Foto selfie" href={citizenProfile.selfieAttachmentUrl} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -205,7 +335,7 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
             setSelectedDecision(null);
           }
         }}
-        title={selectedDecision ? `${decisionLabelMap[selectedDecision]} KYC ASN` : "Keputusan review KYC"}
+        title={selectedDecision ? `${decisionLabelMap[selectedDecision]} ${decisionSubject}` : "Keputusan review KYC"}
         description={modalDescription}
         footer={
           <>
@@ -240,6 +370,91 @@ export function KycReviewDetailClient({ initialDetail }: KycReviewDetailClientPr
       </Modal>
     </section>
   );
+}
+
+function DocumentLink({
+  label,
+  href,
+  fileName,
+}: {
+  label: string;
+  href: string | null;
+  fileName?: string;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border p-4">
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      {href ? (
+        <div className="space-y-1">
+          {fileName ? (
+            <p className="break-all text-xs text-muted-foreground">{fileName}</p>
+          ) : null}
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-primary underline underline-offset-4"
+          >
+            Buka dokumen
+          </a>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Dokumen belum tersedia.</p>
+      )}
+    </div>
+  );
+}
+
+function AddressDetails({
+  title,
+  address,
+  rt,
+  rw,
+  village,
+  district,
+  regency,
+  province,
+  postalCode,
+}: {
+  title: string;
+  address: string;
+  rt: string;
+  rw: string;
+  village: string;
+  district: string;
+  regency: string;
+  province: string;
+  postalCode: string;
+}) {
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <h3 className="font-semibold text-foreground">{title}</h3>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <DetailItem label="Alamat" value={address} />
+        <DetailItem label="RT/RW" value={`${rt}/${rw}`} />
+        <DetailItem label="Kelurahan" value={village} />
+        <DetailItem label="Kecamatan" value={district} />
+        <DetailItem label="Kabupaten/Kota" value={regency} />
+        <DetailItem label="Provinsi" value={province} />
+        <DetailItem label="Kode pos" value={postalCode} />
+      </dl>
+    </div>
+  );
+}
+
+function getAttachmentLabel(type: string): string {
+  switch (type) {
+    case "ktp":
+      return "Kartu Tanda Penduduk";
+    case "appointment_letter":
+      return "SK Pengangkatan";
+    case "employee_id":
+      return "Kartu pegawai / ID card";
+    case "selfie":
+      return "Foto diri";
+    default:
+      return "Dokumen pendaftaran";
+  }
 }
 
 function DetailItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {

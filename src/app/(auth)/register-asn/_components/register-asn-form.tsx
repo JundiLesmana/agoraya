@@ -815,10 +815,43 @@ export function RegisterAsnForm({
         phone: form.phone.trim(),
         password: form.password,
         confirmPassword: form.confirmPassword,
+        employmentStatus: form.employmentStatus,
         agencyName: form.agencyName.trim(),
-        nip: form.nip.trim() || undefined,
+        agencyType: form.agencyType,
+        nip:
+          form.employmentStatus === "PNS"
+            ? form.nip.trim()
+            : undefined,
+        pppkNumber:
+          form.employmentStatus === "PPPK"
+            ? form.pppkNumber.trim()
+            : undefined,
+        rankGradePns:
+          form.employmentStatus === "PNS"
+            ? form.rankGradePns.trim()
+            : undefined,
+        rankGradePppk:
+          form.employmentStatus === "PPPK"
+            ? form.rankGradePppk.trim()
+            : undefined,
         position: form.positionName.trim(),
+        positionType:
+          form.positionType === "Jabatan struktural"
+            ? "Jabatan struktural"
+            : "Jabatan fungsional",
         unit: form.unitWork.trim() || undefined,
+        provinceTask:
+          form.agencyType === "Instansi daerah"
+            ? form.provinceTask.trim()
+            : undefined,
+        regencyTask:
+          form.agencyType === "Instansi daerah"
+            ? form.regencyTask.trim()
+            : undefined,
+        field: form.field.trim(),
+        officeAddress: form.officeAddress.trim(),
+        officialEmail: form.officialEmail.trim() || undefined,
+        officePhone: form.officePhone.trim() || undefined,
         address: form.ktpAddress.trim(),
         rtRw: form.ktpRt + "/" + form.ktpRw,
         village: form.ktpVillage.trim(),
@@ -826,12 +859,36 @@ export function RegisterAsnForm({
         regency: form.ktpRegency.trim(),
         province: form.ktpProvince.trim(),
         postalCode: form.ktpPostalCode.trim(),
+        domicileSameAsKtp: sameAsKtp,
+        domicileAddress: (
+          sameAsKtp ? form.ktpAddress : form.domAddress
+        ).trim(),
+        domicileRt: sameAsKtp ? form.ktpRt : form.domRt,
+        domicileRw: sameAsKtp ? form.ktpRw : form.domRw,
+        domicileVillage: (
+          sameAsKtp ? form.ktpVillage : form.domVillage
+        ).trim(),
+        domicileDistrict: (
+          sameAsKtp ? form.ktpDistrict : form.domDistrict
+        ).trim(),
+        domicileRegency: (
+          sameAsKtp ? form.ktpRegency : form.domRegency
+        ).trim(),
+        domicileProvince: (
+          sameAsKtp ? form.ktpProvince : form.domProvince
+        ).trim(),
+        domicilePostalCode: sameAsKtp
+          ? form.ktpPostalCode
+          : form.domPostalCode,
         ktp: ktpDataUrl,
         ktpFileName: uploadedFiles.ktp.file.name,
         ktpMimeType: uploadedFiles.ktp.file.type,
         skPengangkatan: skDataUrl,
         skPengangkatanFileName: uploadedFiles.skPengangkatan.file.name,
         skPengangkatanMimeType: uploadedFiles.skPengangkatan.file.type,
+        idCard: idCardDataUrl,
+        idCardFileName: uploadedFiles.idCard.file.name,
+        idCardMimeType: uploadedFiles.idCard.file.type,
         agreement: true,
       };
 

@@ -1,374 +1,201 @@
-import { randomUUID, createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { tenants, users } from "@/lib/db/schema/foundation";
-import { asnProfiles, jobPositions } from "@/modules/identity/db";
-import { kycRoster } from "@/modules/kyc/db";
-import { hashPassword } from "@/modules/identity/password/service";
-import { uploadToCloudinary } from "@/lib/cloudinary/upload";
-import { ConflictError } from "@/lib/errors";
-import { logger } from "@/lib/logger";
-import type { RegisterAsnCommand } from "./schema";
+import { z } from "zod";
 
-function hashNik(nik: string): string {
-  return createHash("sha256").update(nik).digest("hex");
-}
+const nikSchema = z
+  .string()
+  .min(16, "NIK harus 16 digit")
+  .max(16, "NIK harus 16 digit")
+  .regex(/^\d{16}$/, "NIK harus 16 digit angka");
 
-function tenantSlug(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  return `asn-${slug || randomUUID().slice(0, 8)}`;
-}
+const emailSchema = z.string().email("Format email tidak valid").min(1).max(255);
 
-export async function registerAsn(command: RegisterAsnCommand) {
-  const database = db();
+const phoneSchema = z
+  .string()
+  .min(8, "Nomor telepon minimal 8 digit")
+  .max(32, "Nomor telepon terlalu panjang")
+  .regex(/^[\d+\s()-]+$/, "Nomor telepon tidak valid");
 
-  const existingNik = await database
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.nik, command.nik))
-    .limit(1);
-  if (existingNik.length > 0) {
-    throw new ConflictError("NIK telah terdaftar.", {
-      statusCode: 409,
-      context: { field: "nik" },
+const nameSchema = z.string().min(2, "Nama minimal 2 karakter").max(255);
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const timestamp = Date.parse(value);
+    return (
+      Number.isFinite(timestamp) &&
+      new Date(timestamp).toISOString().slice(0, 10) === value
+    );
+  });
+
+const passwordSchema = z
+  .string()
+  .min(12, "Kata sandi minimal 12 karakter")
+  .max(128, "Kata sandi terlalu panjang")
+  .regex(
+    /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/,
+    "Kata sandi harus kombinasi huruf, angka, dan simbol",
+  );
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_DATA_URL_LENGTH = Math.ceil(MAX_IMAGE_SIZE / 3) * 4 + 64;
+
+const imageDataUrlSchema = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} harus diunggah`)
+    .max(MAX_DATA_URL_LENGTH, `${label} maksimal 5 MB`)
+    .refine((value) => {
+      const match =
+        /^data:(?:image\/(?:jpeg|png)|application\/pdf);base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+          value,
+        );
+      if (!match) return false;
+      const base64 = match[1];
+      const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+      return Math.floor((base64.length * 3) / 4) - padding <= MAX_IMAGE_SIZE;
+    }, `${label} harus berupa JPG, PNG, atau PDF maksimal 5 MB`);
+
+const fileNameSchema = z.string().min(1).max(255);
+const fileMimeTypeSchema = z.enum([
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+]);
+
+export const registerAsnSchema = z.strictObject({
+  nik: nikSchema,
+  name: nameSchema,
+  birthPlace: z.string().min(1, "Tempat lahir wajib diisi").max(255),
+  birthDate: dateOnlySchema,
+  email: emailSchema,
+  phone: phoneSchema,
+  password: passwordSchema,
+  confirmPassword: z.string().min(1),
+  employmentStatus: z.enum(["PNS", "PPPK"]),
+  agencyName: z.string().min(1, "Nama instansi wajib diisi").max(255),
+  agencyType: z.enum(["Instansi daerah", "Instansi pusat"]),
+  nip: z.string().optional(),
+  pppkNumber: z.string().optional(),
+  rankGradePns: z.string().optional(),
+  rankGradePppk: z.string().optional(),
+  position: z.string().min(1, "Jabatan wajib diisi").max(255),
+  positionType: z.enum(["Jabatan fungsional", "Jabatan struktural"]),
+  unit: z.string().optional(),
+  appointmentDate: dateOnlySchema.optional(),
+  provinceTask: z.string().optional(),
+  regencyTask: z.string().optional(),
+  field: z.string().min(1).max(255),
+  officeAddress: z.string().min(1).max(500),
+  officialEmail: z.string().email().optional(),
+  officePhone: phoneSchema.optional(),
+  address: z.string().min(1, "Alamat lengkap wajib diisi").max(500),
+  rtRw: z.string().regex(/^\d{3}\/\d{3}$/),
+  village: z.string().min(1, "Kelurahan wajib diisi").max(255),
+  district: z.string().min(1, "Kecamatan wajib diisi").max(255),
+  regency: z.string().min(1, "Kabupaten/Kota wajib diisi").max(255),
+  province: z.string().min(1, "Provinsi wajib diisi").max(255),
+  postalCode: z.string().regex(/^\d{5}$/),
+  domicileSameAsKtp: z.boolean(),
+  domicileAddress: z.string().min(1).max(500),
+  domicileRt: z.string().regex(/^\d{3}$/),
+  domicileRw: z.string().regex(/^\d{3}$/),
+  domicileVillage: z.string().min(1).max(255),
+  domicileDistrict: z.string().min(1).max(255),
+  domicileRegency: z.string().min(1).max(255),
+  domicileProvince: z.string().min(1).max(255),
+  domicilePostalCode: z.string().regex(/^\d{5}$/),
+  ktp: imageDataUrlSchema("KTP"),
+  ktpFileName: fileNameSchema,
+  ktpMimeType: fileMimeTypeSchema,
+  skPengangkatan: imageDataUrlSchema("SK Pengangkatan"),
+  skPengangkatanFileName: fileNameSchema,
+  skPengangkatanMimeType: fileMimeTypeSchema,
+  idCard: imageDataUrlSchema("Kartu pegawai"),
+  idCardFileName: fileNameSchema,
+  idCardMimeType: fileMimeTypeSchema,
+  selfie: imageDataUrlSchema("Foto diri").optional(),
+  selfieFileName: fileNameSchema.optional(),
+  selfieMimeType: z.enum(["image/jpeg", "image/png"]).optional(),
+  agreement: z.literal(true, { message: "Persetujuan wajib dicentang" }),
+}).superRefine((data, context) => {
+  if (data.password !== data.confirmPassword) {
+    context.addIssue({
+      code: "custom",
+      message: "Konfirmasi password tidak sama",
+      path: ["confirmPassword"],
     });
   }
 
-  const existingEmail = await database
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, command.email.toLowerCase()))
-    .limit(1);
-  if (existingEmail.length > 0) {
-    throw new ConflictError("Email telah terdaftar.", {
-      statusCode: 409,
-      context: { field: "email" },
+  const isPns = data.employmentStatus === "PNS";
+  const employeeNumber = isPns ? data.nip : data.pppkNumber;
+  const rankGrade = isPns ? data.rankGradePns : data.rankGradePppk;
+  if (!employeeNumber || !/^\d{18}$/.test(employeeNumber)) {
+    context.addIssue({
+      code: "custom",
+      message: "Nomor induk kepegawaian harus 18 digit angka",
+      path: [isPns ? "nip" : "pppkNumber"],
+    });
+  }
+  if (!rankGrade?.trim()) {
+    context.addIssue({
+      code: "custom",
+      message: "Pangkat/golongan wajib diisi",
+      path: [isPns ? "rankGradePns" : "rankGradePppk"],
     });
   }
 
-  const imageBuffer = (dataUrl: string) =>
-    Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
-
-  const tenantId = randomUUID();
-  const userId = randomUUID();
-  const passwordHash = await hashPassword(command.password);
-
-  let ktpUpload;
-  let skUpload;
-  let selfieUpload = null;
-
-  try {
-    const uploads = [
-      uploadToCloudinary({
-        buffer: imageBuffer(command.ktp),
-        tenantId,
-        fileName: command.ktpFileName,
-        mimeType: command.ktpMimeType ?? undefined,
-      }),
-      uploadToCloudinary({
-        buffer: imageBuffer(command.skPengangkatan),
-        tenantId,
-        fileName: command.skPengangkatanFileName,
-        mimeType: command.skPengangkatanMimeType ?? undefined,
-      }),
-    ];
-    if (command.selfie && command.selfieFileName) {
-      uploads.push(
-        uploadToCloudinary({
-          buffer: imageBuffer(command.selfie),
-          tenantId,
-          fileName: command.selfieFileName,
-          mimeType: command.selfieMimeType ?? undefined,
-        }),
-      );
-    }
-    const results = await Promise.all(uploads);
-    ktpUpload = results[0];
-    skUpload = results[1];
-    if (results[2]) {
-      selfieUpload = results[2];
-    }
-  } catch (error) {
-    logger.error("asn.register.upload_failed", {
-      nikHash: hashNik(command.nik).slice(0, 8),
-      error: error instanceof Error ? error.message : String(error),
-    });
-    throw error;
-  }
-
-  return database.transaction(async (tx) => {
-    await tx.insert(tenants).values({
-      id: tenantId,
-      name: command.agencyName,
-      slug: tenantSlug(command.agencyName),
-      status: "active",
-    });
-
-    await tx.insert(users).values({
-      id: userId,
-      tenantId,
-      email: command.email.toLowerCase(),
-      name: command.name,
-      nik: command.nik,
-      passwordHash,
-      status: "inactive", // Requires admin approval per requirements
-    });
-
-    const [existingPosition] = await tx
-      .select({ id: jobPositions.id })
-      .from(jobPositions)
-      .where(eq(jobPositions.name, command.position))
-      .limit(1);
-    let positionId = existingPosition?.id;
-    if (!positionId) {
-      const [createdPosition] = await tx
-        .insert(jobPositions)
-        .values({
-          id: randomUUID(),
-          name: command.position,
-        })
-        .onConflictDoNothing()
-        .returning({ id: jobPositions.id });
-      positionId = createdPosition?.id;
-    }
-    if (!positionId) {
-      const [positionAfterConflict] = await tx
-        .select({ id: jobPositions.id })
-        .from(jobPositions)
-        .where(eq(jobPositions.name, command.position))
-        .limit(1);
-      positionId = positionAfterConflict?.id;
-    }
-
-    await tx.insert(asnProfiles).values({
-      userId,
-      tenantId,
-      nip: command.nip ?? null,
-      opdName: command.agencyName,
-      unitName: command.unit ?? null,
-      positionId: positionId ?? null,
-    });
-
-    await tx.insert(kycRoster).values({
-      id: randomUUID(),
-      tenantId,
-      userId,
-      nikHash: hashNik(command.nik),
-      name: command.name,
-      status: "pending",
-    });
-
-    logger.info("asn.registered", {
-      tenantId,
-      userId,
-      nikHash: hashNik(command.nik).slice(0, 8),
-    });
-
-    return {
-      tenantId,
-      userId,
-      nik: command.nik,
-      email: command.email.toLowerCase(),
-      status: "pending_approval",
-      message: "Pendaftaran berhasil. Akun menunggu persetujuan admin instansi.",
-    };
-  });
-}
-
-export async function saveAsnStep2(data: {
-  userId?: string;
-  draftId?: string;
-  employmentStatus: "PNS" | "PPPK";
-  nip?: string;
-  pppkNumber?: string;
-  rankGradePns?: string;
-  rankGradePppk?: string;
-  agencyType: "Instansi daerah" | "Instansi pusat";
-  agencyName: string;
-  provinceTask?: string;
-  regencyTask?: string;
-  unitWork: string;
-  field: string;
-  positionType: "Jabatan fungsional" | "Jabatan struktural";
-  positionName: string;
-  officeAddress: string;
-  officialEmail?: string;
-  officePhone?: string;
-}) {
-  // Store step 2 data in isolated context (draft or separate storage)
-  // Following tenant isolation pattern
-  const { createHash } = await import("node:crypto");
-  const nipHash = data.nip
-    ? createHash("sha256").update(data.nip).digest("hex").slice(0, 16)
-    : data.pppkNumber
-    ? createHash("sha256").update(data.pppkNumber).digest("hex").slice(0, 16)
-    : undefined;
-
-  logger.info("asn.register.step2_saved", {
-    employmentStatus: data.employmentStatus,
-    agencyType: data.agencyType,
-    agencyName: data.agencyName,
-    nipHash,
-  });
-
-  if (data.userId) {
-    const userId = data.userId;
-    const database = db();
-    await database.transaction(async (tx) => {
-      const [user] = await tx
-        .select({ tenantId: users.tenantId })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      if (user) {
-        const [position] = await tx
-          .select({ id: jobPositions.id })
-          .from(jobPositions)
-          .where(eq(jobPositions.name, data.positionName))
-          .limit(1);
-        let positionId = position?.id;
-        if (!positionId) {
-          const [createdPosition] = await tx
-            .insert(jobPositions)
-            .values({
-              id: randomUUID(),
-              name: data.positionName,
-              type:
-                data.positionType === "Jabatan struktural"
-                  ? "structural"
-                  : "functional",
-            })
-            .onConflictDoNothing()
-            .returning({ id: jobPositions.id });
-          positionId = createdPosition?.id;
-        }
-        if (!positionId) {
-          const [positionAfterConflict] = await tx
-            .select({ id: jobPositions.id })
-            .from(jobPositions)
-            .where(eq(jobPositions.name, data.positionName))
-            .limit(1);
-          positionId = positionAfterConflict?.id;
-        }
-
-        await tx
-          .insert(asnProfiles)
-          .values({
-            userId,
-            tenantId: user.tenantId,
-            nip: data.nip ?? null,
-            opdName: data.agencyName,
-            unitName: data.unitWork,
-            positionId: positionId ?? null,
-          })
-          .onConflictDoUpdate({
-            target: asnProfiles.userId,
-            set: {
-              tenantId: user.tenantId,
-              nip: data.nip ?? null,
-              opdName: data.agencyName,
-              unitName: data.unitWork,
-              positionId: positionId ?? null,
-              updatedAt: new Date(),
-            },
-          });
-      }
-    });
-  }
-
-  return {
-    ok: true,
-    employmentStatus: data.employmentStatus,
-    agencyName: data.agencyName,
-    unitWork: data.unitWork,
-    positionName: data.positionName,
-    status: "step2_saved",
-  };
-}
-
-export async function saveAsnStep3(data: {
-  userId?: string;
-  draftId?: string;
-  ktpAddress: string;
-  ktpRt: string;
-  ktpRw: string;
-  ktpPostalCode: string;
-  ktpProvince: string;
-  ktpRegency: string;
-  ktpDistrict: string;
-  ktpVillage: string;
-  sameAsKtp: boolean;
-  domAddress: string;
-  domRt: string;
-  domRw: string;
-  domPostalCode: string;
-  domProvince: string;
-  domRegency: string;
-  domDistrict: string;
-  domVillage: string;
-}) {
-  logger.info("asn.register.step3_saved", {
-    sameAsKtp: data.sameAsKtp,
-    ktpProvince: data.ktpProvince,
-    ktpRegency: data.ktpRegency,
-  });
-
-  return {
-    ok: true,
-    sameAsKtp: data.sameAsKtp,
-    status: "step3_saved",
-  };
-}
-
-export async function saveAsnStep4(data: {
-  userId?: string;
-  draftId?: string;
-  ktpFileName: string;
-  ktpFileSize: number;
-  ktpMimeType: string;
-  skFileName: string;
-  skFileSize: number;
-  skMimeType: string;
-  selfieFileName?: string;
-  selfieFileSize?: number;
-  selfieMimeType?: string;
-}) {
-  logger.info("asn.register.step4_saved", {
-    ktpMimeType: data.ktpMimeType,
-    skMimeType: data.skMimeType,
-    hasSelfie: Boolean(data.selfieFileName),
-  });
-
-  return {
-    ok: true,
-    documents: {
-      ktp: { fileName: data.ktpFileName, fileSize: data.ktpFileSize },
-      sk: { fileName: data.skFileName, fileSize: data.skFileSize },
-      selfie: data.selfieFileName ? { fileName: data.selfieFileName, fileSize: data.selfieFileSize } : null,
+  const uploadedImages: Array<{
+    data: string;
+    mimeType: string | undefined;
+    field: "ktpMimeType" | "skPengangkatanMimeType" | "idCardMimeType" | "selfieMimeType";
+  }> = [
+    { data: data.ktp, mimeType: data.ktpMimeType, field: "ktpMimeType" },
+    {
+      data: data.skPengangkatan,
+      mimeType: data.skPengangkatanMimeType,
+      field: "skPengangkatanMimeType",
     },
-    status: "step4_saved",
-  };
-}
+    { data: data.idCard, mimeType: data.idCardMimeType, field: "idCardMimeType" },
+    ...(data.selfie
+      ? [
+          {
+            data: data.selfie,
+            mimeType: data.selfieMimeType,
+            field: "selfieMimeType" as const,
+          },
+        ]
+      : []),
+  ];
 
-export async function submitAsnRegistration(data: {
-  userId?: string;
-  draftId?: string;
-  agreed: boolean;
-}) {
-  const registrationNumber = `REG-2026-${String(Math.floor(Math.random() * 1000000)).padStart(6, "0")}`;
-  
-  logger.info("asn.register.submitted", {
-    registrationNumber,
-    agreed: data.agreed,
-  });
+  for (const image of uploadedImages) {
+    const dataUrlMimeType = /^data:(image\/(?:jpeg|png)|application\/pdf);base64,/.exec(
+      image.data,
+    )?.[1];
+    if (image.mimeType && image.mimeType !== dataUrlMimeType) {
+      context.addIssue({
+        code: "custom",
+        message: "Tipe berkas tidak sesuai dengan dokumen yang diunggah",
+        path: [image.field],
+      });
+    }
+    if (image.field === "selfieMimeType" && dataUrlMimeType === "application/pdf") {
+      context.addIssue({
+        code: "custom",
+        message: "Foto diri harus berupa JPG atau PNG",
+        path: ["selfie"],
+      });
+    }
+  }
 
-  return {
-    registration_id: crypto.randomUUID(),
-    registration_number: registrationNumber,
-    status: "pending_verification",
-    submitted_at: new Date().toISOString(),
-  };
-}
+  if (
+    Boolean(data.selfie) !== Boolean(data.selfieFileName) ||
+    Boolean(data.selfie) !== Boolean(data.selfieMimeType)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Nama berkas dan foto diri harus dikirim bersama",
+      path: ["selfieFileName"],
+    });
+  }
+});
+
+export type RegisterAsnCommand = z.infer<typeof registerAsnSchema>;

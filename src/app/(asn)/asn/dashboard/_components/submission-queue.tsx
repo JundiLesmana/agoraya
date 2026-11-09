@@ -693,7 +693,7 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
                               {recommendation ? "Asignasikan (disarankan)" : "Asignasikan"}
                             </Button>
                             <Button asChild variant="ghost" size="sm">
-                              <Link href={`/asn/submission/${item.id}`}>Buka</Link>
+                              <Link href={`/asn/management/${item.id}`}>Buka</Link>
                             </Button>
                           </div>
                         </td>

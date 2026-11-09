@@ -4,7 +4,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatisticsRoom } from "@/app/(public)/data/statistik/_components/statistics-room";
@@ -53,25 +52,6 @@ describe("StatisticsRoom", () => {
     expect(
       screen.getByRole("navigation", { name: "Breadcrumb" }).textContent,
     ).toContain("Layanan Publik");
-    const spaceNavigation = screen.getByRole("navigation", {
-      name: "Kategori layanan publik",
-    });
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("aria-current"),
-    ).toBe("page");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Warga" })
-        .getAttribute("href"),
-    ).toBe("/citizen/service");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Instansi" })
-        .getAttribute("href"),
-    ).toBe("/asn/dashboard");
-
     fireEvent.change(
       screen.getByRole("combobox", { name: "Periode statistik" }),
       {

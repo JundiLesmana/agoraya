@@ -1,10 +1,12 @@
 import type * as NextNavigation from 'next/navigation';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 
 const testState = vi.hoisted(() => ({
   requireAuth: vi.fn(),
-  findFirst: vi.fn(),
+  select: vi.fn(),
+  applicationRows: [] as Record<string, unknown>[],
+  publicUpdates: [] as Record<string, unknown>[],
   notFound: vi.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
@@ -24,15 +26,30 @@ vi.mock('@/lib/auth/guards', () => ({
 
 vi.mock('@/lib/db', () => ({
   db: () => ({
-    query: {
-      serviceApplications: {
-        findFirst: testState.findFirst,
-      },
-    },
+    select: testState.select,
   }),
 }));
 
 import CitizenServiceDetailPage from '@/app/(citizen)/citizen/service/[id]/page';
+
+function mockApplicationQueries(applicationRows: Record<string, unknown>[]) {
+  testState.applicationRows = applicationRows;
+  testState.publicUpdates = [];
+  testState.select.mockImplementation(() => {
+    const queryIndex = testState.select.mock.calls.length - 1;
+    const result = queryIndex === 0
+      ? testState.applicationRows
+      : testState.publicUpdates;
+    const where = vi.fn().mockReturnValue({
+      limit: vi.fn().mockResolvedValue(result),
+      orderBy: vi.fn().mockResolvedValue(result),
+    });
+
+    return {
+      from: vi.fn().mockReturnValue({ where }),
+    };
+  });
+}
 
 const storedApplication = {
   id: 'app-3',
@@ -54,14 +71,18 @@ const storedApplication = {
 };
 
 describe('CitizenServiceDetailPage', () => {
-  it('renders the citizen-owned submission detail page', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders the authenticated citizen submission detail as read-only', async () => {
     testState.requireAuth.mockResolvedValue({
       userId: 'user-1',
       tenantId: 'tenant-1',
       role: 'citizen',
       roles: ['citizen'],
     });
-    testState.findFirst.mockResolvedValue(storedApplication);
+    mockApplicationQueries([storedApplication]);
 
     render(
       await CitizenServiceDetailPage({
@@ -69,102 +90,20 @@ describe('CitizenServiceDetailPage', () => {
       }),
     );
 
-    expect(screen.getByRole('heading', { name: 'Tinjau Resolusi' })).toBeTruthy();
-    expect(screen.getByText('Pencairan Bantuan Sosial')).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Pencairan Bantuan Sosial' }),
+    ).toBeTruthy();
     expect(screen.getByText('Warga Contoh 3')).toBeTruthy();
     expect(screen.getByText('warga3@example.com')).toBeTruthy();
     expect(screen.getAllByText('Menunggu Tinjauan Warga').length).toBeGreaterThan(0);
-    expect(screen.getByText('Permintaan Asli')).toBeTruthy();
-    expect(screen.getByText('Resolusi Instansi')).toBeTruthy();
-    expect(screen.getByText('Bukti Tindak Lanjut')).toBeTruthy();
-    expect(screen.getByText('Area Aksi')).toBeTruthy();
-    expect(screen.getByText('Timeline')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Kembali ke pengajuan saya' }).getAttribute('href')).toBe('/citizen/service');
-    expect(screen.getByRole('button', { name: 'Terima & Beri Umpan Balik' }).hasAttribute('disabled')).toBe(false);
-    expect(screen.getByRole('button', { name: 'Tolak & Minta Revisi' }).hasAttribute('disabled')).toBe(false);
-  });
-
-  it('accepts a citizen review from the detail page and closes the submission locally', async () => {
-    testState.requireAuth.mockResolvedValue({
-      userId: 'user-1',
-      tenantId: 'tenant-1',
-      role: 'citizen',
-      roles: ['citizen'],
-    });
-    testState.findFirst.mockResolvedValue(storedApplication);
-
-    render(
-      await CitizenServiceDetailPage({
-        params: Promise.resolve({ id: 'app-3' }),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Terima & Beri Umpan Balik' }));
-    fireEvent.change(screen.getByLabelText('Rating layanan'), {
-      target: { value: '4' },
-    });
-    fireEvent.change(screen.getByLabelText('Komentar (opsional)'), {
-      target: { value: 'Sudah sesuai dan cepat.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Simpan penerimaan' }));
-
-    expect(screen.getAllByText('Selesai (Ditutup)').length).toBeGreaterThan(0);
-    expect(screen.getByText('Resolusi diterima. Pengajuan ditutup dan ringkasan umpan balik disimpan.')).toBeTruthy();
-    expect(screen.getByText('Warga menerima resolusi')).toBeTruthy();
-    expect(screen.getByText('Rating: 4 / 5 · Umpan balik: Sudah sesuai dan cepat.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Tolak & Minta Revisi' })).toBeNull();
-  });
-
-  it('records a revision request from the detail page while keeping the submission in review', async () => {
-    testState.requireAuth.mockResolvedValue({
-      userId: 'user-1',
-      tenantId: 'tenant-1',
-      role: 'citizen',
-      roles: ['citizen'],
-    });
-    testState.findFirst.mockResolvedValue(storedApplication);
-
-    render(
-      await CitizenServiceDetailPage({
-        params: Promise.resolve({ id: 'app-3' }),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Tolak & Minta Revisi' }));
-    fireEvent.change(screen.getByLabelText('Alasan revisi'), {
-      target: { value: 'Mohon tambahkan rincian tindak lanjut lapangan.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Kirim permintaan revisi' }));
-
-    expect(screen.getByText('Permintaan revisi dicatat pada timeline pengajuan.')).toBeTruthy();
-    expect(screen.getByText('Revisi telah diminta')).toBeTruthy();
-    expect(screen.getByText('Alasan warga: Mohon tambahkan rincian tindak lanjut lapangan.')).toBeTruthy();
-    expect(screen.getByText('Warga meminta revisi')).toBeTruthy();
-    expect(screen.getAllByText('Menunggu Tinjauan Warga').length).toBeGreaterThan(0);
-  });
-
-  it('keeps review actions unavailable for a closed submission', async () => {
-    testState.requireAuth.mockResolvedValue({
-      userId: 'user-1',
-      tenantId: 'tenant-1',
-      role: 'citizen',
-      roles: ['citizen'],
-    });
-    testState.findFirst.mockResolvedValue({
-      ...storedApplication,
-      status: 'closed',
-    });
-
-    render(
-      await CitizenServiceDetailPage({
-        params: Promise.resolve({ id: 'app-3' }),
-      }),
-    );
-
-    expect(screen.getAllByText('Selesai (Ditutup)').length).toBeGreaterThan(0);
-    expect(screen.getByText('Aksi review hanya tersedia ketika status pengajuan adalah Menunggu Tinjauan Warga.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Terima & Beri Umpan Balik' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Tolak & Minta Revisi' })).toBeNull();
+    expect(screen.getByText('Pengajuan Anda berhasil dicatat.')).toBeTruthy();
+    expect(screen.getByText('Data pemohon')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Kembali ke daftar pengajuan' }).getAttribute('href'),
+    ).toBe('/citizen/service');
+    expect(
+      screen.queryByRole('button', { name: 'Terima & Beri Umpan Balik' }),
+    ).toBeNull();
   });
 
   it('calls notFound when the submission does not belong to the current citizen', async () => {
@@ -174,7 +113,7 @@ describe('CitizenServiceDetailPage', () => {
       role: 'citizen',
       roles: ['citizen'],
     });
-    testState.findFirst.mockResolvedValue(undefined);
+    mockApplicationQueries([]);
 
     await expect(
       CitizenServiceDetailPage({
@@ -182,7 +121,7 @@ describe('CitizenServiceDetailPage', () => {
       }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    expect(testState.findFirst).toHaveBeenCalledTimes(1);
+    expect(testState.select).toHaveBeenCalledTimes(1);
     expect(testState.notFound).toHaveBeenCalledTimes(1);
   });
 });

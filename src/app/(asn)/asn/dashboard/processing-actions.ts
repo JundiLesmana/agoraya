@@ -118,9 +118,8 @@ export async function saveSubmissionProcessing(
   }
 
   revalidatePath("/asn/dashboard");
-  revalidatePath("/asn/queue");
-  revalidatePath("/asn/submission");
-  revalidatePath(`/asn/submission/${id}`);
+  revalidatePath("/asn/management");
+  revalidatePath(`/asn/management/${id}`);
   revalidatePath(`/asn/dashboard/submission?id=${id}`);
   revalidatePath(`/asn/dashboard/submissions/${id}`);
 

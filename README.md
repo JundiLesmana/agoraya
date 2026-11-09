@@ -143,6 +143,7 @@ Fitur berikut menggambarkan cakupan kapabilitas yang dirancang untuk Agoraya.
 - **Login warga** — Masuk menggunakan NIK atau email terdaftar dan kata sandi. Kata sandi disimpan sebagai hash scrypt; konfigurasi `AUTH_SECRET` minimal 32 karakter diperlukan untuk pembatasan percobaan login. Terapkan migrasi database sebelum menggunakan login. Akun lama belum memiliki hash kata sandi, sehingga kata sandi harus didaftarkan melalui proses enrollment yang tepercaya sebelum akun tersebut dapat masuk.
 - **Manual KYC** — Verifikasi identitas manual untuk mendukung validitas data.
 - **RBAC + ABAC** — Pengaturan akses berdasarkan peran, instansi, jabatan, dan wilayah.
+- **Panel Admin** — Navigasi `/admin` menyediakan akses ke `/admin/kyc/asn` dan `/admin/kyc/citizen`, serta pengelolaan pengguna dan sistem bagi administrator. URL KYC sebelumnya tetap mengarahkan ke laman yang baru.
 
 ## Tech Stack
 
@@ -254,6 +255,45 @@ openssl rand -base64 32
 
 Untuk memakai Neon atau database lain, ganti `DATABASE_URL` dan `DATABASE_URL_UNPOOLED` dengan connection string milik database tersebut. Jangan commit `.env.local` atau kredensial database.
 
+Untuk menampilkan pendaftaran warga pada antrean KYC ASN, atur
+`CITIZEN_KYC_TENANT_ID` ke UUID tenant yang digunakan reviewer ASN. Nilai
+`REPORTING_TENANT_ID` dipakai sebagai fallback; pada lingkungan lokal tanpa
+keduanya, aplikasi memakai tenant `agoraya-local-testing`. Di production,
+pendaftaran gagal dengan jelas jika tenant KYC tidak dikonfigurasi atau tidak
+ada. Profil, akun, dan berkas warga tetap tersimpan pada tenant privat
+pendaftar. Pendaftaran lama tidak dipindahkan otomatis dan perlu rekonsiliasi
+tenant tersendiri. Untuk meninjau jumlah data lama yang akan dipindahkan,
+jalankan skrip berikut setelah memuat konfigurasi database dan tenant:
+
+```bash
+pnpm db:reconcile-citizen-kyc-tenant
+```
+
+Skrip hanya melakukan dry-run secara default. Setelah memastikan database dan
+tenant target benar serta memiliki cadangan, jalankan dengan `--apply` untuk
+memindahkan tenant ID roster KYC dan riwayat persetujuannya saja; akun, profil,
+dan berkas warga tetap di tenant asal:
+
+```bash
+pnpm db:reconcile-citizen-kyc-tenant -- --apply
+```
+
+Untuk KYC ASN, atur `ASN_KYC_TENANT_ID` ke UUID tenant reviewer. Nilai ini
+fallback ke `CITIZEN_KYC_TENANT_ID`, lalu `REPORTING_TENANT_ID`; production
+tidak memakai tenant default. Roster KYC ditempatkan pada tenant reviewer,
+sedangkan profil ASN dan dokumen tetap terisolasi di tenant pendaftar. Form
+pendaftaran dan review KYC menyimpan/membaca detail serta dokumen dari basis
+data; data registrasi ASN lama yang belum tersimpan lengkap tidak dibuat-buat.
+Jalankan dry-run rekonsiliasi roster lama, lalu `--apply` hanya setelah
+memastikan tenant target dan cadangan:
+
+```bash
+pnpm db:reconcile-asn-kyc-tenant
+pnpm db:reconcile-asn-kyc-tenant -- --apply
+```
+
+Jalankan migrasi `0021_asn_registration_kyc` sebelum deploy perubahan ini.
+
 Jalankan migrasi dan seed data demo dari terminal Bash yang sama:
 
 ```bash
@@ -349,3 +389,4 @@ Sebelum mengirim perubahan, baca panduan [CONTRIBUTING.md](./CONTRIBUTING.md). D
 ## Lisensi
 
 Proprietary. Hak cipta dilindungi.
+# agoraya-development

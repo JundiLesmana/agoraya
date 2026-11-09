@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
-import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import {
   Card,
   CardContent,
@@ -354,10 +353,6 @@ export function AnalyticsDashboard() {
               Ringkasan agregat tentang laporan, waktu penyelesaian, dan
               pengalaman warga di berbagai wilayah.
             </p>
-            <ServiceSpaceNavigation
-              activeSpace="statistics"
-              statisticsHref="/tracking/stat"
-            />
           </div>
         </header>
       </section>

@@ -11,8 +11,8 @@ export interface CloudinaryUploadResult {
   readonly size: number | null;
 }
 
-function cloudinaryFolder(tenantId: string): string {
-  return `agoraya/citizen/${tenantId}`;
+function cloudinaryFolder(tenantId: string, category: "citizen" | "asn"): string {
+  return `agoraya/${category}/${tenantId}`;
 }
 
 export async function uploadToCloudinary({
@@ -20,11 +20,13 @@ export async function uploadToCloudinary({
   tenantId,
   fileName,
   mimeType,
+  category = "citizen",
 }: {
   readonly buffer: Buffer;
   readonly tenantId: string;
   readonly fileName: string;
   readonly mimeType?: string | null;
+  readonly category?: "citizen" | "asn";
 }): Promise<CloudinaryUploadResult> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -53,8 +55,8 @@ export async function uploadToCloudinary({
   return new Promise<CloudinaryUploadResult>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: cloudinaryFolder(tenantId),
-        resource_type: "image",
+        folder: cloudinaryFolder(tenantId, category),
+        resource_type: mimeType === "application/pdf" ? "raw" : "image",
         use_filename: true,
         unique_filename: true,
       },
