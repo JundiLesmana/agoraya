@@ -36,6 +36,12 @@ export const EnvSchema = z.object({
 
   AI_PROVIDER: z.enum(["gemini", "cerebras", "groq", "openrouter"]).optional(),
   AI_API_KEY: z.string().optional(),
-});
+}).refine(
+  (data) => !data.AI_PROVIDER || (data.AI_API_KEY ?? "").trim().length > 0,
+  {
+    message: "AI_API_KEY wajib diisi saat AI_PROVIDER disetel.",
+    path: ["AI_API_KEY"],
+  },
+);
 
 export type Env = z.infer<typeof EnvSchema>;

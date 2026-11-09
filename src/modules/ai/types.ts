@@ -1,4 +1,4 @@
-export type AiProviderName = 'openai' | 'anthropic' | 'local';
+export type AiProviderName = "gemini" | "cerebras" | "groq" | "openrouter";
 
 export interface AiRequest<TContext extends Record<string, unknown> = Record<string, unknown>> {
   readonly intent: string;
@@ -27,4 +27,3 @@ export interface GuardrailViolation {
   readonly code: string;
   readonly message: string;
 }
-

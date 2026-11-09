@@ -929,15 +929,17 @@ Menggunakan **shadcn/ui + Radix UI** dengan Tailwind CSS:
 
 ### 8.4 AI Providers
 
-- Multi-provider melalui AI Router tunggal
-- Support: Gemini, Cerebras, Groq, OpenRouter
-- Config-driven (environment variables)
-- Output di-validate dengan Zod
-- PII scrubbing sebelum prompt
-- Fallback & circuit breaker
-- **AI tidak boleh** mengubah deterministic scores/rankings
+- Hanya satu adapter yang diimplementasikan untuk MVP: **Gemini** (native `fetch`, tanpa dependency SDK baru).
+- Provider lain (Cerebras, Groq, OpenRouter) terdaftar di opsi `AI_PROVIDER` tetapi **belum diimplementasikan**; memanggilnya menghasilkan error "belum diimplementasikan", bukan fallback echo atau sukses palsu.
+- Config-driven melalui environment variables (`AI_PROVIDER`, `AI_API_KEY`).
+- `AI_API_KEY` disimpan server-only, tidak pernah bocor ke client.
+- Jika `AI_PROVIDER` dan `AI_API_KEY` tidak dikonfigurasi, fitur penjelasan nonaktif dan mengembalikan error eksplisit; ranking deterministik tetap berfungsi.
+- Output penjelasan divalidasi dengan skema Zod ketat: hanya `summary`, `keyFactors`, dan `limitations`. Tidak ada skor, bobot, rank, keputusan, atau tindakan.
+- PII disaring sebelum prompt; prompt lengkap dan respons mentah tidak dicatat ke log.
+- Timeout 10 detik dan retry maksimal 2 kali pada kesalahan jaringan / 429 / 5xx. Tidak mencoba ulang pada 4xx.
+- **AI tidak boleh** mengubah deterministic scores/rankings.
 
-> Detail: [ADR-0003: AI Is Explanatory](./docs/adr/0003-ai-is-explanatory.md)
+> Detail: [ADR-0005: AI Penjelasan Prioritas Proyek dengan Provider Gemini (MVP)](./docs/adr/0005-ai-explanation-provider-gemini.md)
 
 ---
 
@@ -968,23 +970,16 @@ Menggunakan **shadcn/ui + Radix UI** dengan Tailwind CSS:
 ### 9.2 AI Router Architecture
 
 ```
-[Business Module] → [AI Router] → [Provider Adapter]
-                                    ├── Gemini
-                                    ├── Cerebras
-                                    ├── Groq
-                                    └── OpenRouter
-
-AI Router handles:
-├── Provider selection (config-driven)
-├── Rate limiting & quotas
-├── Timeout & retries (bounded)
-├── Fallback / circuit breaker
-├── Response caching
-├── Output validation (Zod)
-├── PII scrubbing (input)
-├── Call observability
-└── Error handling (safe fallback)
+[Business Module] → [Provider Adapter (Gemini)]
 ```
+
+AI explanation untuk prioritas proyek:
+- Digunakan secara terpisah dari skoring deterministik (tidak memengaruhi skor, bobot, urutan, atau keputusan).
+- Provider selection berdasarkan `AI_PROVIDER` (hanya Gemini yang diimplementasikan untuk MVP).
+- Timeout & retry terbatas (10 detik, maksimal 2 retry pada jaringan / 429 / 5xx; tidak retry pada 4xx).
+- Output validasi dengan Zod (skema ketat: `summary`, `keyFactors`, `limitations`).
+- PII scrubbing pada input prompt; prompt lengkap dan respons mentah tidak dicatat ke log.
+- Error handling fail-closed (error eksplisit saat tidak dikonfigurasi atau gagal, tidak ada fallback echo).
 
 ---
 
