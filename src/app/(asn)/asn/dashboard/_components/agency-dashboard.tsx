@@ -1,13 +1,14 @@
 ﻿"use client";
 
-import Link from "next/link";
 import * as React from "react";
 import {
   CheckCircle2,
   Clock3,
+  FileText,
   Inbox,
   RefreshCw,
   Search,
+  ShieldCheck,
   UserRound,
   Workflow,
 } from "lucide-react";

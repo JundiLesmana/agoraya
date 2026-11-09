@@ -43,6 +43,9 @@ import {
   type StatisticsYear,
 } from "./statistics-data";
 import { PublishedStatisticInputs } from "./published-statistic-inputs";
+import { StatisticsTrendChart } from "@/components/charts/statistics-trend-chart";
+import { PovertyMap } from "@/components/map/poverty-map";
+import { PublicCategoryDatasets } from "../../_components/public-category-datasets";
 
 type StatisticsFrequency = "tahunan" | "bulanan";
 const AVAILABLE_YEARS = ["2025", "2024", "2023", "2022", "2021", "2020"];
@@ -142,6 +145,17 @@ export function StatisticsDashboard() {
     StatisticsRegion[]
   >(["jabar", "jateng", "jatim"]);
   const [showAddRegion, setShowAddRegion] = useState(false);
+
+  const BPS_PROVINCE_OPTIONS: { value: string; label: string }[] = [
+    { value: "31", label: "DKI Jakarta" },
+    { value: "32", label: "Jawa Barat" },
+    { value: "33", label: "Jawa Tengah" },
+    { value: "34", label: "Daerah Istimewa Yogyakarta" },
+    { value: "35", label: "Jawa Timur" },
+    { value: "36", label: "Banten" },
+    { value: "51", label: "Bali" },
+  ];
+  const [bpsRegion, setBpsRegion] = useState<string>("31");
 
   useEffect(() => {
     const fromUrl = parseFilters(window.location.search);
@@ -998,7 +1012,38 @@ export function StatisticsDashboard() {
             </Card>
           </section>
 
+          <section aria-labelledby="indikator-api-title" className="space-y-4">
+            <div>
+              <h2 id="indikator-api-title" className="text-lg font-semibold">
+                Indikator Teragregasi dari API Analitik
+              </h2>
+              <p className="text-muted-foreground text-xs">
+                Grafik dan peta di bawah ini dikonsumsi langsung dari{" "}
+                <code>/api/analytics/statistics</code> (data sudah teragregasi di
+                sisi server), tanpa pemrosesan agregasi di sisi klien.
+              </p>
+              <label className="space-y-1.5 text-xs font-medium">
+                Wilayah provinsi (kode BPS)
+                <Select
+                  aria-label="Wilayah provinsi untuk grafik tren"
+                  value={bpsRegion}
+                  onChange={(event) => setBpsRegion(event.target.value)}
+                  options={BPS_PROVINCE_OPTIONS}
+                />
+              </label>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr]">
+              <StatisticsTrendChart
+                indicator="IND_KEMISKINAN"
+                region={bpsRegion}
+                height={300}
+              />
+              <PovertyMap indicator="IND_KEMISKINAN" height={420} />
+            </div>
+          </section>
+
           <PublishedStatisticInputs />
+          <PublicCategoryDatasets category="Statistik" />
 
           <section id="metodologi" aria-labelledby="methodology-title">
             <Card className="shadow-sm">

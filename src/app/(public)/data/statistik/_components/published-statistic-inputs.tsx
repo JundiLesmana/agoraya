@@ -59,7 +59,7 @@ export function PublishedStatisticInputs() {
   }, []);
 
   return (
-    <section className="w-full">
+    <section id="published-statistic-inputs" className="w-full">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">

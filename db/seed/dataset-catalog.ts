@@ -11,7 +11,7 @@ const SEED_DATASETS = [
     summary: "Ringkasan anggaran dan realisasi daerah menurut sektor.",
     description:
       "Dataset ilustratif berisi anggaran dan realisasi APBD per bulan dan sektor. Nilai disediakan sebagai contoh struktur data dan bukan laporan keuangan resmi.",
-    category: "Ekonomi",
+    category: "Anggaran",
     sourceOrganization: "Dinas Keuangan Daerah (Simulasi)",
     sourceUrl: null,
     sourceLabel: "SIMULATED",
@@ -57,7 +57,7 @@ const SEED_DATASETS = [
     summary: "Perkembangan pelaksanaan proyek pembangunan daerah.",
     description:
       "Dataset ilustratif progres proyek untuk membantu memahami struktur kolom proyek daerah. Angka dan nama proyek merupakan data contoh, bukan pelaporan resmi.",
-    category: "Pembangunan",
+    category: "Proyek",
     sourceOrganization: "Bappeda (Simulasi)",
     sourceUrl: null,
     sourceLabel: "SIMULATED",

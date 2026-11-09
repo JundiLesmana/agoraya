@@ -38,12 +38,21 @@ vi.mock("@/lib/db", () => ({
 import CitizenSubmissionDetailPage from "@/app/(citizen)/citizen/service/[id]/page";
 
 function mockDetailQuery(row?: Record<string, unknown>) {
-  const limit = vi.fn().mockResolvedValue(row ? [row] : []);
-  const where = vi.fn().mockReturnValue({ limit });
+  const rows = row ? [row] : [];
+  const updates = [
+    {
+      status: "Diverifikasi",
+      message: "Pengajuan sedang diproses",
+      createdAt: new Date("2026-10-11T09:00:00.000Z"),
+    },
+  ];
+  const limit = vi.fn().mockResolvedValue(rows);
+  const orderBy = vi.fn().mockResolvedValue(updates);
+  const where = vi.fn().mockReturnValue({ limit, orderBy });
   const from = vi.fn().mockReturnValue({ where });
   const select = vi.fn().mockReturnValue({ from });
   dbMock.mockReturnValue({ select });
-  return { select, from, where, limit };
+  return { select, from, where, limit, orderBy };
 }
 
 describe("citizen service detail page", () => {
@@ -81,7 +90,7 @@ describe("citizen service detail page", () => {
     render(page);
 
     expect(requireAuthMock).toHaveBeenCalledWith();
-    expect(query.where).toHaveBeenCalledOnce();
+    expect(query.where).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("heading", { name: "Lampu jalan padam di Jl. Melati" })).toBeTruthy();
     expect(screen.getByText("PGD-261010-00001")).toBeTruthy();
     expect(screen.getByText("Warga Contoh")).toBeTruthy();

@@ -1,11 +1,34 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import PublicDataPage from "@/app/(public)/data/page";
 import PublicBudgetPage from "@/app/(public)/data/anggaran/page";
 import PublicProjectsPage from "@/app/(public)/data/project/page";
 
 describe("PublicDataPage", () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        data: [],
+        total: 0,
+        page: 1,
+        pageSize: 12,
+        totalPages: 0,
+        filters: { categories: [], agencies: [] },
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders the public dashboard, charts, catalog, and disclaimer", () => {
     render(<PublicDataPage />);
 
@@ -130,6 +153,126 @@ describe("PublicDataPage", () => {
     ).toBe("#metodologi");
   });
 
+  it("connects uploaded dataset cards to their CSV resource URL", async () => {
+    const csvUrl = "/api/asn/datasets/pos-klimatologi/download";
+    const projectDatasetResponse = {
+      data: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          slug: "pos-klimatologi",
+          title: "Pos Klimatologi",
+          summary: "Data pengamatan pos klimatologi.",
+          category: "Proyek",
+          sourceOrganization: "Pemerintah Daerah",
+          sourceLabel: "CITIZEN_UNVERIFIED",
+          tags: ["csv"],
+          lastUpdatedAt: "2026-11-08T00:00:00.000Z",
+          downloadsCount: 0,
+          resources: [
+            {
+              id: "22222222-2222-4222-8222-222222222222",
+              title: "Pos Klimatologi (CSV)",
+              format: "CSV",
+              url: csvUrl,
+            },
+          ],
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 12,
+      totalPages: 1,
+      filters: { categories: ["Proyek"], agencies: ["Pemerintah Daerah"] },
+    };
+    const emptyDatasetResponse = {
+      ...projectDatasetResponse,
+      data: [],
+      total: 0,
+      totalPages: 0,
+      filters: { categories: [], agencies: [] },
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes("category=Proyek")) {
+          return Response.json(projectDatasetResponse);
+        }
+        return Response.json(emptyDatasetResponse);
+      });
+
+    render(<PublicDataPage />);
+
+    const projectDatasetSection = await screen.findByRole("region", {
+      name: "Dataset Proyek dari ASN",
+    });
+    const downloadLink = within(projectDatasetSection).getByRole("link", {
+      name: "Unduh Pos Klimatologi CSV",
+    });
+    expect(downloadLink.getAttribute("href")).toBe(csvUrl);
+    expect(downloadLink.closest('[data-slot="card"]')).toBeTruthy();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/asn/datasets",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    fetchSpy.mockRestore();
+  });
+
+  it("loads Anggaran datasets on the dedicated budget page", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.includes("category=Anggaran")) {
+          return Response.json({
+            data: [
+              {
+                id: "33333333-3333-4333-8333-333333333333",
+                slug: "apbd-2026",
+                title: "APBD 2026",
+                summary: "Anggaran daerah 2026.",
+                category: "Anggaran",
+                sourceOrganization: "Pemerintah Daerah",
+                sourceLabel: "CITIZEN_UNVERIFIED",
+                tags: ["anggaran"],
+                lastUpdatedAt: "2026-11-08T00:00:00.000Z",
+                downloadsCount: 0,
+                resources: [],
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 12,
+            totalPages: 1,
+            filters: {
+              categories: ["Anggaran"],
+              agencies: ["Pemerintah Daerah"],
+            },
+          });
+        }
+        return Response.json({
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 12,
+          totalPages: 0,
+          filters: { categories: [], agencies: [] },
+        });
+      });
+
+    render(<PublicBudgetPage />);
+
+    const budgetDatasetSection = await screen.findByRole("region", {
+      name: "Dataset Anggaran dari ASN",
+    });
+    expect(within(budgetDatasetSection).getByText("APBD 2026")).toBeTruthy();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("category=Anggaran"),
+      expect.objectContaining({ cache: "no-store" }),
+    );
+    fetchSpy.mockRestore();
+  });
+
   it("renders the dedicated budget page with searchable sector details", () => {
     render(<PublicBudgetPage />);
 
@@ -231,9 +374,9 @@ describe("PublicDataPage", () => {
       screen.getByRole("heading", { name: "Pantau proyek daerah" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("heading", { name: "Pantau proyek daerah" }).closest(
-        ".hero-enter",
-      ),
+      screen
+        .getByRole("heading", { name: "Pantau proyek daerah" })
+        .closest(".hero-enter"),
     ).toBeTruthy();
     expect(
       screen.getByRole("combobox", { name: "Sektor proyek" }),
@@ -340,7 +483,7 @@ describe("PublicDataPage", () => {
     ).toBeTruthy();
   });
 
-  it("downloads filtered summary, project CSV, catalog CSV, and metadata", () => {
+  it("downloads filtered summary, project CSV, catalog CSV, and metadata", async () => {
     const createObjectURL = vi.fn(() => "blob:mock");
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
@@ -349,8 +492,13 @@ describe("PublicDataPage", () => {
       .mockImplementation(() => {});
     render(<PublicDataPage />);
 
+    const projectDownloadButton = screen.getByRole("button", {
+      name: "Unduh daftar",
+    });
+    expect(projectDownloadButton.closest('[data-slot="card"]')).toBeTruthy();
+
     fireEvent.click(screen.getByRole("button", { name: "Unduh ringkasan" }));
-    fireEvent.click(screen.getByRole("button", { name: "Unduh daftar" }));
+    fireEvent.click(projectDownloadButton);
     fireEvent.click(
       screen.getByRole("button", {
         name: "Unduh CSV Anggaran & realisasi APBD",
@@ -363,8 +511,11 @@ describe("PublicDataPage", () => {
     );
 
     expect(createObjectURL).toHaveBeenCalledTimes(4);
-    expect(revokeObjectURL).toHaveBeenCalledTimes(4);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
     expect(anchorClick).toHaveBeenCalledTimes(4);
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledTimes(4), {
+      timeout: 1500,
+    });
     anchorClick.mockRestore();
     vi.unstubAllGlobals();
   });

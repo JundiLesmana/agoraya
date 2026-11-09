@@ -327,8 +327,7 @@ export async function appendAuditEvent(
       .from(auditEvents)
       .where(isNotNull(auditEvents.chainSequence))
       .orderBy(desc(auditEvents.chainSequence))
-      .limit(1)
-      .for("update");
+      .limit(1);
     const chain = new AuditHashChain({
       secret: getAuditSecret(),
       initialPreviousHash: head?.hash ?? null,

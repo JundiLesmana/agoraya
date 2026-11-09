@@ -9,6 +9,10 @@ import {
 } from "./contract";
 
 const PAGE_SIZE = 12;
+const CATEGORY_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  Anggaran: ["Ekonomi"],
+  Proyek: ["Pembangunan"],
+};
 
 type DatasetRow = Row & {
   id: string;
@@ -71,7 +75,15 @@ export function buildDatasetCatalogWhere(query: DatasetCatalogQuery): {
     );
   }
   if (query.category) {
-    where.push(`d.category = ${placeholders(params, query.category)}`);
+    const aliases = CATEGORY_ALIASES[query.category];
+    if (aliases) {
+      const categories = [query.category, ...aliases].map((category) =>
+        placeholders(params, category),
+      );
+      where.push(`d.category IN (${categories.join(", ")})`);
+    } else {
+      where.push(`d.category = ${placeholders(params, query.category)}`);
+    }
   }
   if (query.agency) {
     where.push(`d.source_organization = ${placeholders(params, query.agency)}`);
