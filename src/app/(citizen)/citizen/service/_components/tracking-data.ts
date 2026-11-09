@@ -29,6 +29,7 @@ export interface TrackingApplication {
   category: TrackingCategory;
   status: TrackingStatus;
   submittedAt: string;
+  updatedAt: string;
   targetAt: string | null;
   deadlineAt?: string;
   currentStep: number;
@@ -38,6 +39,8 @@ export interface TrackingApplication {
   team: string;
   responseEstimate: string;
   timeline: TrackingTimelineItem[];
+  applicantName: string;
+  contactEmail: string;
 }
 
 export interface StoredServiceApplication {
@@ -106,6 +109,11 @@ function getStep(status: TrackingStatus): number {
 
 export function mapStoredServiceApplication(
   application: StoredServiceApplication,
+  publicUpdates: readonly {
+    status: string | null;
+    message: string;
+    createdAt: string;
+  }[] = [],
 ): TrackingApplication {
   const status = getStatus(application.status);
   const category = CATEGORY_LABELS[application.category] ?? "Layanan lainnya";
@@ -122,7 +130,20 @@ export function mapStoredServiceApplication(
     },
   ];
 
-  if (hasStatusUpdate) {
+  if (publicUpdates.length) {
+    timeline.push(
+      ...publicUpdates.map((update) => ({
+        title: update.status
+          ? `Status diperbarui: ${getStatus(update.status)}`
+          : "Pembaruan dari instansi",
+        description: update.message,
+        occurredAt: update.createdAt,
+        completed:
+          getStatus(update.status ?? application.status) === "Selesai" ||
+          getStatus(update.status ?? application.status) === "Ditolak",
+      })),
+    );
+  } else if (hasStatusUpdate) {
     timeline.push({
       title: "Status diperbarui",
       description: `Status pengajuan saat ini: ${status}.`,
@@ -138,6 +159,7 @@ export function mapStoredServiceApplication(
     category,
     status,
     submittedAt,
+    updatedAt,
     targetAt: null,
     currentStep: getStep(status),
     progressLabel: status,
@@ -149,6 +171,8 @@ export function mapStoredServiceApplication(
     team: "Belum ditentukan",
     responseEstimate: "Belum tersedia",
     timeline,
+    applicantName: application.applicantName,
+    contactEmail: application.contactEmail,
   };
 }
 

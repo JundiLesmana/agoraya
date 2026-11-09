@@ -88,7 +88,7 @@ export interface AuditLogSummaryResult {
 
 export type AuditDatabase = Pick<
   PostgresJsDatabase<typeof dbSchema>,
-  "select" | "insert" | "execute" | "transaction"
+  "select" | "insert" | "transaction"
 >;
 
 interface NormalizedFilters {
@@ -318,35 +318,37 @@ function mapAuditEntry(row: typeof auditEvents.$inferSelect): AuditEntry | null 
 
 
 export async function appendAuditEvent(
-  database: Pick<AuditDatabase, "execute" | "select" | "insert">,
+  database: Pick<AuditDatabase, "select" | "insert" | "transaction">,
   event: AuditEntryInput,
 ): Promise<void> {
-  await database.execute(sql`LOCK TABLE audit_events IN EXCLUSIVE MODE`);
-  const [head] = await database
-    .select({ sequence: auditEvents.chainSequence, hash: auditEvents.hash })
-    .from(auditEvents)
-    .where(isNotNull(auditEvents.chainSequence))
-    .orderBy(desc(auditEvents.chainSequence))
-    .limit(1);
-  const chain = new AuditHashChain({
-    secret: getAuditSecret(),
-    initialPreviousHash: head?.hash ?? null,
-    initialSequence: head?.sequence ?? 0,
-  });
-  const entry = chain.append(event);
-  await database.insert(auditEvents).values({
-    id: entry.id,
-    actorId: entry.actorId,
-    action: entry.action,
-    targetTable: entry.targetTable,
-    targetId: entry.targetId,
-    metadata: { ...entry.metadata },
-    chainSequence: entry.sequence,
-    previousHash: entry.previousHash,
-    hash: entry.hash,
-    signature: entry.signature,
-    createdAt: entry.occurredAt,
-    updatedAt: entry.occurredAt,
+  await database.transaction(async (transaction) => {
+    const [head] = await transaction
+      .select({ sequence: auditEvents.chainSequence, hash: auditEvents.hash })
+      .from(auditEvents)
+      .where(isNotNull(auditEvents.chainSequence))
+      .orderBy(desc(auditEvents.chainSequence))
+      .limit(1)
+      .for("update");
+    const chain = new AuditHashChain({
+      secret: getAuditSecret(),
+      initialPreviousHash: head?.hash ?? null,
+      initialSequence: head?.sequence ?? 0,
+    });
+    const entry = chain.append(event);
+    await transaction.insert(auditEvents).values({
+      id: entry.id,
+      actorId: entry.actorId,
+      action: entry.action,
+      targetTable: entry.targetTable,
+      targetId: entry.targetId,
+      metadata: { ...entry.metadata },
+      chainSequence: entry.sequence,
+      previousHash: entry.previousHash,
+      hash: entry.hash,
+      signature: entry.signature,
+      createdAt: entry.occurredAt,
+      updatedAt: entry.occurredAt,
+    });
   });
 }
 

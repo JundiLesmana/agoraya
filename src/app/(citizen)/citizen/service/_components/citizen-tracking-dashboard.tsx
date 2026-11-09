@@ -388,9 +388,13 @@ function ApplicationList({
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={application.status} />
-                    <p className="mt-1.5 text-xs text-blue-700 dark:text-blue-300">
+                    <Link
+                      href={`/citizen/service/${application.id}`}
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-700 hover:underline dark:text-blue-300"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       Lihat detail <ChevronRightIcon />
-                    </p>
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {application.targetAt
@@ -701,7 +705,9 @@ export function CitizenTrackingDashboard() {
           throw new Error('Data pengajuan yang diterima tidak valid.');
         }
 
-        const mappedApplications = data.applications.map(mapStoredServiceApplication);
+        const mappedApplications = data.applications.map((application) =>
+          mapStoredServiceApplication(application),
+        );
         setApplications(mappedApplications);
         setSelectedId(mappedApplications[0]?.id ?? null);
       } catch (error) {

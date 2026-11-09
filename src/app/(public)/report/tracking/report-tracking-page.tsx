@@ -45,6 +45,11 @@ type TrackedReport = {
   reporterName: string | null;
   identityVisible: boolean;
   attachmentNames: string[];
+  publicUpdates?: {
+    status: ReportStatus | null;
+    message: string;
+    createdAt: string;
+  }[];
 };
 
 type TrackingResponse = {
@@ -693,6 +698,28 @@ export function ReportTrackingPage({
                       );
                     })}
                   </ol>
+                  {report.publicUpdates?.length ? (
+                    <div className="mt-5 border-t pt-4">
+                      <h4 className="text-sm font-semibold">Pembaruan dari instansi</h4>
+                      <ol className="mt-3 space-y-3">
+                        {[...report.publicUpdates].reverse().map((update) => (
+                          <li key={`${update.createdAt}-${update.message}`} className="border-l-2 border-blue-200 pl-3">
+                            <p className="text-xs text-muted-foreground">
+                              {formatDateTime(update.createdAt)}
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                              {update.status
+                                ? getPublicReportStatusPresentation(update.status).label
+                                : "Pembaruan"}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
+                              {update.message}
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
                   <p className="text-muted-foreground mt-5 border-t pt-4 text-xs leading-5">
                     Status terakhir: <strong>{status.label}</strong>. Waktu
                     penanganan bergantung pada jenis masalah dan instansi
