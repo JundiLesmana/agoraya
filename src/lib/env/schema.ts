@@ -41,10 +41,14 @@ export const EnvSchema = z.object({
       .default("0000:413:0:0,0000:192:434:61,0000:1886:585:0,0000:847:0:0"),
   ),
 
-  AI_PROVIDER: optionalEnv(
-    z.enum(["gemini", "cerebras", "groq", "openrouter"]),
-  ),
-  AI_API_KEY: optionalEnv(z.string()),
-});
+  AI_PROVIDER: z.enum(["gemini", "cerebras", "groq", "openrouter"]).optional(),
+  AI_API_KEY: z.string().optional(),
+}).refine(
+  (data) => !data.AI_PROVIDER || (data.AI_API_KEY ?? "").trim().length > 0,
+  {
+    message: "AI_API_KEY wajib diisi saat AI_PROVIDER disetel.",
+    path: ["AI_API_KEY"],
+  },
+);
 
 export type Env = z.infer<typeof EnvSchema>;
