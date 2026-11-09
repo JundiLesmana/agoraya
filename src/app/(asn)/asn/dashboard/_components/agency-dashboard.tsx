@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import * as React from "react";
 import {
   CheckCircle2,
@@ -94,6 +95,152 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
+function ReportDetailsDialog({
+  application,
+  open,
+  onOpenChange,
+}: {
+  application: AgencyApplication | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [showIdentity, setShowIdentity] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setShowIdentity(false);
+    }
+  }, [open, application]);
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Detail laporan"
+      description={
+        application
+          ? `Tinjau detail ${application.trackingNumber} sebelum melanjutkan penanganan.`
+          : undefined
+      }
+      contentClassName="max-w-2xl"
+    >
+      {application ? (
+        <div className="space-y-5">
+          <section className="space-y-2">
+            <h3 className="text-base font-semibold">{application.serviceName}</h3>
+            <p className="text-muted-foreground text-sm">{application.description}</p>
+          </section>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Nomor laporan
+              </p>
+              <p className="font-mono text-sm">{application.trackingNumber}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Status
+              </p>
+              <StatusBadge status={application.status} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Kategori
+              </p>
+              <p className="text-sm">{application.category}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Subkategori
+              </p>
+              <p className="text-sm">{application.subcategory}</p>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Tanggal masuk
+              </p>
+              <p className="text-sm">{formatDateTimeWib(application.submittedAt)}</p>
+            </div>
+          </div>
+
+          <section className="space-y-3 rounded-xl border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Data pelapor</h3>
+                <p className="text-muted-foreground text-sm">
+                  Kontak disamarkan sampai dibuka secara eksplisit.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowIdentity((current) => !current)}
+              >
+                {showIdentity ? "Sembunyikan data pelapor" : "Tampilkan data pelapor"}
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Nama
+                </p>
+                <p className="text-sm">
+                  {showIdentity
+                    ? application.applicantName
+                    : maskApplicantName(application.applicantName)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Email
+                </p>
+                <p className="text-sm">
+                  {showIdentity ? application.email : maskEmail(application.email)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Telepon
+                </p>
+                <p className="text-sm">
+                  {showIdentity ? application.phone : maskPhone(application.phone)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Lokasi
+                </p>
+                <p className="text-sm">
+                  {showIdentity
+                    ? application.address
+                    : "Disamarkan sampai data pelapor ditampilkan."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Lampiran</h3>
+            {application.documents.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {application.documents.map((document) => (
+                  <li key={document.name} className="rounded-lg border px-3 py-2">
+                    {document.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">Tidak ada lampiran.</p>
+            )}
+          </section>
+        </div>
+      ) : null}
+    </Modal>
+  );
+}
+
 export function AgencyDashboard() {
   const [applications, setApplications] = React.useState<AgencyApplication[]>(
     [],
@@ -103,10 +250,9 @@ export function AgencyDashboard() {
   const [serviceFilter, setServiceFilter] = React.useState("all");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
-  const [selected, setSelected] = React.useState<AgencyApplication | null>(
-    null,
-  );
-  const [revealIdentity, setRevealIdentity] = React.useState(false);
+  const [selectedApplication, setSelectedApplication] =
+    React.useState<AgencyApplication | null>(null);
+  const [detailOpen, setDetailOpen] = React.useState(false);
 
   const loadReports = React.useCallback(async (showLoading: boolean) => {
     if (showLoading) setLoading(true);
@@ -381,18 +527,29 @@ export function AgencyDashboard() {
                       <StatusBadge status={application.status} />
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelected(application);
-                          setRevealIdentity(false);
-                        }}
-                        aria-label={`Lihat detail ${application.trackingNumber}`}
-                      >
-                        Detail
-                      </Button>
+                      {application.kind === "service_application" ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link
+                            href={`/asn/submission/${application.id}`}
+                            aria-label={`Lihat detail ${application.trackingNumber}`}
+                          >
+                            Detail
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          aria-label={`Lihat detail ${application.trackingNumber}`}
+                          onClick={() => {
+                            setSelectedApplication(application);
+                            setDetailOpen(true);
+                          }}
+                        >
+                          Detail
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -437,117 +594,11 @@ export function AgencyDashboard() {
         </div>
       </section>
 
-      {selected ? (
-        <Modal
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelected(null);
-              setRevealIdentity(false);
-            }
-          }}
-          title="Detail laporan"
-          description={`${selected.trackingNumber} · ${selected.serviceName}`}
-          footer={
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setRevealIdentity((prev) => !prev)}
-            >
-              {revealIdentity ? "Sembunyikan data pelapor" : "Tampilkan data pelapor"}
-            </Button>
-          }
-        >
-          <article className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-muted-foreground text-xs font-medium">
-                  NOMOR LAPORAN
-                </p>
-                <p className="mt-1 font-mono text-sm font-semibold">
-                  {selected.trackingNumber}
-                </p>
-              </div>
-              <StatusBadge status={selected.status} />
-            </div>
-
-            <div>
-              <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
-                <FileText className="size-4" aria-hidden="true" />
-                Detail laporan
-              </p>
-              <h2 className="mt-3 text-xl font-semibold tracking-tight">
-                {selected.serviceName}
-              </h2>
-              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap">
-                {selected.description}
-              </p>
-            </div>
-
-            <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-muted-foreground">Kategori</dt>
-                <dd className="mt-1 font-medium">
-                  {selected.category} · {selected.subcategory}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Tanggal masuk</dt>
-                <dd className="mt-1 font-medium">
-                  {formatDateTimeWib(selected.submittedAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Lokasi kejadian</dt>
-                <dd className="mt-1 font-medium">
-                  {revealIdentity ? selected.address : "Disamarkan"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Lampiran</dt>
-                <dd className="mt-1 font-medium">
-                  {selected.documents.length ? (
-                    <ul className="list-inside list-disc space-y-1">
-                      {selected.documents.map((document) => (
-                        <li key={document.name} className="break-all">
-                          {document.name}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "Tidak ada"
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Nama pelapor</dt>
-                <dd className="mt-1 font-medium">
-                  {revealIdentity ? selected.applicantName : maskApplicantName(selected.applicantName)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Kontak pelapor</dt>
-                <dd className="mt-1 font-medium">
-                  {revealIdentity ? selected.email : maskEmail(selected.email)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Nomor telepon</dt>
-                <dd className="mt-1 font-medium">
-                  {revealIdentity ? selected.phone : maskPhone(selected.phone)}
-                </dd>
-              </div>
-            </dl>
-
-            <p className="text-muted-foreground flex items-start gap-2 text-xs leading-5">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              Email dan nomor telepon disamarkan pada daftar dan hanya
-              ditampilkan setelah petugas memutuskan untuk membuka detail.
-            </p>
-          </article>
-        </Modal>
-      ) : null}
-
+      <ReportDetailsDialog
+        application={selectedApplication}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }

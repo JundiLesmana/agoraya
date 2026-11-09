@@ -1,9 +1,16 @@
 ﻿import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
 import { getCurrentSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
+
+function getWaitingTimeMinutes(submittedAt: Date, now = new Date()): number {
+  return Math.max(
+    0,
+    Math.floor((now.getTime() - submittedAt.getTime()) / (1000 * 60)),
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +51,18 @@ export async function GET(): Promise<Response> {
         contactEmail: serviceApplications.contactEmail,
         payload: serviceApplications.payload,
         submittedAt: serviceApplications.submittedAt,
+        assigneeId: serviceApplications.assigneeId,
       })
       .from(serviceApplications)
       .where(eq(serviceApplications.tenantId, session.tenantId))
-      .orderBy(desc(serviceApplications.submittedAt));
+      .orderBy(asc(serviceApplications.submittedAt));
 
-    return NextResponse.json({ applications: rows });
+    return NextResponse.json({
+      applications: rows.map((row) => ({
+        ...row,
+        waitingTimeMinutes: getWaitingTimeMinutes(row.submittedAt),
+      })),
+    });
   } catch (error) {
     logger.error("service_applications.list_failed", {
       errorName: error instanceof Error ? error.name : "UnknownError",

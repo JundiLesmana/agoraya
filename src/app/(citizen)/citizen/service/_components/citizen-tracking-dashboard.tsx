@@ -1078,7 +1078,6 @@ export function CitizenTrackingDashboard() {
           <ServiceSpaceNavigation
             activeSpace="citizen"
             statisticsHref="/tracking/stat"
-            excludeSpaces={["agency"]}
           />
         </div>
       </section>
