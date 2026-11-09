@@ -9,6 +9,7 @@ export type DataSourceLabel =
   | 'BPS_API'
   | 'SIMULATED'
   | 'CITIZEN_UNVERIFIED'
+  | 'ASN_SUBMITTED'
   | 'REVIEWER_VERIFIED'
   | 'AGGREGATED';
 
@@ -40,6 +41,13 @@ export const SOURCE_BADGE_META: Record<DataSourceLabel, SourceBadgeMeta> = {
     icon: Users,
     className:
       'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300',
+  },
+  ASN_SUBMITTED: {
+    defaultLabel: 'Input ASN',
+    description: 'Data yang diinput dan diajukan oleh operator ASN untuk ditinjau.',
+    icon: ShieldCheck,
+    className:
+      'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300',
   },
   REVIEWER_VERIFIED: {
     defaultLabel: 'Terverifikasi',

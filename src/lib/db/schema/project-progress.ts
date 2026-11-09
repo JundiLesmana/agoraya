@@ -108,6 +108,7 @@ export const projectProgressReports = pgTable(
       .references(() => tenants.id, { onDelete: "cascade" })
       .notNull(),
     projectId: uuid("project_id").notNull(),
+    sourceDatasetSubmissionId: uuid("source_dataset_submission_id"),
     reportedBy: uuid("reported_by").notNull(),
     periodMonth: integer("period_month").notNull(),
     periodYear: integer("period_year").notNull(),

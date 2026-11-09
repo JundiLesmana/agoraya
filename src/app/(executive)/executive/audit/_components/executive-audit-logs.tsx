@@ -489,7 +489,7 @@ useEffect(() => {
             Ruang terhubung
           </p>
           <a
-            href="/data-management"
+            href="/apbd"
             className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[11px] font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"
           >
             <AppWindow aria-hidden="true" className="size-3.5 text-slate-400" />

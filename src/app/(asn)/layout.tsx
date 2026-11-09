@@ -11,7 +11,7 @@ const ASN_PAGES = [
   { href: "/asn/data", label: "Data" },
   { href: "/asn/kyc-citizen", label: "Verifikasi Warga" },
   { href: "/asn/project", label: "Proyek" },
-  { href: "/data-management", label: "Pengelolaan APBD" },
+  { href: "/apbd", label: "Pengelolaan APBD" },
 ] as const;
 
 export default async function AsnLayout({
