@@ -10,7 +10,7 @@ import { kycReviewerApiError, requireKycReviewerApi } from "@/modules/kyc/review
 export const dynamic = "force-dynamic";
 
 const routeParamsSchema = z.object({
-  id: z.string().min(1).max(64),
+  id: z.string().uuid(),
 });
 
 const decisionRequestSchema = z.object({

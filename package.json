@@ -38,6 +38,8 @@
     "db:seed:local-accounts": "tsx scripts/seed-local-accounts.ts",
     "db:seed:local-statistics": "tsx scripts/seed-local-statistics.ts",
     "db:bootstrap:production-accounts": "tsx scripts/bootstrap-production-accounts.ts",
+    "db:reconcile-asn-kyc-tenant": "tsx scripts/reconcile-asn-kyc-tenant.ts",
+    "db:reconcile-citizen-kyc-tenant": "tsx scripts/reconcile-citizen-kyc-tenant.ts",
     "db:reset": "tsx scripts/reset-demo.ts",
     "db:rollback": "tsx scripts/rollback-migration.ts",
     "script:seed": "tsx scripts/seed.ts",

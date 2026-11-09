@@ -8,5 +8,5 @@ export default async function LegacySubmissionProcessingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/asn/submission/${id}`);
+  redirect(`/asn/management/${id}`);
 }

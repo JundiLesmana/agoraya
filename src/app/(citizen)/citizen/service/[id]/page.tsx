@@ -13,7 +13,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { SourceBadge } from "@/components/source-badges/source-badge";
-import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -180,11 +179,6 @@ function DetailHero({ application }: { application: TrackingApplication }) {
               </Link>
             </Button>
           </div>
-          <ServiceSpaceNavigation
-            activeSpace="citizen"
-            statisticsHref="/tracking/stat"
-            excludeSpaces={["agency"]}
-          />
         </div>
       </div>
     </section>

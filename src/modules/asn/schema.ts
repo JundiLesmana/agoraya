@@ -15,6 +15,16 @@ const phoneSchema = z
   .regex(/^[\d+\s()-]+$/, "Nomor telepon tidak valid");
 
 const nameSchema = z.string().min(2, "Nama minimal 2 karakter").max(255);
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const timestamp = Date.parse(value);
+    return (
+      Number.isFinite(timestamp) &&
+      new Date(timestamp).toISOString().slice(0, 10) === value
+    );
+  });
 
 const passwordSchema = z
   .string()
@@ -45,44 +55,147 @@ const imageDataUrlSchema = (label: string) =>
     }, `${label} harus berupa JPG, PNG, atau PDF maksimal 5 MB`);
 
 const fileNameSchema = z.string().min(1).max(255);
-const fileMimeTypeSchema = z
-  .enum(["image/jpeg", "image/png", "application/pdf"])
-  .optional();
+const fileMimeTypeSchema = z.enum([
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+]);
 
 export const registerAsnSchema = z.strictObject({
   nik: nikSchema,
   name: nameSchema,
   birthPlace: z.string().min(1, "Tempat lahir wajib diisi").max(255),
-  birthDate: z.string().min(1, "Tanggal lahir wajib diisi"),
+  birthDate: dateOnlySchema,
   email: emailSchema,
   phone: phoneSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1),
+  employmentStatus: z.enum(["PNS", "PPPK"]),
   agencyName: z.string().min(1, "Nama instansi wajib diisi").max(255),
+  agencyType: z.enum(["Instansi daerah", "Instansi pusat"]),
   nip: z.string().optional(),
+  pppkNumber: z.string().optional(),
+  rankGradePns: z.string().optional(),
+  rankGradePppk: z.string().optional(),
   position: z.string().min(1, "Jabatan wajib diisi").max(255),
+  positionType: z.enum(["Jabatan fungsional", "Jabatan struktural"]),
   unit: z.string().optional(),
-  appointmentDate: z.string().optional(),
+  appointmentDate: dateOnlySchema.optional(),
+  provinceTask: z.string().optional(),
+  regencyTask: z.string().optional(),
+  field: z.string().min(1).max(255),
+  officeAddress: z.string().min(1).max(500),
+  officialEmail: z.string().email().optional(),
+  officePhone: phoneSchema.optional(),
   address: z.string().min(1, "Alamat lengkap wajib diisi").max(500),
-  rtRw: z.string().optional(),
+  rtRw: z.string().regex(/^\d{3}\/\d{3}$/),
   village: z.string().min(1, "Kelurahan wajib diisi").max(255),
   district: z.string().min(1, "Kecamatan wajib diisi").max(255),
   regency: z.string().min(1, "Kabupaten/Kota wajib diisi").max(255),
   province: z.string().min(1, "Provinsi wajib diisi").max(255),
-  postalCode: z.string().optional(),
+  postalCode: z.string().regex(/^\d{5}$/),
+  domicileSameAsKtp: z.boolean(),
+  domicileAddress: z.string().min(1).max(500),
+  domicileRt: z.string().regex(/^\d{3}$/),
+  domicileRw: z.string().regex(/^\d{3}$/),
+  domicileVillage: z.string().min(1).max(255),
+  domicileDistrict: z.string().min(1).max(255),
+  domicileRegency: z.string().min(1).max(255),
+  domicileProvince: z.string().min(1).max(255),
+  domicilePostalCode: z.string().regex(/^\d{5}$/),
   ktp: imageDataUrlSchema("KTP"),
   ktpFileName: fileNameSchema,
   ktpMimeType: fileMimeTypeSchema,
   skPengangkatan: imageDataUrlSchema("SK Pengangkatan"),
   skPengangkatanFileName: fileNameSchema,
   skPengangkatanMimeType: fileMimeTypeSchema,
+  idCard: imageDataUrlSchema("Kartu pegawai"),
+  idCardFileName: fileNameSchema,
+  idCardMimeType: fileMimeTypeSchema,
   selfie: imageDataUrlSchema("Foto diri").optional(),
   selfieFileName: fileNameSchema.optional(),
   selfieMimeType: z.enum(["image/jpeg", "image/png"]).optional(),
   agreement: z.literal(true, { message: "Persetujuan wajib dicentang" }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Konfirmasi password tidak sama",
-  path: ["confirmPassword"],
+}).superRefine((data, context) => {
+  if (data.password !== data.confirmPassword) {
+    context.addIssue({
+      code: "custom",
+      message: "Konfirmasi password tidak sama",
+      path: ["confirmPassword"],
+    });
+  }
+
+  const isPns = data.employmentStatus === "PNS";
+  const employeeNumber = isPns ? data.nip : data.pppkNumber;
+  const rankGrade = isPns ? data.rankGradePns : data.rankGradePppk;
+  if (!employeeNumber || !/^\d{18}$/.test(employeeNumber)) {
+    context.addIssue({
+      code: "custom",
+      message: "Nomor induk kepegawaian harus 18 digit angka",
+      path: [isPns ? "nip" : "pppkNumber"],
+    });
+  }
+  if (!rankGrade?.trim()) {
+    context.addIssue({
+      code: "custom",
+      message: "Pangkat/golongan wajib diisi",
+      path: [isPns ? "rankGradePns" : "rankGradePppk"],
+    });
+  }
+
+  const uploadedImages: Array<{
+    data: string;
+    mimeType: string | undefined;
+    field: "ktpMimeType" | "skPengangkatanMimeType" | "idCardMimeType" | "selfieMimeType";
+  }> = [
+    { data: data.ktp, mimeType: data.ktpMimeType, field: "ktpMimeType" },
+    {
+      data: data.skPengangkatan,
+      mimeType: data.skPengangkatanMimeType,
+      field: "skPengangkatanMimeType",
+    },
+    { data: data.idCard, mimeType: data.idCardMimeType, field: "idCardMimeType" },
+    ...(data.selfie
+      ? [
+          {
+            data: data.selfie,
+            mimeType: data.selfieMimeType,
+            field: "selfieMimeType" as const,
+          },
+        ]
+      : []),
+  ];
+
+  for (const image of uploadedImages) {
+    const dataUrlMimeType = /^data:(image\/(?:jpeg|png)|application\/pdf);base64,/.exec(
+      image.data,
+    )?.[1];
+    if (image.mimeType && image.mimeType !== dataUrlMimeType) {
+      context.addIssue({
+        code: "custom",
+        message: "Tipe berkas tidak sesuai dengan dokumen yang diunggah",
+        path: [image.field],
+      });
+    }
+    if (image.field === "selfieMimeType" && dataUrlMimeType === "application/pdf") {
+      context.addIssue({
+        code: "custom",
+        message: "Foto diri harus berupa JPG atau PNG",
+        path: ["selfie"],
+      });
+    }
+  }
+
+  if (
+    Boolean(data.selfie) !== Boolean(data.selfieFileName) ||
+    Boolean(data.selfie) !== Boolean(data.selfieMimeType)
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "Nama berkas dan foto diri harus dikirim bersama",
+      path: ["selfieFileName"],
+    });
+  }
 });
 
 export type RegisterAsnCommand = z.infer<typeof registerAsnSchema>;

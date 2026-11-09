@@ -98,12 +98,15 @@ const baseCommand = {
 };
 
 describe("registerCitizen service", () => {
+  const kycTenantId = "00000000-0000-4000-8000-000000000001";
+
   beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
     vi.stubEnv("CLOUDINARY_API_KEY", "key");
     vi.stubEnv("CLOUDINARY_API_SECRET", "secret");
+    vi.stubEnv("CITIZEN_KYC_TENANT_ID", kycTenantId);
 
-    dbMock.selectResults = [[]];
+    dbMock.selectResults = [[], [], [{ id: kycTenantId }]];
     dbMock.selectCallIndex = 0;
     dbMock.insertCalls = [];
     dbMock.transactionCalls = 0;
@@ -136,7 +139,7 @@ describe("registerCitizen service", () => {
     vi.restoreAllMocks();
   });
 
-  it("creates tenant, user, kyc roster, profile and attachment under one tenantId", async () => {
+  it("keeps citizen data isolated and places the KYC roster in the reviewer tenant", async () => {
     const result = await registerCitizen(baseCommand);
 
     expect(result.nik).toBe("3273010101010001");
@@ -145,20 +148,19 @@ describe("registerCitizen service", () => {
     expect(typeof result.tenantId).toBe("string");
     expect(result.tenantId.length).toBeGreaterThan(0);
 
-    expect(dbMock.selectCallIndex).toBe(2);
+    expect(dbMock.selectCallIndex).toBe(3);
     expect(dbMock.transactionCalls).toBe(1);
 
-    // All five isolated tables are written under one tenant
     expect(dbMock.insertCalls.length).toBe(5);
     expect(dbMock.transactionCalls).toBe(1);
 
-    const tenantIds = dbMock.insertCalls
-      .filter((c) => c.values && typeof c.values === "object")
-      .map((c) => (c.values as Record<string, unknown>).tenantId)
-      .filter((id): id is string => typeof id === "string");
-    expect(tenantIds.length).toBeGreaterThan(0);
-    expect(new Set(tenantIds).size).toBe(1);
-    expect(tenantIds[0]).toBe(result.tenantId);
+    expect(dbMock.insertCalls[1].values).toMatchObject({ tenantId: result.tenantId });
+    expect(dbMock.insertCalls[2].values).toMatchObject({
+      tenantId: kycTenantId,
+      userId: expect.any(String),
+      status: "pending",
+    });
+    expect(dbMock.insertCalls[3].values).toMatchObject({ tenantId: result.tenantId });
 
     expect(vi.mocked(uploadToCloudinary).mock.calls[0][0].tenantId).toBe(
       result.tenantId,
@@ -179,6 +181,19 @@ describe("registerCitizen service", () => {
       "selfie.png",
     ]);
     expect(vi.mocked(hashPassword).mock.calls[0][0]).toBe("rahasia123");
+  });
+
+  it("does not accept a missing KYC tenant in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CITIZEN_KYC_TENANT_ID", "");
+    vi.stubEnv("REPORTING_TENANT_ID", "");
+    dbMock.selectResults = [[], [], []];
+
+    await expect(registerCitizen(baseCommand)).rejects.toMatchObject({
+      code: "DATABASE_ERROR",
+    });
+    expect(vi.mocked(uploadToCloudinary)).not.toHaveBeenCalled();
+    expect(dbMock.transactionCalls).toBe(0);
   });
 
   it("rejects duplicate NIK with conflict and writes nothing", async () => {
