@@ -19,6 +19,9 @@ export const serviceApplications = pgTable(
     applicantUserId: uuid("applicant_user_id").references(() => users.id, {
       onDelete: "cascade",
     }),
+    assigneeId: uuid("assignee_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     trackingNumber: varchar("tracking_number", { length: 40 }).notNull(),
     category: varchar("category", { length: 32 }).notNull(),
     serviceType: varchar("service_type", { length: 80 }).notNull(),

@@ -54,6 +54,7 @@ export const datasets = pgTable(
     }).notNull(),
     downloadsCount: integer("downloads_count").notNull().default(0),
     isPublished: boolean("is_published").notNull().default(true),
+    csvData: text("csv_data"),
     searchVector: tsvector("search_vector")
       .notNull()
       .default(sql`''::tsvector`),

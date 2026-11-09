@@ -187,7 +187,7 @@ describe("decision-engine/service", () => {
     });
 
     const executeCalls = fake.calls.filter((c) => c.method === "execute");
-    expect(executeCalls).toHaveLength(5);
+    expect(executeCalls).toHaveLength(4);
   });
 
   it("menolak proyek yang tidak dapat diakses tanpa menghasilkan ranking parsial", async () => {

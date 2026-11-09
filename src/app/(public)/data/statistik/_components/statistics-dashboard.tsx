@@ -45,6 +45,7 @@ import {
 import { PublishedStatisticInputs } from "./published-statistic-inputs";
 import { StatisticsTrendChart } from "@/components/charts/statistics-trend-chart";
 import { PovertyMap } from "@/components/map/poverty-map";
+import { PublicCategoryDatasets } from "../../_components/public-category-datasets";
 
 type StatisticsFrequency = "tahunan" | "bulanan";
 const AVAILABLE_YEARS = ["2025", "2024", "2023", "2022", "2021", "2020"];
@@ -1042,6 +1043,7 @@ export function StatisticsDashboard() {
           </section>
 
           <PublishedStatisticInputs />
+          <PublicCategoryDatasets category="Statistik" />
 
           <section id="metodologi" aria-labelledby="methodology-title">
             <Card className="shadow-sm">
