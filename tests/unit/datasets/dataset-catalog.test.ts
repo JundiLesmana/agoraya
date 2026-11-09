@@ -137,4 +137,18 @@ describe("dataset catalog presentation helpers", () => {
       "CSV",
     ]);
   });
+
+  it("routes legacy budget and project categories to canonical public categories", () => {
+    const budgetQuery = buildDatasetCatalogWhere(
+      datasetCatalogQuerySchema.parse({ category: "Anggaran" }),
+    );
+    const projectQuery = buildDatasetCatalogWhere(
+      datasetCatalogQuerySchema.parse({ category: "Proyek" }),
+    );
+
+    expect(budgetQuery.whereSql).toContain("d.category IN ($1, $2)");
+    expect(budgetQuery.params).toEqual(["Anggaran", "Ekonomi"]);
+    expect(projectQuery.whereSql).toContain("d.category IN ($1, $2)");
+    expect(projectQuery.params).toEqual(["Proyek", "Pembangunan"]);
+  });
 });
