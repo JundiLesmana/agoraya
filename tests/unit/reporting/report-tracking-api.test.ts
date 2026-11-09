@@ -6,9 +6,10 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 
 function mockPublicReportQuery(rows: unknown[]) {
   const limit = vi.fn().mockResolvedValue(rows);
-  const where = vi.fn().mockReturnValue({ limit });
+  const orderBy = vi.fn().mockResolvedValue([]);
+  const where = vi.fn().mockReturnValue({ limit, orderBy });
   const innerJoin = vi.fn().mockReturnValue({ where });
-  const from = vi.fn().mockReturnValue({ innerJoin });
+  const from = vi.fn().mockReturnValue({ innerJoin, where });
   const select = vi.fn().mockReturnValue({ from });
   mockDb.mockReturnValue({ select });
 }
@@ -21,6 +22,8 @@ describe("GET /api/reports/track", () => {
   it("accepts the report number format created by the submission endpoint", async () => {
     mockPublicReportQuery([
       {
+        id: "11111111-1111-4111-8111-111111111111",
+        tenantId: "22222222-2222-4222-8222-222222222222",
         reportNumber: "LP-20261105-BC7AEEF0-E1C",
         title: "Laporan uji",
         description: "Deskripsi laporan",

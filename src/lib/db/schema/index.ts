@@ -11,6 +11,7 @@ export * from './citizen';
 export * from './datasets';
 export * from './project-progress';
 export * from './service-applications';
+export * from './review-workflow';
 
 import * as enums from './enums';
 import * as foundation from './foundation';
@@ -25,6 +26,7 @@ import * as citizen from './citizen';
 import * as datasets from './datasets';
 import * as projectProgress from './project-progress';
 import * as serviceApplications from './service-applications';
+import * as reviewWorkflow from './review-workflow';
 
-export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...datasets, ...projectProgress , ...serviceApplications} as const;
+export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...datasets, ...projectProgress , ...serviceApplications, ...reviewWorkflow} as const;
 export { enums };
