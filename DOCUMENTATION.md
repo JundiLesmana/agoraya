@@ -603,6 +603,10 @@ audit_hash_chain        -- Hash chain verification
 -- Multi-tenant
 tenants                 -- Instansi/organisasi
 tenant_memberships      -- User-tenant assignments
+
+-- Decision Engine
+decision_runs           -- Riwayat eksekusi prioritisasi proyek (snapshot kriteria & algoritma)
+decision_run_items      -- Hasil skor dan ranking item per run
 ```
 
 Katalog metadata menggunakan migrasi `0006_dataset_metadata_catalog.sql`.
@@ -634,13 +638,20 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON reports
   USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
 
--- Citizen hanya bisa lihat laporan mereka sendiri
+-- Contoh: Citizen hanya bisa lihat laporan mereka sendiri
 CREATE POLICY citizen_own_reports ON reports
   FOR SELECT
   USING (
     reporter_id = current_setting('app.current_user_id')::uuid
     OR current_setting('app.current_role') IN ('ADMIN', 'SUPERADMIN', 'MID_STAFF')
   );
+
+Tabel `decision_runs` dan `decision_run_items` (migrasi `0019_decision_engine_runs`)
+menerapkan RLS `ENABLE` + `FORCE` dengan pola `app.tenant_id` / `app.user_id` sesuai
+migrasi `0007_project_progress_management.sql`: `decision_runs` dibatasi pada tenant
+pemilik dan pengguna yang meminta eksekusi (`requested_by`); `decision_run_items`
+selain itu dibatasi pada proyek yang ditugaskan kepada pengguna dalam tenant yang
+sama. Kebijakan ini diterapkan di lapisan database, bukan hanya di UI.
 ```
 
 ### 4.3 Audit Log Schema

@@ -4,9 +4,11 @@ import * as React from "react";
 import {
   CheckCircle2,
   Clock3,
+  FileText,
   Inbox,
   RefreshCw,
   Search,
+  ShieldCheck,
   UserRound,
   Workflow,
 } from "lucide-react";
@@ -99,11 +101,12 @@ export function AgencyDashboard() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [serviceFilter, setServiceFilter] = React.useState("all");
-  const [selectedApplication, setSelectedApplication] =
-    React.useState<AgencyApplication | null>(null);
-  const [showSensitiveDetails, setShowSensitiveDetails] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [selected, setSelected] = React.useState<AgencyApplication | null>(
+    null,
+  );
+  const [revealIdentity, setRevealIdentity] = React.useState(false);
 
   const loadReports = React.useCallback(async (showLoading: boolean) => {
     if (showLoading) setLoading(true);
@@ -379,13 +382,14 @@ export function AgencyDashboard() {
                     </td>
                     <td className="px-4 py-4 text-right">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        aria-label={`Lihat detail ${application.trackingNumber}`}
                         onClick={() => {
-                          setSelectedApplication(application);
-                          setShowSensitiveDetails(false);
+                          setSelected(application);
+                          setRevealIdentity(false);
                         }}
+                        aria-label={`Lihat detail ${application.trackingNumber}`}
                       >
                         Detail
                       </Button>
@@ -433,158 +437,117 @@ export function AgencyDashboard() {
         </div>
       </section>
 
-      <Modal
-        open={selectedApplication !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelectedApplication(null);
-        }}
-        title="Detail laporan"
-        description={
-          selectedApplication
-            ? `${selectedApplication.trackingNumber} · ${selectedApplication.serviceName}`
-            : undefined
-        }
-        contentClassName="fixed inset-0 left-auto top-0 h-dvh w-full max-w-2xl translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none border-l p-0 sm:inset-y-0 sm:right-0 sm:h-dvh sm:max-w-2xl sm:rounded-none"
-      >
-        {selectedApplication ? (
-          <div className="space-y-6 px-5 pt-2 pb-6 sm:px-7">
-            <StatusBadge status={selectedApplication.status} />
-            <section className="space-y-3">
-              <h3 className="font-semibold">Informasi pelapor</h3>
-              <dl className="grid gap-x-4 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground text-xs">Nama</dt>
-                  <dd className="mt-1 font-medium">
-                    {showSensitiveDetails
-                      ? selectedApplication.applicantName === "Pelapor anonim"
-                        ? "Tidak ditampilkan"
-                        : selectedApplication.applicantName
-                      : maskApplicantName(selectedApplication.applicantName)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Nomor laporan
-                  </dt>
-                  <dd className="mt-1 font-mono text-xs">
-                    {selectedApplication.trackingNumber}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">Email</dt>
-                  <dd className="mt-1">
-                    {showSensitiveDetails
-                      ? selectedApplication.email
-                      : maskEmail(selectedApplication.email)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Nomor telepon
-                  </dt>
-                  <dd className="mt-1 font-mono">
-                    {showSensitiveDetails
-                      ? selectedApplication.phone
-                      : maskPhone(selectedApplication.phone)}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground text-xs">Lokasi</dt>
-                  <dd className="mt-1">
-                    {showSensitiveDetails
-                      ? selectedApplication.address
-                      : selectedApplication.address === "-"
-                        ? "-"
-                        : "Alamat disamarkan"}
-                  </dd>
-                </div>
-              </dl>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSensitiveDetails((visible) => !visible)}
-              >
-                {showSensitiveDetails
-                  ? "Samarkan data pelapor"
-                  : "Tampilkan data pelapor"}
-              </Button>
-              <p className="text-muted-foreground text-xs">
-                {selectedApplication.kind === "service_application" ? (
-                  <>
-                    Jenis: Pengajuan layanan ({selectedApplication.routeKey}).
-                    Instansi/kategori: {selectedApplication.category} ·{" "}
-                    {selectedApplication.subcategory}.
-                  </>
-                ) : (
-                  <>
-                    Visibilitas laporan:{" "}
-                    {selectedApplication.isPublic ? "Publik" : "Privat"}.
-                    {selectedApplication.showIdentity
-                      ? " Identitas boleh ditampilkan."
-                      : " Identitas disamarkan."}
-                  </>
-                )}
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="font-semibold">Detail laporan</h3>
-              <p className="rounded-lg border p-4 text-sm">
-                {selectedApplication.description}
-              </p>
-              <dl className="grid gap-x-4 gap-y-3 rounded-lg border p-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground text-xs">Kategori</dt>
-                  <dd className="mt-1">
-                    {selectedApplication.category} ·{" "}
-                    {selectedApplication.subcategory}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Tanggal masuk
-                  </dt>
-                  <dd className="mt-1">
-                    {formatDateTimeWib(selectedApplication.submittedAt)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-xs">
-                    Target respons
-                  </dt>
-                  <dd className="mt-1">
-                    {selectedApplication.targetAt &&
-                    selectedApplication.targetAt !==
-                      selectedApplication.submittedAt
-                      ? formatDateTimeWib(selectedApplication.targetAt)
-                      : "-"}
-                  </dd>
-                </div>
-              </dl>
-            </section>
-
-            <section className="space-y-3">
-              <h3 className="font-semibold">Nama lampiran</h3>
-              {selectedApplication.documents.length ? (
-                <ul className="list-inside list-disc rounded-lg border p-4 text-sm">
-                  {selectedApplication.documents.map((document) => (
-                    <li key={document.name}>{document.name}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground text-sm">
-                  Tidak ada lampiran.
+      {selected ? (
+        <Modal
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelected(null);
+              setRevealIdentity(false);
+            }
+          }}
+          title="Detail laporan"
+          description={`${selected.trackingNumber} · ${selected.serviceName}`}
+          footer={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRevealIdentity((prev) => !prev)}
+            >
+              {revealIdentity ? "Sembunyikan data pelapor" : "Tampilkan data pelapor"}
+            </Button>
+          }
+        >
+          <article className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-muted-foreground text-xs font-medium">
+                  NOMOR LAPORAN
                 </p>
-              )}
-              <p className="text-muted-foreground text-xs">
-                {selectedApplication.kind === "service_application"
-                  ? "Lampiran formulir layanan belum terintegrasi penyimpanannya."
-                  : "Berkas asli belum diunggah; yang tersimpan adalah nama berkas yang dipilih."}
+                <p className="mt-1 font-mono text-sm font-semibold">
+                  {selected.trackingNumber}
+                </p>
+              </div>
+              <StatusBadge status={selected.status} />
+            </div>
+
+            <div>
+              <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                <FileText className="size-4" aria-hidden="true" />
+                Detail laporan
               </p>
-            </section>
-          </div>
-        ) : null}
-      </Modal>
+              <h2 className="mt-3 text-xl font-semibold tracking-tight">
+                {selected.serviceName}
+              </h2>
+              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap">
+                {selected.description}
+              </p>
+            </div>
+
+            <dl className="grid gap-4 border-y py-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">Kategori</dt>
+                <dd className="mt-1 font-medium">
+                  {selected.category} · {selected.subcategory}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Tanggal masuk</dt>
+                <dd className="mt-1 font-medium">
+                  {formatDateTimeWib(selected.submittedAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Lokasi kejadian</dt>
+                <dd className="mt-1 font-medium">
+                  {revealIdentity ? selected.address : "Disamarkan"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Lampiran</dt>
+                <dd className="mt-1 font-medium">
+                  {selected.documents.length ? (
+                    <ul className="list-inside list-disc space-y-1">
+                      {selected.documents.map((document) => (
+                        <li key={document.name} className="break-all">
+                          {document.name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "Tidak ada"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Nama pelapor</dt>
+                <dd className="mt-1 font-medium">
+                  {revealIdentity ? selected.applicantName : maskApplicantName(selected.applicantName)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Kontak pelapor</dt>
+                <dd className="mt-1 font-medium">
+                  {revealIdentity ? selected.email : maskEmail(selected.email)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Nomor telepon</dt>
+                <dd className="mt-1 font-medium">
+                  {revealIdentity ? selected.phone : maskPhone(selected.phone)}
+                </dd>
+              </div>
+            </dl>
+
+            <p className="text-muted-foreground flex items-start gap-2 text-xs leading-5">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              Email dan nomor telepon disamarkan pada daftar dan hanya
+              ditampilkan setelah petugas memutuskan untuk membuka detail.
+            </p>
+          </article>
+        </Modal>
+      ) : null}
+
     </div>
   );
 }

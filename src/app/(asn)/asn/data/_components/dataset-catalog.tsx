@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Modal } from "@/components/ui/modal";
 import { Select, type SelectOption } from "@/components/ui/select";
 import {
@@ -30,6 +31,7 @@ import {
   formatRelativeDatasetDate,
   getHighlightedTextParts,
 } from "@/lib/dataset-catalog-presentation";
+import { BpsDatasetReview } from "./bps-dataset-review";
 
 const FORMAT_OPTIONS: readonly SelectOption[] = [
   { value: "CSV", label: "CSV" },
@@ -42,6 +44,15 @@ const SORT_OPTIONS: readonly SelectOption[] = [
   { value: "relevance", label: "Paling Relevan" },
   { value: "recent", label: "Terbaru" },
   { value: "downloads", label: "Paling Banyak Diunduh" },
+];
+
+const DATA_CATEGORY_OPTIONS: readonly {
+  value: string;
+  label: string;
+}[] = [
+  { value: "Anggaran", label: "Anggaran (data/anggaran)" },
+  { value: "Proyek", label: "Proyek (data/project)" },
+  { value: "Statistik", label: "Statistik (data/statistik)" },
 ];
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
@@ -370,6 +381,15 @@ export function DatasetCatalog() {
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [metadataError, setMetadataError] = useState(false);
 
+  const [addDatasetOpen, setAddDatasetOpen] = useState(false);
+  const [addDatasetPending, setAddDatasetPending] = useState(false);
+  const [addDatasetError, setAddDatasetError] = useState("");
+  const [addDatasetMessage, setAddDatasetMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importPending, setImportPending] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importMessage, setImportMessage] = useState("");
+
   const queryString = searchParams.toString();
   const datasetSlug = searchParams.get("dataset");
   const currentSearch = searchParams.get("search") ?? "";
@@ -468,6 +488,97 @@ export function DatasetCatalog() {
     updateQuery({ [name]: value || null }, true);
   }
 
+  async function handleImport() {
+    setImportPending(true);
+    setImportError("");
+    setImportMessage("");
+    try {
+      const response = await fetch("/api/asn/datasets/import", {
+        method: "POST",
+      });
+      const result = (await response.json()) as {
+        imported?: boolean;
+        count?: number;
+        error?: string;
+        message?: string;
+      };
+      if (!response.ok) throw new Error(result.error ?? "Impor gagal.");
+      if (!result.imported) {
+        setImportError(
+          result.error ?? result.message ?? "Sinkronisasi data BPS gagal.",
+        );
+        return;
+      }
+      setImportMessage(
+        result.message ??
+          `Sinkronisasi BPS selesai (${result.count ?? 0} agregat).`,
+      );
+      setRetryCount((count) => count + 1);
+    } catch {
+      setImportError(
+        "Gagal menyinkronkan data dari BPS API. Coba lagi nanti.",
+      );
+    } finally {
+      setImportPending(false);
+    }
+  }
+
+  async function handleAddDataset(values: {
+    category: string;
+    title: string;
+    summary: string;
+    description: string;
+    file: File | null;
+  }) {
+    setAddDatasetPending(true);
+    setAddDatasetError("");
+    setAddDatasetMessage("");
+
+    if (
+      !DATA_CATEGORY_OPTIONS.some((option) => option.value === values.category) ||
+      !values.title ||
+      !values.summary ||
+      !values.description
+    ) {
+      setAddDatasetPending(false);
+      setAddDatasetError("Judul, ringkasan, deskripsi, dan kategori wajib diisi.");
+      return;
+    }
+    if (!values.file) {
+      setAddDatasetPending(false);
+      setAddDatasetError("Berkas CSV wajib diunggah.");
+      return;
+    }
+
+    const uploadData = new FormData();
+    uploadData.set("category", values.category);
+    uploadData.set("title", values.title);
+    uploadData.set("summary", values.summary);
+    uploadData.set("description", values.description);
+    uploadData.set("file", values.file);
+
+    try {
+      const response = await fetch("/api/asn/datasets", {
+        method: "POST",
+        body: uploadData,
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        dataset?: { id: string; slug: string; category: string };
+        error?: string;
+      };
+      if (!response.ok) throw new Error(result.error ?? "Dataset gagal ditambahkan.");
+      setAddDatasetMessage(result.message ?? "Dataset berhasil ditambahkan.");
+      setAddDatasetOpen(false);
+      setSelectedFile(null);
+      setRetryCount((count) => count + 1);
+    } catch {
+      setAddDatasetError("Gagal menambahkan dataset. Coba lagi nanti.");
+    } finally {
+      setAddDatasetPending(false);
+    }
+  }
+
   const page = Number(searchParams.get("page") ?? "1");
   const total = catalog?.total ?? 0;
   const start = total === 0 ? 0 : (page - 1) * 12 + 1;
@@ -475,6 +586,10 @@ export function DatasetCatalog() {
 
   return (
     <div className="space-y-6 pb-8">
+      <BpsDatasetReview
+        refreshKey={retryCount}
+        onPublished={() => setRetryCount((count) => count + 1)}
+      />
       <header className="space-y-3">
         <nav aria-label="Breadcrumb" className="text-muted-foreground text-xs">
           <ol className="flex flex-wrap items-center gap-2">
@@ -564,6 +679,31 @@ export function DatasetCatalog() {
           <h2 id="dataset-list-title" className="sr-only">
             Daftar dataset
           </h2>
+          <div className="flex justify-end gap-2">
+            {importMessage || importError ? (
+              <p className="text-sm text-muted-foreground">
+                {importError ? `⚠ ${importError}` : importMessage}
+              </p>
+            ) : null}
+            {addDatasetMessage || addDatasetError ? (
+              <p className="text-sm text-muted-foreground">
+                {addDatasetError ? `⚠ ${addDatasetError}` : addDatasetMessage}
+              </p>
+            ) : null}
+            <Button
+              onClick={() => setAddDatasetOpen(true)}
+              disabled={addDatasetPending}
+            >
+              {addDatasetPending ? "Menambahkan..." : "Tambah Dataset"}
+            </Button>
+            <Button onClick={handleImport} disabled={importPending}>
+              {importPending ? "Menyinkronkan..." : "Import BPS (Statistik)"}
+            </Button>
+          </div>
+          <p className="text-muted-foreground text-right text-xs">
+            Impor BPS saat ini hanya menyinkronkan data statistik. Dataset BPS
+            menunggu tinjauan sebelum tampil di halaman publik Statistik.
+          </p>
           <div className="flex flex-col gap-3 rounded-xl border p-3 sm:flex-row">
             <form
               onSubmit={submitSearch}
@@ -718,6 +858,16 @@ export function DatasetCatalog() {
         </section>
       </div>
 
+      <AddDatasetModal
+        open={addDatasetOpen}
+        onOpenChange={setAddDatasetOpen}
+        selectedFile={selectedFile}
+        onFileChange={setSelectedFile}
+        serverError={addDatasetError}
+        onAdd={(values) => handleAddDataset(values)}
+        isPending={addDatasetPending}
+      />
+
       <Modal
         open={datasetSlug !== null}
         onOpenChange={(open) => {
@@ -745,5 +895,166 @@ export function DatasetCatalog() {
         ) : null}
       </Modal>
     </div>
+  );
+}
+
+function AddDatasetModal({
+  open,
+  onOpenChange,
+  selectedFile,
+  onFileChange,
+  serverError,
+  onAdd,
+  isPending,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedFile: File | null;
+  onFileChange: (file: File | null) => void;
+  serverError?: string;
+  onAdd: (values: {
+    category: string;
+    title: string;
+    summary: string;
+    description: string;
+    file: File | null;
+  }) => Promise<void>;
+  isPending: boolean;
+}) {
+  const [category, setCategory] = useState("");
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setCategory("");
+      setTitle("");
+      setSummary("");
+      setDescription("");
+      setSubmitError("");
+    }
+  }, [open]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitError("");
+    if (!selectedFile) {
+      setSubmitError("Berkas CSV wajib diunggah.");
+      return;
+    }
+    if (
+      !DATA_CATEGORY_OPTIONS.some((option) => option.value === category) ||
+      !title ||
+      !summary ||
+      !description
+    ) {
+      setSubmitError("Judul, ringkasan, deskripsi, dan kategori wajib diisi.");
+      return;
+    }
+    await onAdd({ category, title, summary, description, file: selectedFile });
+  }
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Tambah Dataset"
+      description="Unggah berkas CSV dan pilih kategori data pemerintah. Data akan diekstrak dan disimpan ke database."
+      contentClassName="w-[calc(100%-2rem)] max-w-2xl"
+    >
+      <form onSubmit={submit} className="space-y-4">
+        {serverError ? (
+          <p role="alert" className="text-xs text-destructive">
+            {serverError}
+          </p>
+        ) : null}
+        <label className="block">
+          <span className="text-sm font-medium">
+            Kategori data pemerintah
+          </span>
+          <Select
+            aria-label="Kategori data pemerintah"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            placeholder="Pilih kategori"
+            options={DATA_CATEGORY_OPTIONS}
+          />
+          {!category && (
+            <p className="text-xs text-destructive" role="alert">
+              Kategori wajib dipilih.
+            </p>
+          )}
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">Judul dataset</span>
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Contoh: Anggaran Pendidikan 2026"
+            aria-label="Judul dataset"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">Ringkasan singkat</span>
+          <Input
+            value={summary}
+            onChange={(event) => setSummary(event.target.value)}
+            placeholder="Ringkasan singkat tentang isi dataset"
+            aria-label="Ringkasan singkat"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">Deskripsi lengkap</span>
+          <Textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Deskripsi lengkap dataset, sumber data, dan cara penggunaan"
+            aria-label="Deskripsi lengkap"
+            className="min-h-[100px]"
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">Berkas CSV</span>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              onFileChange(file);
+              if (!file) return;
+              if (
+                file.type !== "text/csv" &&
+                !file.name.toLocaleLowerCase("id-ID").endsWith(".csv")
+              ) {
+                onFileChange(null);
+                setSubmitError("Hanya berkas CSV yang diperbolehkan.");
+              }
+            }}
+            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+          />
+          {selectedFile && (
+            <p className="text-xs text-muted-foreground">
+              {selectedFile.name} ·
+              {(selectedFile.size / 1024).toFixed(1)} KB
+            </p>
+          )}
+        </label>
+        {submitError ? (
+          <p role="alert" className="text-xs text-destructive">
+            {submitError}
+          </p>
+        ) : null}
+        <footer className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Batal
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Menyimpan..." : "Simpan Dataset"}
+          </Button>
+        </footer>
+      </form>
+    </Modal>
   );
 }
