@@ -20,8 +20,8 @@ import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { reviewActivities, serviceApplications } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
-import { formatDateTimeWib, getDaysUntilDeadline } from "../_components/tracking-format";
-import { mapStoredServiceApplication, type TrackingApplication, type TrackingStatus } from "../_components/tracking-data";
+import { formatDateTimeWib, getDaysUntilDeadline } from "./_components/tracking-format";
+import { mapStoredServiceApplication, type TrackingApplication, type TrackingStatus } from "./_components/tracking-data";
 
 export const dynamic = "force-dynamic";
 
