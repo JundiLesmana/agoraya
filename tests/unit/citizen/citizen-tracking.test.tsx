@@ -1,5 +1,26 @@
+import type * as NextNavigation from "next/navigation";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
+
+const navigation = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
+vi.mock("next/navigation", async () => {
+  const actual: typeof NextNavigation = await vi.importActual("next/navigation");
+  return {
+    ...actual,
+    useRouter: () => ({
+      push: navigation.push,
+      replace: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    }),
+  };
+});
+
 import { CitizenTrackingDashboard } from "@/app/(citizen)/citizen/service/_components/citizen-tracking-dashboard";
 import CitizenTrackingPage from "@/app/(citizen)/citizen/service/page";
 import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
@@ -53,7 +74,9 @@ const TEST_APPLICATIONS = [
     status: "resolved",
     applicantName: "Warga Contoh 3",
     contactEmail: "warga3@example.com",
-    payload: {},
+    payload: {
+      description: "Permohonan pencairan bantuan sosial untuk keluarga terdampak.",
+    },
     submittedAt: "2026-10-08T08:00:00.000Z",
     updatedAt: "2026-10-09T08:00:00.000Z",
   },
@@ -84,6 +107,7 @@ describe("tracking date helpers", () => {
 describe("CitizenTrackingDashboard", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    navigation.push.mockReset();
   });
 
   it("serves the tracking dashboard at the /tracking route", async () => {
@@ -124,7 +148,7 @@ describe("CitizenTrackingDashboard", () => {
     expect(
       screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
     ).toBeTruthy();
-    expect(screen.getByLabelText("Detail Pengajuan Terpilih")).toBeTruthy();
+    expect(screen.getAllByLabelText("Detail Pengajuan Terpilih").length).toBeGreaterThan(0);
     const spaceNavigation = screen.getByRole("navigation", {
       name: "Kategori layanan publik",
     });
@@ -232,8 +256,23 @@ describe("CitizenTrackingDashboard", () => {
       within(table).queryByText("Lampu jalan padam di Jl. Melati"),
     ).toBeNull();
     expect(
-      screen.getByLabelText("Detail Pengajuan Terpilih").textContent,
+      screen.getAllByLabelText("Detail Pengajuan Terpilih")[0]?.textContent,
     ).toContain("Lampu jalan padam di Jl. Melati");
+  });
+
+  it("opens the submission detail route from the list CTA", async () => {
+    mockServiceApplicationsFetch();
+    render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Lihat detail" })[0]);
+
+    expect(navigation.push).toHaveBeenCalledWith("/citizen/service/app-1");
   });
 
   it("provides a local-only document action without pretending to upload a file", async () => {
@@ -260,6 +299,103 @@ describe("CitizenTrackingDashboard", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "Berkas belum dikirim",
     );
+  });
+
+  it("accepts a resolution review with rating and feedback, then closes the submission", async () => {
+    mockServiceApplicationsFetch();
+    render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getByText("Pencairan Bantuan Sosial"));
+    const detailsCard = screen.getAllByLabelText("Detail Pengajuan Terpilih")[0];
+    expect(detailsCard).toBeTruthy();
+    if (!detailsCard) throw new Error("Selected details card was not rendered");
+
+    const reviewSection = within(detailsCard)
+      .getByRole("heading", { name: "Tinjau Resolusi" })
+      .closest("section");
+    expect(reviewSection).toBeTruthy();
+    if (!reviewSection) throw new Error("Review section was not rendered");
+
+    expect(within(reviewSection).getByText("Permintaan Asli")).toBeTruthy();
+    expect(within(reviewSection).getByText("Resolusi Instansi")).toBeTruthy();
+    expect(within(reviewSection).getByText("Bukti Tindak Lanjut")).toBeTruthy();
+
+    fireEvent.click(
+      within(reviewSection).getByRole("button", { name: "Terima & Beri Umpan Balik" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Terima & Beri Umpan Balik" });
+    fireEvent.change(within(dialog).getByRole("combobox", { name: "Rating layanan" }), {
+      target: { value: "4" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Komentar (opsional)"), {
+      target: { value: "Penanganan sudah jelas dan cepat." },
+    });
+    const acceptForm = within(dialog).getByLabelText("Komentar (opsional)").closest("form");
+    expect(acceptForm).toBeTruthy();
+    if (!acceptForm) throw new Error("Accept review form was not rendered");
+    fireEvent.submit(acceptForm);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain("Resolusi diterima"),
+    );
+    expect(screen.getAllByText("Selesai (Ditutup)").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Rating: 4 \/ 5/)).toBeTruthy();
+    expect(screen.getAllByText(/Penanganan sudah jelas dan cepat/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Warga menerima resolusi")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Tolak & Minta Revisi" })).toBeNull();
+  });
+
+  it("requires a reason when requesting a revision and records it in the timeline", async () => {
+    mockServiceApplicationsFetch();
+    render(<CitizenTrackingDashboard />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.click(screen.getByText("Pencairan Bantuan Sosial"));
+    const detailsCard = screen.getAllByLabelText("Detail Pengajuan Terpilih")[0];
+    expect(detailsCard).toBeTruthy();
+    if (!detailsCard) throw new Error("Selected details card was not rendered");
+
+    const reviewSection = within(detailsCard)
+      .getByRole("heading", { name: "Tinjau Resolusi" })
+      .closest("section");
+    expect(reviewSection).toBeTruthy();
+    if (!reviewSection) throw new Error("Review section was not rendered");
+
+    fireEvent.click(
+      within(reviewSection).getByRole("button", { name: "Tolak & Minta Revisi" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Tolak & Minta Revisi" });
+    const submitButton = within(dialog).getByRole("button", { name: "Kirim permintaan revisi" });
+    expect(submitButton.getAttribute("disabled")).not.toBeNull();
+
+    fireEvent.change(within(dialog).getByLabelText("Alasan revisi"), {
+      target: { value: "Bukti PDF belum menjelaskan hasil akhir di lapangan." },
+    });
+    expect(submitButton.getAttribute("disabled")).toBeNull();
+    const revisionForm = within(dialog).getByLabelText("Alasan revisi").closest("form");
+    expect(revisionForm).toBeTruthy();
+    if (!revisionForm) throw new Error("Revision request form was not rendered");
+    fireEvent.submit(revisionForm);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain("Permintaan revisi dicatat"),
+    );
+    expect(screen.getByText("Revisi telah diminta")).toBeTruthy();
+    expect(
+      screen.getAllByText(/Bukti PDF belum menjelaskan hasil akhir di lapangan/).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Warga meminta revisi")).toBeTruthy();
   });
 
   it("links the agency service room to the dashboard route", () => {
