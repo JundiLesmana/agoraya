@@ -5,11 +5,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const ASN_PAGES = [
   { href: "/asn/dashboard", label: "Dashboard Laporan" },
-  { href: "/asn/queue", label: "Antrean Pengajuan" },
-  { href: "/asn/submission", label: "Penanganan Pengajuan" },
+  { href: "/asn/management", label: "Management" },
+  { href: "/admin", label: "Admin Panel" },
   { href: "/asn/statistik", label: "Statistik" },
   { href: "/asn/data", label: "Data" },
-  { href: "/asn/kyc-citizen", label: "Verifikasi Warga" },
   { href: "/asn/project", label: "Proyek" },
   { href: "/data-management", label: "Pengelolaan APBD" },
 ] as const;

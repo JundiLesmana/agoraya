@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { and, eq, or } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
+import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { hashPassword } from "@/modules/identity/password/service";
+import { uploadToCloudinary } from "@/lib/cloudinary/upload";
+import { citizenProfiles, citizenAttachments } from "@/modules/citizen/db";
+import { users } from "@/modules/identity/db";
+import { tenants } from "@/lib/db/schema";
+import type { RegisterCitizenCommand } from "./schema";
 
 const nikSchema = z
   .string()
@@ -199,3 +211,129 @@ export const registerAsnSchema = z.strictObject({
 });
 
 export type RegisterAsnCommand = z.infer<typeof registerAsnSchema>;
+
+function dataUrlToBuffer(dataUrl: string): Buffer {
+  const match = /^data:[^;]+;base64,(.*)$/.exec(dataUrl);
+  if (!match) throw new ValidationError("Format data berkas tidak valid.");
+  return Buffer.from(match[1], "base64");
+}
+
+async function resolveCitizenTenantId(database: ReturnType<typeof db>): Promise<string> {
+  const env = getEnv();
+  if (env.CITIZEN_KYC_TENANT_ID) return env.CITIZEN_KYC_TENANT_ID;
+  const [tenant] = await database
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.status, "active"))
+    .limit(1);
+  if (tenant) return tenant.id;
+  const [created] = await database
+    .insert(tenants)
+    .values({ id: randomUUID(), name: "Agoraya", slug: "agoraya", status: "active" })
+    .returning({ id: tenants.id });
+  return created.id;
+}
+
+export async function registerCitizen(command: RegisterCitizenCommand) {
+  const database = db();
+  const tenantId = await resolveCitizenTenantId(database);
+
+  const existing = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.tenantId, tenantId),
+        or(eq(users.nik, command.nik), eq(users.email, command.email)),
+      ),
+    )
+    .limit(1);
+  if (existing.length > 0) {
+    throw new ConflictError("NIK atau email sudah terdaftar.");
+  }
+
+  const userId = randomUUID();
+  const passwordHash = await hashPassword(command.password);
+
+  return database.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        id: userId,
+        tenantId,
+        email: command.email,
+        name: command.name,
+        nik: command.nik,
+        passwordHash,
+        status: "inactive",
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        nik: users.nik,
+        status: users.status,
+      });
+
+    const [profile] = await tx
+      .insert(citizenProfiles)
+      .values({
+        id: randomUUID(),
+        tenantId,
+        userId,
+        nik: command.nik,
+        name: command.name,
+        email: command.email,
+        phone: command.phone,
+        address: null,
+        status: "pending",
+      })
+      .returning({ id: citizenProfiles.id });
+
+    const attachments = [
+      {
+        data: command.attachment,
+        fileName: command.attachmentFileName,
+        mimeType: command.attachmentMimeType,
+        type: "ktp",
+      },
+      {
+        data: command.selfie,
+        fileName: command.selfieFileName,
+        mimeType: command.selfieMimeType,
+        type: "selfie",
+      },
+    ];
+
+    for (const attachment of attachments) {
+      const buffer = dataUrlToBuffer(attachment.data);
+      const uploaded = await uploadToCloudinary({
+        buffer,
+        tenantId,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        category: "citizen",
+      });
+      await tx.insert(citizenAttachments).values({
+        id: randomUUID(),
+        tenantId,
+        citizenProfileId: profile.id,
+        cloudinaryPublicId: uploaded.publicId,
+        cloudinarySecureUrl: uploaded.secureUrl,
+        resourceType: uploaded.resourceType,
+        attachmentType: attachment.type,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        size: uploaded.size ?? undefined,
+      });
+    }
+
+    logger.info("citizen.registered", { userId, tenantId, nik: command.nik });
+
+    return {
+      nik: user.nik,
+      email: user.email,
+      status: user.status,
+      tenantId,
+    };
+  });
+}

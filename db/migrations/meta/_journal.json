@@ -162,6 +162,13 @@
       "when": 1794240914883,
       "tag": "0021_asn_registration_kyc",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794254081820,
+      "tag": "0023_loud_vulture",
+      "breakpoints": true
     }
   ]
 }

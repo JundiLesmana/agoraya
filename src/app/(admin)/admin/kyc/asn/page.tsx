@@ -34,38 +34,55 @@ export default async function KycAsnListPage() {
   const session = await requireAuth({
     roles: ["admin", "superadmin", "kyc_verifikator"],
   });
-  const applications = await db()
-    .select({
-      id: kycRoster.id,
-      name: kycRoster.name,
-      email: users.email,
-      nip: asnProfiles.nip,
-      employeeNumber: asnRegistrationDetails.employeeNumber,
-      employmentStatus: asnRegistrationDetails.employmentStatus,
-      agency: asnProfiles.opdName,
-      position: jobPositions.name,
-      status: kycRoster.status,
-      submittedAt: kycRoster.createdAt,
-    })
-    .from(kycRoster)
-    .innerJoin(users, eq(users.id, kycRoster.userId))
-    .innerJoin(
-      asnProfiles,
-      and(
-        eq(asnProfiles.userId, users.id),
-        eq(asnProfiles.tenantId, users.tenantId),
-      ),
-    )
-    .leftJoin(
-      asnRegistrationDetails,
-      and(
-        eq(asnRegistrationDetails.userId, users.id),
-        eq(asnRegistrationDetails.tenantId, users.tenantId),
-      ),
-    )
-    .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
-    .where(eq(kycRoster.tenantId, session.tenantId))
-    .orderBy(desc(kycRoster.createdAt));
+
+  let applications: Array<{
+    id: string;
+    name: string;
+    email: string;
+    nip: string | null;
+    employeeNumber: string | null;
+    employmentStatus: string | null;
+    agency: string | null;
+    position: string | null;
+    status: string;
+    submittedAt: Date;
+  }> = [];
+  try {
+    applications = await db()
+      .select({
+        id: kycRoster.id,
+        name: kycRoster.name,
+        email: users.email,
+        nip: asnProfiles.nip,
+        employeeNumber: asnRegistrationDetails.employeeNumber,
+        employmentStatus: asnRegistrationDetails.employmentStatus,
+        agency: asnProfiles.opdName,
+        position: jobPositions.name,
+        status: kycRoster.status,
+        submittedAt: kycRoster.createdAt,
+      })
+      .from(kycRoster)
+      .innerJoin(users, eq(users.id, kycRoster.userId))
+      .innerJoin(
+        asnProfiles,
+        and(
+          eq(asnProfiles.userId, users.id),
+          eq(asnProfiles.tenantId, users.tenantId),
+        ),
+      )
+      .leftJoin(
+        asnRegistrationDetails,
+        and(
+          eq(asnRegistrationDetails.userId, users.id),
+          eq(asnRegistrationDetails.tenantId, users.tenantId),
+        ),
+      )
+      .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
+      .where(eq(kycRoster.tenantId, session.tenantId))
+      .orderBy(desc(kycRoster.createdAt));
+  } catch {
+    applications = [];
+  }
 
   return (
     <main className="container mx-auto space-y-6 px-4 py-6">
@@ -113,7 +130,7 @@ export default async function KycAsnListPage() {
                           : "outline"
                     }
                   >
-                    {statusLabels[application.status]}
+                    {statusLabels[application.status as keyof typeof statusLabels]}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">

@@ -5,7 +5,6 @@ import { useActionState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -138,12 +137,7 @@ function SummaryCard({
           <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <p>{alert}</p>
         </div>
-      ) : (
-        <div className="flex items-start gap-2 rounded-lg border border-current/15 bg-white/60 px-3 py-2 text-xs font-medium dark:bg-slate-950/20">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <p>Nilai KPI berada dalam rentang yang aman untuk dipantau.</p>
-        </div>
-      )}
+      ) : null}
     </Card>
   );
 }

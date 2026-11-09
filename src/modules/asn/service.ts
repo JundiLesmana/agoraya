@@ -1,4 +1,20 @@
 import { z } from "zod";
+import { and, eq, or } from "drizzle-orm";
+import { createHash, randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
+import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { hashPassword } from "@/modules/identity/password/service";
+import { uploadToCloudinary } from "@/lib/cloudinary/upload";
+import {
+  asnProfiles,
+  asnRegistrationAttachments,
+  asnRegistrationDetails,
+  users,
+} from "@/modules/identity/db";
+import { kycRoster } from "@/modules/kyc/db";
+import { tenants } from "@/lib/db/schema";
 
 const nikSchema = z
   .string()
@@ -199,3 +215,434 @@ export const registerAsnSchema = z.strictObject({
 });
 
 export type RegisterAsnCommand = z.infer<typeof registerAsnSchema>;
+
+function dataUrlToBuffer(dataUrl: string): Buffer {
+  const match = /^data:[^;]+;base64,(.*)$/.exec(dataUrl);
+  if (!match) throw new ValidationError("Format data berkas tidak valid.");
+  return Buffer.from(match[1], "base64");
+}
+
+async function resolveAsnTenantId(database: ReturnType<typeof db>): Promise<string> {
+  const env = getEnv();
+  if (env.ASN_KYC_TENANT_ID) return env.ASN_KYC_TENANT_ID;
+  const [tenant] = await database
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.status, "active"))
+    .limit(1);
+  if (tenant) return tenant.id;
+  const [created] = await database
+    .insert(tenants)
+    .values({ id: randomUUID(), name: "Agoraya", slug: "agoraya", status: "active" })
+    .returning({ id: tenants.id });
+  return created.id;
+}
+
+async function findAsnRegistration(
+  database: ReturnType<typeof db>,
+  tenantId: string,
+  userId: string,
+) {
+  const [row] = await database
+    .select({ id: asnRegistrationDetails.id })
+    .from(asnRegistrationDetails)
+    .where(
+      and(
+        eq(asnRegistrationDetails.userId, userId),
+        eq(asnRegistrationDetails.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+  if (!row) throw new NotFoundError("Pendaftaran ASN tidak ditemukan.");
+  return row;
+}
+
+export async function registerAsn(command: RegisterAsnCommand) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+
+  const existing = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      and(
+        eq(users.tenantId, tenantId),
+        or(eq(users.nik, command.nik), eq(users.email, command.email)),
+      ),
+    )
+    .limit(1);
+  if (existing.length > 0) {
+    throw new ConflictError("NIK atau email sudah terdaftar.");
+  }
+
+  const userId = randomUUID();
+  const passwordHash = await hashPassword(command.password);
+  const isPns = command.employmentStatus === "PNS";
+  const employeeNumber = (isPns ? command.nip : command.pppkNumber) ?? "";
+  const rankGrade = (isPns ? command.rankGradePns : command.rankGradePppk) ?? "";
+  const [ktpRt, ktpRw] = command.rtRw.split("/");
+
+  return database.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        id: userId,
+        tenantId,
+        email: command.email,
+        name: command.name,
+        nik: command.nik,
+        passwordHash,
+        status: "inactive",
+      })
+      .returning({
+        id: users.id,
+        email: users.email,
+        nik: users.nik,
+        status: users.status,
+      });
+
+    await tx.insert(asnProfiles).values({
+      userId,
+      tenantId,
+      nip: command.nip ?? null,
+      opdName: command.agencyName,
+      unitName: command.unit ?? null,
+    });
+
+    const [registration] = await tx
+      .insert(asnRegistrationDetails)
+      .values({
+        id: randomUUID(),
+        tenantId,
+        userId,
+        birthPlace: command.birthPlace,
+        birthDate: command.birthDate,
+        phone: command.phone,
+        employmentStatus: command.employmentStatus,
+        employeeNumber,
+        rankGrade,
+        appointmentDate: command.appointmentDate ?? null,
+        agencyType: command.agencyType,
+        provinceTask: command.provinceTask ?? null,
+        regencyTask: command.regencyTask ?? null,
+        field: command.field,
+        officeAddress: command.officeAddress,
+        officialEmail: command.officialEmail ?? null,
+        officePhone: command.officePhone ?? null,
+        ktpAddress: command.address,
+        ktpRt,
+        ktpRw,
+        ktpPostalCode: command.postalCode,
+        ktpProvince: command.province,
+        ktpRegency: command.regency,
+        ktpDistrict: command.district,
+        ktpVillage: command.village,
+        domicileSameAsKtp: command.domicileSameAsKtp,
+        domicileAddress: command.domicileAddress,
+        domicileRt: command.domicileRt,
+        domicileRw: command.domicileRw,
+        domicilePostalCode: command.domicilePostalCode,
+        domicileProvince: command.domicileProvince,
+        domicileRegency: command.domicileRegency,
+        domicileDistrict: command.domicileDistrict,
+        domicileVillage: command.domicileVillage,
+      })
+      .returning({ id: asnRegistrationDetails.id });
+
+    const attachments = [
+      {
+        data: command.ktp,
+        fileName: command.ktpFileName,
+        mimeType: command.ktpMimeType,
+        type: "ktp",
+      },
+      {
+        data: command.skPengangkatan,
+        fileName: command.skPengangkatanFileName,
+        mimeType: command.skPengangkatanMimeType,
+        type: "sk_pengangkatan",
+      },
+      {
+        data: command.idCard,
+        fileName: command.idCardFileName,
+        mimeType: command.idCardMimeType,
+        type: "id_card",
+      },
+      ...(command.selfie && command.selfieFileName
+        ? [
+            {
+              data: command.selfie,
+              fileName: command.selfieFileName,
+              mimeType: command.selfieMimeType,
+              type: "selfie",
+            },
+          ]
+        : []),
+    ];
+
+    for (const attachment of attachments) {
+      const buffer = dataUrlToBuffer(attachment.data);
+      const uploaded = await uploadToCloudinary({
+        buffer,
+        tenantId,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        category: "asn",
+      });
+      await tx.insert(asnRegistrationAttachments).values({
+        id: randomUUID(),
+        tenantId,
+        registrationId: registration.id,
+        cloudinaryPublicId: uploaded.publicId,
+        cloudinarySecureUrl: uploaded.secureUrl,
+        resourceType: uploaded.resourceType,
+        attachmentType: attachment.type,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+        size: uploaded.size ?? undefined,
+      });
+    }
+
+    logger.info("asn.registered", { userId, tenantId, nik: command.nik });
+
+    return {
+      message: "Pendaftaran ASN berhasil. Berkas Anda sedang diverifikasi.",
+      nik: user.nik,
+      email: user.email,
+      status: user.status,
+    };
+  });
+}
+
+export async function saveAsnStep2(command: {
+  readonly userId?: string;
+  readonly draftId?: string;
+  readonly employmentStatus: "PNS" | "PPPK";
+  readonly nip?: string;
+  readonly pppkNumber?: string;
+  readonly rankGradePns?: string;
+  readonly rankGradePppk?: string;
+  readonly agencyType: "Instansi daerah" | "Instansi pusat";
+  readonly agencyName: string;
+  readonly provinceTask?: string;
+  readonly regencyTask?: string;
+  readonly unitWork: string;
+  readonly field: string;
+  readonly positionType: "Jabatan fungsional" | "Jabatan struktural";
+  readonly positionName: string;
+  readonly officeAddress: string;
+  readonly officialEmail?: string;
+  readonly officePhone?: string;
+}) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+  const userId = command.userId;
+  if (!userId) throw new ValidationError("User ID wajib diisi.");
+
+  const registration = await findAsnRegistration(database, tenantId, userId);
+  const isPns = command.employmentStatus === "PNS";
+  const employeeNumber = (isPns ? command.nip : command.pppkNumber) ?? "";
+  const rankGrade = (isPns ? command.rankGradePns : command.rankGradePppk) ?? "";
+
+  await database
+    .update(asnRegistrationDetails)
+    .set({
+      employmentStatus: command.employmentStatus,
+      employeeNumber,
+      rankGrade,
+      agencyType: command.agencyType,
+      provinceTask: command.provinceTask ?? null,
+      regencyTask: command.regencyTask ?? null,
+      field: command.field,
+      officeAddress: command.officeAddress,
+      officialEmail: command.officialEmail ?? null,
+      officePhone: command.officePhone ?? null,
+    })
+    .where(
+      and(
+        eq(asnRegistrationDetails.id, registration.id),
+        eq(asnRegistrationDetails.tenantId, tenantId),
+      ),
+    );
+
+  await database
+    .update(asnProfiles)
+    .set({ opdName: command.agencyName, unitName: command.unitWork })
+    .where(
+      and(eq(asnProfiles.userId, userId), eq(asnProfiles.tenantId, tenantId)),
+    );
+
+  return { userId, registrationId: registration.id };
+}
+
+export async function saveAsnStep3(command: {
+  readonly userId?: string;
+  readonly draftId?: string;
+  readonly ktpAddress: string;
+  readonly ktpRt: string;
+  readonly ktpRw: string;
+  readonly ktpPostalCode: string;
+  readonly ktpProvince: string;
+  readonly ktpRegency: string;
+  readonly ktpDistrict: string;
+  readonly ktpVillage: string;
+  readonly sameAsKtp: boolean;
+  readonly domAddress: string;
+  readonly domRt: string;
+  readonly domRw: string;
+  readonly domPostalCode: string;
+  readonly domProvince: string;
+  readonly domRegency: string;
+  readonly domDistrict: string;
+  readonly domVillage: string;
+}) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+  const userId = command.userId;
+  if (!userId) throw new ValidationError("User ID wajib diisi.");
+
+  const registration = await findAsnRegistration(database, tenantId, userId);
+
+  await database
+    .update(asnRegistrationDetails)
+    .set({
+      ktpAddress: command.ktpAddress,
+      ktpRt: command.ktpRt,
+      ktpRw: command.ktpRw,
+      ktpPostalCode: command.ktpPostalCode,
+      ktpProvince: command.ktpProvince,
+      ktpRegency: command.ktpRegency,
+      ktpDistrict: command.ktpDistrict,
+      ktpVillage: command.ktpVillage,
+      domicileSameAsKtp: command.sameAsKtp,
+      domicileAddress: command.domAddress,
+      domicileRt: command.domRt,
+      domicileRw: command.domRw,
+      domicilePostalCode: command.domPostalCode,
+      domicileProvince: command.domProvince,
+      domicileRegency: command.domRegency,
+      domicileDistrict: command.domDistrict,
+      domicileVillage: command.domVillage,
+    })
+    .where(
+      and(
+        eq(asnRegistrationDetails.id, registration.id),
+        eq(asnRegistrationDetails.tenantId, tenantId),
+      ),
+    );
+
+  return { userId, registrationId: registration.id };
+}
+
+export async function saveAsnStep4(command: {
+  readonly userId?: string;
+  readonly draftId?: string;
+  readonly ktpFileName: string;
+  readonly ktpFileSize: number;
+  readonly ktpMimeType: "image/jpeg" | "image/png" | "application/pdf";
+  readonly skFileName: string;
+  readonly skFileSize: number;
+  readonly skMimeType: "image/jpeg" | "image/png" | "application/pdf";
+  readonly selfieFileName?: string;
+  readonly selfieFileSize?: number;
+  readonly selfieMimeType?: "image/jpeg" | "image/png";
+}) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+  const userId = command.userId;
+  if (!userId) throw new ValidationError("User ID wajib diisi.");
+
+  const registration = await findAsnRegistration(database, tenantId, userId);
+
+  const updateAttachment = async (
+    type: string,
+    fileName: string,
+    mimeType: string | undefined,
+    size: number | undefined,
+  ) => {
+    await database
+      .update(asnRegistrationAttachments)
+      .set({ fileName, mimeType: mimeType ?? null, size: size ?? null })
+      .where(
+        and(
+          eq(asnRegistrationAttachments.registrationId, registration.id),
+          eq(asnRegistrationAttachments.attachmentType, type),
+          eq(asnRegistrationAttachments.tenantId, tenantId),
+        ),
+      );
+  };
+
+  await updateAttachment(
+    "ktp",
+    command.ktpFileName,
+    command.ktpMimeType,
+    command.ktpFileSize,
+  );
+  await updateAttachment(
+    "sk_pengangkatan",
+    command.skFileName,
+    command.skMimeType,
+    command.skFileSize,
+  );
+  if (command.selfieFileName) {
+    await updateAttachment(
+      "selfie",
+      command.selfieFileName,
+      command.selfieMimeType,
+      command.selfieFileSize ?? undefined,
+    );
+  }
+
+  return { userId, registrationId: registration.id };
+}
+
+export async function submitAsnRegistration(command: {
+  readonly userId?: string;
+  readonly draftId?: string;
+  readonly agreed: true;
+}) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+  const userId = command.userId;
+  if (!userId) throw new ValidationError("User ID wajib diisi.");
+  if (!command.agreed) throw new ValidationError("Persetujuan wajib dicentang.");
+
+  const registration = await findAsnRegistration(database, tenantId, userId);
+
+  const [user] = await database
+    .select({ id: users.id, nik: users.nik, name: users.name })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!user) throw new NotFoundError("Pengguna tidak ditemukan.");
+  if (!user.nik) throw new ValidationError("NIK pengguna tidak tersedia.");
+
+  const nikHash = createHash("sha256").update(user.nik).digest("hex");
+
+  const [roster] = await database
+    .insert(kycRoster)
+    .values({
+      id: randomUUID(),
+      tenantId,
+      userId,
+      nikHash,
+      name: user.name,
+      status: "pending",
+      submittedBy: userId,
+    })
+    .returning({ id: kycRoster.id, status: kycRoster.status });
+
+  logger.info("asn.registration.submitted", {
+    userId,
+    tenantId,
+    registrationId: registration.id,
+    rosterId: roster.id,
+  });
+
+  return {
+    registrationId: registration.id,
+    rosterId: roster.id,
+    status: roster.status,
+    nik: user.nik,
+  };
+}
