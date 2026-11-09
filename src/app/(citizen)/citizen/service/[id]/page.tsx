@@ -179,7 +179,6 @@ function DetailHero({ application }: { application: TrackingApplication }) {
           <ServiceSpaceNavigation
             activeSpace="citizen"
             statisticsHref="/tracking/stat"
-            excludeSpaces={["agency"]}
           />
         </div>
       </div>

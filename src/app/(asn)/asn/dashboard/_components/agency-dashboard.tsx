@@ -19,10 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import {
   agencyDashboardResponseSchema,
   maskApplicantName,
+  maskEmail,
   maskPhone,
   serviceApplicationsResponseSchema,
   toAgencyApplication,
@@ -91,6 +93,152 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
+function ReportDetailsDialog({
+  application,
+  open,
+  onOpenChange,
+}: {
+  application: AgencyApplication | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [showIdentity, setShowIdentity] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setShowIdentity(false);
+    }
+  }, [open, application]);
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Detail laporan"
+      description={
+        application
+          ? `Tinjau detail ${application.trackingNumber} sebelum melanjutkan penanganan.`
+          : undefined
+      }
+      contentClassName="max-w-2xl"
+    >
+      {application ? (
+        <div className="space-y-5">
+          <section className="space-y-2">
+            <h3 className="text-base font-semibold">{application.serviceName}</h3>
+            <p className="text-muted-foreground text-sm">{application.description}</p>
+          </section>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Nomor laporan
+              </p>
+              <p className="font-mono text-sm">{application.trackingNumber}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Status
+              </p>
+              <StatusBadge status={application.status} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Kategori
+              </p>
+              <p className="text-sm">{application.category}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Subkategori
+              </p>
+              <p className="text-sm">{application.subcategory}</p>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                Tanggal masuk
+              </p>
+              <p className="text-sm">{formatDateTimeWib(application.submittedAt)}</p>
+            </div>
+          </div>
+
+          <section className="space-y-3 rounded-xl border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">Data pelapor</h3>
+                <p className="text-muted-foreground text-sm">
+                  Kontak disamarkan sampai dibuka secara eksplisit.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowIdentity((current) => !current)}
+              >
+                {showIdentity ? "Sembunyikan data pelapor" : "Tampilkan data pelapor"}
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Nama
+                </p>
+                <p className="text-sm">
+                  {showIdentity
+                    ? application.applicantName
+                    : maskApplicantName(application.applicantName)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Email
+                </p>
+                <p className="text-sm">
+                  {showIdentity ? application.email : maskEmail(application.email)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Telepon
+                </p>
+                <p className="text-sm">
+                  {showIdentity ? application.phone : maskPhone(application.phone)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                  Lokasi
+                </p>
+                <p className="text-sm">
+                  {showIdentity
+                    ? application.address
+                    : "Disamarkan sampai data pelapor ditampilkan."}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Lampiran</h3>
+            {application.documents.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {application.documents.map((document) => (
+                  <li key={document.name} className="rounded-lg border px-3 py-2">
+                    {document.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground text-sm">Tidak ada lampiran.</p>
+            )}
+          </section>
+        </div>
+      ) : null}
+    </Modal>
+  );
+}
+
 export function AgencyDashboard() {
   const [applications, setApplications] = React.useState<AgencyApplication[]>(
     [],
@@ -100,6 +248,9 @@ export function AgencyDashboard() {
   const [serviceFilter, setServiceFilter] = React.useState("all");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [selectedApplication, setSelectedApplication] =
+    React.useState<AgencyApplication | null>(null);
+  const [detailOpen, setDetailOpen] = React.useState(false);
 
   const loadReports = React.useCallback(async (showLoading: boolean) => {
     if (showLoading) setLoading(true);
@@ -374,14 +525,29 @@ export function AgencyDashboard() {
                       <StatusBadge status={application.status} />
                     </td>
                     <td className="px-4 py-4 text-right">
-                      <Button asChild variant="outline" size="sm">
-                        <Link
-                          href={`/review?kind=${application.kind}&id=${application.id}`}
+                      {application.kind === "service_application" ? (
+                        <Button asChild variant="outline" size="sm">
+                          <Link
+                            href={`/asn/submission/${application.id}`}
+                            aria-label={`Lihat detail ${application.trackingNumber}`}
+                          >
+                            Detail
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           aria-label={`Lihat detail ${application.trackingNumber}`}
+                          onClick={() => {
+                            setSelectedApplication(application);
+                            setDetailOpen(true);
+                          }}
                         >
                           Detail
-                        </Link>
-                      </Button>
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -426,6 +592,11 @@ export function AgencyDashboard() {
         </div>
       </section>
 
+      <ReportDetailsDialog
+        application={selectedApplication}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }
