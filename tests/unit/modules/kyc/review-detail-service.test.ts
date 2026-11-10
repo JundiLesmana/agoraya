@@ -6,32 +6,29 @@ import { getKycReviewDetail } from "@/modules/kyc/review-detail-service";
 function createDatabaseMock(options: {
   rosterRows: Array<Record<string, unknown>>;
   approvalRows: Array<Record<string, unknown>>;
+  attachmentRows?: Array<Record<string, unknown>>;
 }) {
   return {
     select(selection: Record<string, unknown>) {
-      const hasRosterId = Object.prototype.hasOwnProperty.call(selection, "rosterId");
-      const rows = hasRosterId ? options.rosterRows : options.approvalRows;
+      const rows = Object.prototype.hasOwnProperty.call(selection, "rosterId")
+        ? options.rosterRows
+        : Object.prototype.hasOwnProperty.call(selection, "approvalSlot")
+          ? options.approvalRows
+          : (options.attachmentRows ?? []);
 
       return {
         from() {
+          const joins = {
+            innerJoin: () => joins,
+            leftJoin: () => joins,
+            where: () => ({
+              limit: async () => rows,
+              orderBy: async () => rows,
+            }),
+          };
           return {
-            innerJoin() {
-              return {
-                leftJoin() {
-                  return {
-                    leftJoin() {
-                      return {
-                        where() {
-                          return {
-                            limit: async () => rows,
-                          };
-                        },
-                      };
-                    },
-                  };
-                },
-              };
-            },
+            ...joins,
+            where: async () => rows,
             leftJoin() {
               return {
                 where() {
@@ -61,6 +58,8 @@ describe("getKycReviewDetail", () => {
           status: "pending",
           expiresAt: null,
           userId: "asn-1",
+          profileTenantId: "applicant-tenant-1",
+          asnProfileUserId: "asn-1",
           name: "Siti Aminah",
           email: "siti@example.com",
           nik: "3175091201010001",
@@ -89,6 +88,7 @@ describe("getKycReviewDetail", () => {
       expiresAt: null,
       subject: {
         userId: "asn-1",
+        registrationType: "asn",
         name: "Siti Aminah",
         email: "siti@example.com",
         nik: "3175091201010001",
@@ -99,9 +99,93 @@ describe("getKycReviewDetail", () => {
         positionName: "Analis Kebijakan",
         positionType: "functional",
       },
+      asnRegistration: null,
       approvals: [],
       canReview: true,
       nextAction: "first_approval",
+    });
+  });
+
+  it("returns stored ASN registration data and uploaded documents", async () => {
+    const database = createDatabaseMock({
+      rosterRows: [
+        {
+          rosterId: "roster-asn",
+          tenantId: "reviewer-tenant",
+          submittedBy: null,
+          submittedAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+          status: "pending",
+          expiresAt: null,
+          userId: "asn-user",
+          profileTenantId: "applicant-tenant",
+          asnProfileUserId: "asn-user",
+          registrationId: "registration-1",
+          birthPlace: "Bandung",
+          birthDate: "1990-01-01",
+          phone: "081234567890",
+          employmentStatus: "PNS",
+          employeeNumber: "198501012010011001",
+          rankGrade: "Penata/I-C",
+          appointmentDate: null,
+          agencyType: "Instansi daerah",
+          provinceTask: "Jawa Barat",
+          regencyTask: "Bandung",
+          field: "Data",
+          officeAddress: "Jl. Kantor 1",
+          officialEmail: null,
+          officePhone: null,
+          ktpAddress: "Jl. Rumah 1",
+          ktpRt: "001",
+          ktpRw: "002",
+          ktpPostalCode: "12345",
+          ktpProvince: "Jawa Barat",
+          ktpRegency: "Bandung",
+          ktpDistrict: "Coblong",
+          ktpVillage: "Dago",
+          domicileSameAsKtp: true,
+          domicileAddress: "Jl. Rumah 1",
+          domicileRt: "001",
+          domicileRw: "002",
+          domicilePostalCode: "12345",
+          domicileProvince: "Jawa Barat",
+          domicileRegency: "Bandung",
+          domicileDistrict: "Coblong",
+          domicileVillage: "Dago",
+        },
+      ],
+      approvalRows: [],
+      attachmentRows: [
+        {
+          type: "ktp",
+          fileName: "ktp.png",
+          url: "https://example.test/ktp.png",
+          mimeType: "image/png",
+          size: 1024,
+        },
+      ],
+    });
+
+    const detail = await getKycReviewDetail(
+      "roster-asn",
+      "reviewer-tenant",
+      undefined,
+      { database: database as never },
+    );
+
+    expect(detail.subject.registrationType).toBe("asn");
+    expect(detail.asnRegistration).toMatchObject({
+      birthPlace: "Bandung",
+      employeeNumber: "198501012010011001",
+      ktpAddress: "Jl. Rumah 1",
+      domicileSameAsKtp: true,
+      attachments: [
+        {
+          type: "ktp",
+          fileName: "ktp.png",
+          url: "https://example.test/ktp.png",
+        },
+      ],
     });
   });
 
@@ -117,6 +201,8 @@ describe("getKycReviewDetail", () => {
           status: "partially_approved",
           expiresAt: null,
           userId: "asn-1",
+          profileTenantId: "applicant-tenant-1",
+          asnProfileUserId: null,
           name: "Siti Aminah",
           email: "siti@example.com",
           nik: null,
@@ -173,6 +259,8 @@ describe("getKycReviewDetail", () => {
             status,
             expiresAt: status === "expired" ? new Date("2026-06-01T00:00:00.000Z") : null,
             userId: "asn-1",
+            profileTenantId: "applicant-tenant-1",
+            asnProfileUserId: null,
             name: "Siti Aminah",
             email: "siti@example.com",
             nik: null,

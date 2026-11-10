@@ -23,7 +23,6 @@ vi.mock("next/navigation", async () => {
 
 import { CitizenTrackingDashboard } from "@/app/(citizen)/citizen/service/_components/citizen-tracking-dashboard";
 import CitizenTrackingPage from "@/app/(citizen)/citizen/service/page";
-import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import {
   formatDateTimeWib,
   getDaysUntilDeadline,
@@ -149,32 +148,6 @@ describe("CitizenTrackingDashboard", () => {
       screen.getByRole("table", { name: "Daftar pengajuan layanan warga" }),
     ).toBeTruthy();
     expect(screen.getAllByLabelText("Detail Pengajuan Terpilih").length).toBeGreaterThan(0);
-    const spaceNavigation = screen.getByRole("navigation", {
-      name: "Kategori layanan publik",
-    });
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Warga" })
-        .getAttribute("href"),
-    ).toBe("/citizen/service");
-    expect(
-      within(spaceNavigation).queryByRole("link", { name: "Ruang Instansi" }),
-    ).toBeNull();
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("href"),
-    ).toBe("/tracking/stat");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("aria-current"),
-    ).toBeNull();
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Warga" })
-        .getAttribute("aria-current"),
-    ).toBe("page");
     expect(
       screen.getByRole("heading", {
         name: "Layanan jelas, langkah lebih mudah",
@@ -398,30 +371,4 @@ describe("CitizenTrackingDashboard", () => {
     expect(screen.getByText("Warga meminta revisi")).toBeTruthy();
   });
 
-  it("links the agency service room to the dashboard route", () => {
-    render(<ServiceSpaceNavigation activeSpace="agency" />);
-    const spaceNavigation = screen.getByRole("navigation", {
-      name: "Kategori layanan publik",
-    });
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Instansi" })
-        .getAttribute("href"),
-    ).toBe("/asn/dashboard");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Instansi" })
-        .getAttribute("aria-current"),
-    ).toBe("page");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("href"),
-    ).toBe("/data/statistik");
-    expect(
-      within(spaceNavigation)
-        .getByRole("link", { name: "Ruang Statistik" })
-        .getAttribute("aria-current"),
-    ).toBeNull();
-  });
 });

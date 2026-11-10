@@ -23,14 +23,15 @@ vi.mock("@/lib/logger", () => ({
 import { GET } from "@/app/api/citizen/service-applications/[id]/route";
 
 function mockDetailQuery(row?: Record<string, unknown>, shouldReject = false) {
-  const limit = shouldReject
+  const findFirst = shouldReject
     ? vi.fn().mockRejectedValue(new Error("db failed"))
-    : vi.fn().mockResolvedValue(row ? [row] : []);
-  const where = vi.fn().mockReturnValue({ limit });
-  const from = vi.fn().mockReturnValue({ where });
-  const select = vi.fn().mockReturnValue({ from });
-  dbMock.mockReturnValue({ select });
-  return { select, from, where, limit };
+    : vi.fn().mockResolvedValue(row ?? undefined);
+  dbMock.mockReturnValue({
+    query: {
+      serviceApplications: { findFirst },
+    },
+  });
+  return { findFirst };
 }
 
 describe("citizen service detail route", () => {
@@ -77,7 +78,7 @@ describe("citizen service detail route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(query.where).toHaveBeenCalledOnce();
+    expect(query.findFirst).toHaveBeenCalledOnce();
     await expect(response.json()).resolves.toMatchObject({
       application: {
         id: "app-1",

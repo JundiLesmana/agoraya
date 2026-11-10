@@ -42,12 +42,39 @@ const report = {
   attachments: ["jalan.jpg"],
 };
 
-function mockReports(reports = [report]) {
+const serviceApplication = {
+  id: "22222222-2222-4222-8222-222222222222",
+  trackingNumber: "IZ-20261027-DEF456",
+  category: "permit",
+  serviceType: "Izin Usaha",
+  serviceId: "izin-usaha",
+  routeKey: "perizinan/izin-usaha",
+  serviceName: "Izin Usaha",
+  agency: "Dinas Penanaman Modal",
+  status: "submitted",
+  applicantName: "Budi Contoh",
+  contactEmail: "budi@example.com",
+  payload: { data: { alamatUsaha: "Jl. Merdeka" } },
+  submittedAt: "2026-10-27T08:15:00.000Z",
+  assigneeId: null,
+  waitingTimeMinutes: 0,
+};
+
+function mockReports(
+  reports = [report],
+  applications: typeof serviceApplication[] = [],
+) {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ reports }),
+    vi.fn((input: RequestInfo | URL) => {
+      const isServiceApplications = String(input).includes(
+        "/api/asn/service-applications",
+      );
+      return Promise.resolve({
+        ok: true,
+        json: async () =>
+          isServiceApplications ? { applications } : { reports },
+      });
     }),
   );
 }
@@ -459,27 +486,29 @@ describe("AgencyDashboard", () => {
     expect(within(table).queryByText("Sampah menumpuk")).toBeNull();
   });
 
-  it("shows report details with masked contact data until explicitly revealed", async () => {
+  it("routes report details to the tenant-scoped management review page", async () => {
     mockReports();
     render(<AgencyDashboard />);
     await screen.findByText("LP-20261027-ABC123");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Lihat detail LP-20261027-ABC123" }),
+    const detailLink = screen.getByRole("link", {
+      name: "Lihat detail LP-20261027-ABC123",
+    });
+    expect(detailLink.getAttribute("href")).toBe(
+      "/asn/management/review?kind=report&id=11111111-1111-4111-8111-111111111111",
     );
+  });
 
-    const dialog = screen.getByRole("dialog", { name: "Detail laporan" });
-    expect(within(dialog).getByText("Siti C***")).toBeTruthy();
-    expect(within(dialog).getByText("s***@example.com")).toBeTruthy();
-    expect(within(dialog).getByText("••••••••7890")).toBeTruthy();
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Tampilkan data pelapor" }),
+  it("routes service application details without conflating them with citizen reports", async () => {
+    mockReports([report], [serviceApplication]);
+    render(<AgencyDashboard />);
+    await screen.findByText("IZ-20261027-DEF456");
+
+    const detailLink = screen.getByRole("link", {
+      name: "Lihat detail IZ-20261027-DEF456",
+    });
+    expect(detailLink.getAttribute("href")).toBe(
+      "/asn/management/review?kind=service_application&id=22222222-2222-4222-8222-222222222222",
     );
-    expect(within(dialog).getByText("siti@example.com")).toBeTruthy();
-    expect(within(dialog).getByText("081234567890")).toBeTruthy();
-    expect(
-      within(dialog).getByText("Jl. Melati, Kota Bandung, Jawa Barat"),
-    ).toBeTruthy();
-    expect(within(dialog).getByText("jalan.jpg")).toBeTruthy();
   });
 
   it("shows backend errors rather than presenting a success-shaped empty state", async () => {

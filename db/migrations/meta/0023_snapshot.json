@@ -1,6 +1,6 @@
 {
-  "id": "0a730b32-6f1b-49bf-988f-49579a46e7e9",
-  "prevId": "153f25d6-7e40-4f36-93c4-3b5c4c95afc8",
+  "id": "769f7c9f-8c61-46bd-825d-0e73546a11c1",
+  "prevId": "56f71fdc-5939-407c-95d4-4674982c02ed",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -662,6 +662,470 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.asn_registration_attachments": {
+      "name": "asn_registration_attachments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registration_id": {
+          "name": "registration_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cloudinary_public_id": {
+          "name": "cloudinary_public_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cloudinary_secure_url": {
+          "name": "cloudinary_secure_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'image'"
+        },
+        "attachment_type": {
+          "name": "attachment_type",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "asn_registration_attachments_tenant_id_idx": {
+          "name": "asn_registration_attachments_tenant_id_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "asn_registration_attachments_registration_id_idx": {
+          "name": "asn_registration_attachments_registration_id_idx",
+          "columns": [
+            {
+              "expression": "registration_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "asn_registration_attachments_registration_type_idx": {
+          "name": "asn_registration_attachments_registration_type_idx",
+          "columns": [
+            {
+              "expression": "registration_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "attachment_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "asn_registration_attachments_tenant_id_tenants_id_fk": {
+          "name": "asn_registration_attachments_tenant_id_tenants_id_fk",
+          "tableFrom": "asn_registration_attachments",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asn_registration_attachments_registration_id_asn_registration_details_id_fk": {
+          "name": "asn_registration_attachments_registration_id_asn_registration_details_id_fk",
+          "tableFrom": "asn_registration_attachments",
+          "tableTo": "asn_registration_details",
+          "columnsFrom": [
+            "registration_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "asn_registration_attachments_cloudinary_public_id_unique": {
+          "name": "asn_registration_attachments_cloudinary_public_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cloudinary_public_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.asn_registration_details": {
+      "name": "asn_registration_details",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birth_place": {
+          "name": "birth_place",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "employment_status": {
+          "name": "employment_status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "employee_number": {
+          "name": "employee_number",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rank_grade": {
+          "name": "rank_grade",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appointment_date": {
+          "name": "appointment_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agency_type": {
+          "name": "agency_type",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "province_task": {
+          "name": "province_task",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "regency_task": {
+          "name": "regency_task",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "field": {
+          "name": "field",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "office_address": {
+          "name": "office_address",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "official_email": {
+          "name": "official_email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "office_phone": {
+          "name": "office_phone",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ktp_address": {
+          "name": "ktp_address",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_rt": {
+          "name": "ktp_rt",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_rw": {
+          "name": "ktp_rw",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_postal_code": {
+          "name": "ktp_postal_code",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_province": {
+          "name": "ktp_province",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_regency": {
+          "name": "ktp_regency",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_district": {
+          "name": "ktp_district",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ktp_village": {
+          "name": "ktp_village",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_same_as_ktp": {
+          "name": "domicile_same_as_ktp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_address": {
+          "name": "domicile_address",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_rt": {
+          "name": "domicile_rt",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_rw": {
+          "name": "domicile_rw",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_postal_code": {
+          "name": "domicile_postal_code",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_province": {
+          "name": "domicile_province",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_regency": {
+          "name": "domicile_regency",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_district": {
+          "name": "domicile_district",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicile_village": {
+          "name": "domicile_village",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "asn_registration_details_tenant_id_idx": {
+          "name": "asn_registration_details_tenant_id_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "asn_registration_details_user_id_idx": {
+          "name": "asn_registration_details_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "asn_registration_details_tenant_id_tenants_id_fk": {
+          "name": "asn_registration_details_tenant_id_tenants_id_fk",
+          "tableFrom": "asn_registration_details",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "asn_registration_details_user_id_users_id_fk": {
+          "name": "asn_registration_details_user_id_users_id_fk",
+          "tableFrom": "asn_registration_details",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -5474,12 +5938,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "source_dataset_submission_id": {
-          "name": "source_dataset_submission_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "reported_by": {
           "name": "reported_by",
           "type": "uuid",
@@ -6132,1520 +6590,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.apbd_budget_items": {
-      "name": "apbd_budget_items",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_id": {
-          "name": "entry_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code": {
-          "name": "code",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "program_name": {
-          "name": "program_name",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subactivity_name": {
-          "name": "subactivity_name",
-          "type": "varchar(240)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apbd_budget_items_id_scope_unique": {
-          "name": "apbd_budget_items_id_scope_unique",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_budget_items_code_idx": {
-          "name": "apbd_budget_items_code_idx",
-          "columns": [
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "code",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_budget_items_entry_idx": {
-          "name": "apbd_budget_items_entry_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "apbd_budget_items_tenant_id_tenants_id_fk": {
-          "name": "apbd_budget_items_tenant_id_tenants_id_fk",
-          "tableFrom": "apbd_budget_items",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_budget_items_entry_tenant_fk": {
-          "name": "apbd_budget_items_entry_tenant_fk",
-          "tableFrom": "apbd_budget_items",
-          "tableTo": "apbd_entries",
-          "columnsFrom": [
-            "entry_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.apbd_budget_period_values": {
-      "name": "apbd_budget_period_values",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_id": {
-          "name": "entry_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "item_id": {
-          "name": "item_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "period_type": {
-          "name": "period_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "period_value": {
-          "name": "period_value",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pagu": {
-          "name": "pagu",
-          "type": "numeric(20, 0)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "realisasi": {
-          "name": "realisasi",
-          "type": "numeric(20, 0)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apbd_budget_period_value_idx": {
-          "name": "apbd_budget_period_value_idx",
-          "columns": [
-            {
-              "expression": "item_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "period_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "period_value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_budget_period_entry_idx": {
-          "name": "apbd_budget_period_entry_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "period_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "period_value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "apbd_budget_period_values_tenant_id_tenants_id_fk": {
-          "name": "apbd_budget_period_values_tenant_id_tenants_id_fk",
-          "tableFrom": "apbd_budget_period_values",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_budget_period_item_scope_fk": {
-          "name": "apbd_budget_period_item_scope_fk",
-          "tableFrom": "apbd_budget_period_values",
-          "tableTo": "apbd_budget_items",
-          "columnsFrom": [
-            "item_id",
-            "tenant_id",
-            "entry_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id",
-            "entry_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_budget_period_updated_by_tenant_fk": {
-          "name": "apbd_budget_period_updated_by_tenant_fk",
-          "tableFrom": "apbd_budget_period_values",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "apbd_budget_period_type_check": {
-          "name": "apbd_budget_period_type_check",
-          "value": "\"apbd_budget_period_values\".\"period_type\" IN ('monthly', 'quarterly')"
-        },
-        "apbd_budget_period_value_check": {
-          "name": "apbd_budget_period_value_check",
-          "value": "(\"apbd_budget_period_values\".\"period_type\" = 'monthly' AND \"apbd_budget_period_values\".\"period_value\" ~ '^(0[1-9]|1[0-2])$') OR (\"apbd_budget_period_values\".\"period_type\" = 'quarterly' AND \"apbd_budget_period_values\".\"period_value\" ~ '^Q[1-4]$')"
-        },
-        "apbd_budget_period_pagu_check": {
-          "name": "apbd_budget_period_pagu_check",
-          "value": "\"apbd_budget_period_values\".\"pagu\" IS NULL OR \"apbd_budget_period_values\".\"pagu\" >= 0"
-        },
-        "apbd_budget_period_realisasi_check": {
-          "name": "apbd_budget_period_realisasi_check",
-          "value": "\"apbd_budget_period_values\".\"realisasi\" IS NULL OR \"apbd_budget_period_values\".\"realisasi\" >= 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.apbd_entries": {
-      "name": "apbd_entries",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agency_id": {
-          "name": "agency_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_id": {
-          "name": "region_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_name": {
-          "name": "region_name",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sector_id": {
-          "name": "sector_id",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reference_year": {
-          "name": "reference_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "revision_of_id": {
-          "name": "revision_of_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_dataset_submission_id": {
-          "name": "source_dataset_submission_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revision_reason": {
-          "name": "revision_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apbd_entries_id_tenant_unique": {
-          "name": "apbd_entries_id_tenant_unique",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_entries_draft_context_idx": {
-          "name": "apbd_entries_draft_context_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agency_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "region_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sector_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "reference_year",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"apbd_entries\".\"status\" = 'draft'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_entries_publication_idx": {
-          "name": "apbd_entries_publication_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "published_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "reference_year",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "apbd_entries_tenant_id_tenants_id_fk": {
-          "name": "apbd_entries_tenant_id_tenants_id_fk",
-          "tableFrom": "apbd_entries",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_entries_revision_tenant_fk": {
-          "name": "apbd_entries_revision_tenant_fk",
-          "tableFrom": "apbd_entries",
-          "tableTo": "apbd_entries",
-          "columnsFrom": [
-            "revision_of_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_entries_source_dataset_scope_fk": {
-          "name": "apbd_entries_source_dataset_scope_fk",
-          "tableFrom": "apbd_entries",
-          "tableTo": "asn_dataset_submissions",
-          "columnsFrom": [
-            "source_dataset_submission_id",
-            "tenant_id",
-            "agency_id",
-            "region_id",
-            "sector_id",
-            "reference_year"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id",
-            "agency_id",
-            "region_id",
-            "sector_id",
-            "reference_year"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_entries_created_by_tenant_fk": {
-          "name": "apbd_entries_created_by_tenant_fk",
-          "tableFrom": "apbd_entries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_entries_updated_by_tenant_fk": {
-          "name": "apbd_entries_updated_by_tenant_fk",
-          "tableFrom": "apbd_entries",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "apbd_entries_status_check": {
-          "name": "apbd_entries_status_check",
-          "value": "\"apbd_entries\".\"status\" IN ('draft', 'published')"
-        },
-        "apbd_entries_reference_year_check": {
-          "name": "apbd_entries_reference_year_check",
-          "value": "\"apbd_entries\".\"reference_year\" BETWEEN 2000 AND 2100"
-        },
-        "apbd_entries_revision_note_check": {
-          "name": "apbd_entries_revision_note_check",
-          "value": "\"apbd_entries\".\"revision_of_id\" IS NULL OR length(btrim(\"apbd_entries\".\"revision_reason\")) >= 10"
-        },
-        "apbd_entries_published_at_check": {
-          "name": "apbd_entries_published_at_check",
-          "value": "\"apbd_entries\".\"status\" <> 'published' OR \"apbd_entries\".\"published_at\" IS NOT NULL"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.apbd_operator_assignments": {
-      "name": "apbd_operator_assignments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agency_id": {
-          "name": "agency_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_id": {
-          "name": "region_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "region_name": {
-          "name": "region_name",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sector_id": {
-          "name": "sector_id",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apbd_operator_assignments_scope_idx": {
-          "name": "apbd_operator_assignments_scope_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agency_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "region_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sector_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "apbd_operator_assignments_user_tenant_idx": {
-          "name": "apbd_operator_assignments_user_tenant_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "apbd_operator_assignments_tenant_id_tenants_id_fk": {
-          "name": "apbd_operator_assignments_tenant_id_tenants_id_fk",
-          "tableFrom": "apbd_operator_assignments",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_operator_assignments_user_tenant_fk": {
-          "name": "apbd_operator_assignments_user_tenant_fk",
-          "tableFrom": "apbd_operator_assignments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.apbd_value_audit": {
-      "name": "apbd_value_audit",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entry_id": {
-          "name": "entry_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "item_id": {
-          "name": "item_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "period_type": {
-          "name": "period_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "period_value": {
-          "name": "period_value",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "field": {
-          "name": "field",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "previous_value": {
-          "name": "previous_value",
-          "type": "numeric(20, 0)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "new_value": {
-          "name": "new_value",
-          "type": "numeric(20, 0)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "apbd_value_audit_entry_created_idx": {
-          "name": "apbd_value_audit_entry_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "entry_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "apbd_value_audit_tenant_id_tenants_id_fk": {
-          "name": "apbd_value_audit_tenant_id_tenants_id_fk",
-          "tableFrom": "apbd_value_audit",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_value_audit_item_scope_fk": {
-          "name": "apbd_value_audit_item_scope_fk",
-          "tableFrom": "apbd_value_audit",
-          "tableTo": "apbd_budget_items",
-          "columnsFrom": [
-            "item_id",
-            "tenant_id",
-            "entry_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id",
-            "entry_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "apbd_value_audit_actor_tenant_fk": {
-          "name": "apbd_value_audit_actor_tenant_fk",
-          "tableFrom": "apbd_value_audit",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "apbd_value_audit_field_check": {
-          "name": "apbd_value_audit_field_check",
-          "value": "\"apbd_value_audit\".\"field\" IN ('pagu', 'realisasi')"
-        },
-        "apbd_value_audit_value_changed_check": {
-          "name": "apbd_value_audit_value_changed_check",
-          "value": "\"apbd_value_audit\".\"previous_value\" IS DISTINCT FROM \"apbd_value_audit\".\"new_value\""
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.asn_dataset_submissions": {
-      "name": "asn_dataset_submissions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dataset_id": {
-          "name": "dataset_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_by": {
-          "name": "updated_by",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "assignment_type": {
-          "name": "assignment_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "agency_id": {
-          "name": "agency_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "region_id": {
-          "name": "region_id",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "region_name": {
-          "name": "region_name",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sector_id": {
-          "name": "sector_id",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reference_year": {
-          "name": "reference_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "summary": {
-          "name": "summary",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "category": {
-          "name": "category",
-          "type": "varchar(32)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_organization": {
-          "name": "source_organization",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_url": {
-          "name": "source_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_label": {
-          "name": "source_label",
-          "type": "bps_source",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_kind": {
-          "name": "source_kind",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "license_name": {
-          "name": "license_name",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "license_url": {
-          "name": "license_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "tags": {
-          "name": "tags",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::text[]"
-        },
-        "data_dictionary": {
-          "name": "data_dictionary",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "period_start": {
-          "name": "period_start",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "period_end": {
-          "name": "period_end",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "frequency": {
-          "name": "frequency",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "csv_data": {
-          "name": "csv_data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "record_count": {
-          "name": "record_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "submitted_at": {
-          "name": "submitted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "asn_dataset_submissions_id_tenant_idx": {
-          "name": "asn_dataset_submissions_id_tenant_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "asn_dataset_submissions_apbd_scope_idx": {
-          "name": "asn_dataset_submissions_apbd_scope_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agency_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "region_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sector_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "reference_year",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "asn_dataset_submissions_project_scope_idx": {
-          "name": "asn_dataset_submissions_project_scope_idx",
-          "columns": [
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "asn_dataset_submissions_owner_idx": {
-          "name": "asn_dataset_submissions_owner_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_by",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "asn_dataset_submissions_assignment_idx": {
-          "name": "asn_dataset_submissions_assignment_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "assignment_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "agency_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "region_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "sector_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "reference_year",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "asn_dataset_submissions_project_idx": {
-          "name": "asn_dataset_submissions_project_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "asn_dataset_submissions_tenant_id_tenants_id_fk": {
-          "name": "asn_dataset_submissions_tenant_id_tenants_id_fk",
-          "tableFrom": "asn_dataset_submissions",
-          "tableTo": "tenants",
-          "columnsFrom": [
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "asn_dataset_submissions_dataset_id_datasets_id_fk": {
-          "name": "asn_dataset_submissions_dataset_id_datasets_id_fk",
-          "tableFrom": "asn_dataset_submissions",
-          "tableTo": "datasets",
-          "columnsFrom": [
-            "dataset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "asn_dataset_submissions_created_by_tenant_fk": {
-          "name": "asn_dataset_submissions_created_by_tenant_fk",
-          "tableFrom": "asn_dataset_submissions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "asn_dataset_submissions_updated_by_tenant_fk": {
-          "name": "asn_dataset_submissions_updated_by_tenant_fk",
-          "tableFrom": "asn_dataset_submissions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "asn_dataset_submissions_project_tenant_fk": {
-          "name": "asn_dataset_submissions_project_tenant_fk",
-          "tableFrom": "asn_dataset_submissions",
-          "tableTo": "infrastructure_projects",
-          "columnsFrom": [
-            "project_id",
-            "tenant_id"
-          ],
-          "columnsTo": [
-            "id",
-            "tenant_id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "asn_dataset_submissions_assignment_check": {
-          "name": "asn_dataset_submissions_assignment_check",
-          "value": "\n        (\"asn_dataset_submissions\".\"assignment_type\" IN ('statistics', 'apbd')\n          AND \"asn_dataset_submissions\".\"agency_id\" IS NOT NULL\n          AND \"asn_dataset_submissions\".\"region_id\" IS NOT NULL\n          AND \"asn_dataset_submissions\".\"region_name\" IS NOT NULL\n          AND \"asn_dataset_submissions\".\"sector_id\" IS NOT NULL\n          AND \"asn_dataset_submissions\".\"reference_year\" BETWEEN 2000 AND 2100\n          AND \"asn_dataset_submissions\".\"project_id\" IS NULL)\n        OR\n        (\"asn_dataset_submissions\".\"assignment_type\" = 'project'\n          AND \"asn_dataset_submissions\".\"project_id\" IS NOT NULL\n          AND \"asn_dataset_submissions\".\"reference_year\" BETWEEN 2000 AND 2100)\n      "
-        },
-        "asn_dataset_submissions_category_check": {
-          "name": "asn_dataset_submissions_category_check",
-          "value": "\"asn_dataset_submissions\".\"category\" IN ('Anggaran', 'Proyek', 'Statistik')"
-        },
-        "asn_dataset_submissions_category_assignment_check": {
-          "name": "asn_dataset_submissions_category_assignment_check",
-          "value": "\n        (\"asn_dataset_submissions\".\"category\" = 'Anggaran' AND \"asn_dataset_submissions\".\"assignment_type\" = 'apbd')\n        OR (\"asn_dataset_submissions\".\"category\" = 'Statistik' AND \"asn_dataset_submissions\".\"assignment_type\" = 'statistics')\n        OR (\"asn_dataset_submissions\".\"category\" = 'Proyek' AND \"asn_dataset_submissions\".\"assignment_type\" = 'project')\n      "
-        },
-        "asn_dataset_submissions_source_kind_check": {
-          "name": "asn_dataset_submissions_source_kind_check",
-          "value": "\"asn_dataset_submissions\".\"source_kind\" IN ('manual', 'bps')"
-        },
-        "asn_dataset_submissions_frequency_check": {
-          "name": "asn_dataset_submissions_frequency_check",
-          "value": "\"asn_dataset_submissions\".\"frequency\" IN ('monthly', 'quarterly', 'annual', 'irregular')"
-        },
-        "asn_dataset_submissions_status_check": {
-          "name": "asn_dataset_submissions_status_check",
-          "value": "\"asn_dataset_submissions\".\"status\" IN ('draft', 'submitted')"
-        },
-        "asn_dataset_submissions_record_count_check": {
-          "name": "asn_dataset_submissions_record_count_check",
-          "value": "\"asn_dataset_submissions\".\"record_count\" BETWEEN 1 AND 10000"
-        },
-        "asn_dataset_submissions_period_check": {
-          "name": "asn_dataset_submissions_period_check",
-          "value": "\"asn_dataset_submissions\".\"period_start\" IS NULL OR \"asn_dataset_submissions\".\"period_end\" IS NULL OR \"asn_dataset_submissions\".\"period_end\" >= \"asn_dataset_submissions\".\"period_start\""
-        },
-        "asn_dataset_submissions_submitted_at_check": {
-          "name": "asn_dataset_submissions_submitted_at_check",
-          "value": "\"asn_dataset_submissions\".\"status\" <> 'submitted' OR \"asn_dataset_submissions\".\"submitted_at\" IS NOT NULL"
-        }
-      },
       "isRLSEnabled": false
     }
   },

@@ -19,7 +19,6 @@ import Link from "next/link";
 import { BarChart } from "@/components/charts/bar-chart";
 import { LineChart } from "@/components/charts/line-chart";
 import { PieChart } from "@/components/charts/pie-chart";
-import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import { SourceBadge } from "@/components/source-badges/source-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -450,7 +449,6 @@ export function StatisticsRoom() {
               {downloadError}
             </p>
           ) : null}
-          <ServiceSpaceNavigation activeSpace="statistics" variant="plain" />
         </div>
       </section>
 

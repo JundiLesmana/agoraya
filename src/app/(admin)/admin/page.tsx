@@ -1,7 +1,76 @@
-export default function AdminPage() {
+import Link from "next/link";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuth } from "@/lib/auth/guards";
+
+const REVIEW_LINKS = [
+  {
+    href: "/admin/kyc/asn",
+    title: "Verifikasi ASN",
+    description: "Tinjau dan kelola pengajuan KYC aparatur sipil negara.",
+  },
+] as const;
+
+const ADMIN_LINKS = [
+  {
+    href: "/admin/kyc/citizen",
+    title: "Verifikasi Warga",
+    description: "Tinjau dan kelola pengajuan verifikasi akun warga.",
+  },
+  {
+    href: "/admin/users",
+    title: "Pengguna",
+    description: "Kelola akun dan akses pengguna platform.",
+  },
+  {
+    href: "/admin/system",
+    title: "Sistem",
+    description: "Akses pengaturan dan informasi sistem.",
+  },
+] as const;
+
+export default async function AdminPage() {
+  const session = await requireAuth({
+    roles: ["admin", "superadmin", "kyc_verifikator"],
+  });
+  const isAdministrator = session.roles.some((role) =>
+    ["admin", "superadmin"].includes(role),
+  );
+  const pages = [
+    ...REVIEW_LINKS,
+    ...(isAdministrator ? ADMIN_LINKS : []),
+  ];
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
-    </div>
+    <section className="space-y-6">
+      <div className="space-y-2">
+        <p className="text-primary text-sm font-semibold">Pusat pengelolaan</p>
+        <h1 className="text-3xl font-bold tracking-tight">Panel Admin</h1>
+        <p className="text-muted-foreground max-w-2xl">
+          Pilih laman yang ingin Anda kelola. Akses ditampilkan sesuai peran
+          akun Anda.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {pages.map((page) => (
+          <Link key={page.href} href={page.href} className="group">
+            <Card className="h-full transition-colors group-hover:border-primary/50">
+              <CardHeader>
+                <CardTitle className="text-lg">{page.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-sm">
+                  {page.description}
+                </p>
+                <span className="text-primary mt-5 inline-block text-sm font-medium">
+                  Buka laman <span aria-hidden="true">→</span>
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

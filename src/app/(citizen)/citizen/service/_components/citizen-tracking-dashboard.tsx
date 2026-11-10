@@ -24,7 +24,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ServiceSpaceNavigation } from '@/components/service-space-navigation';
 import { cn } from '@/lib/utils';
 import {
   mapStoredServiceApplication,
@@ -1075,10 +1074,6 @@ export function CitizenTrackingDashboard() {
               </Button>
             </div>
           </div>
-          <ServiceSpaceNavigation
-            activeSpace="citizen"
-            statisticsHref="/tracking/stat"
-          />
         </div>
       </section>
 

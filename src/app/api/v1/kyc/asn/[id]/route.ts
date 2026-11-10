@@ -7,7 +7,7 @@ import { getKycReviewDetail } from "@/modules/kyc/review-detail-service";
 
 export const dynamic = "force-dynamic";
 
-const rosterIdSchema = z.string().min(1).max(64);
+const rosterIdSchema = z.string().uuid();
 
 interface RouteContext {
   readonly params: Promise<{ readonly id: string }>;
