@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { authenticatePassword } from "@/modules/identity/password/service";
-import { createSession } from "@/modules/identity/session/service";
+import {
+  createSession,
+  destroySession,
+  validateSession,
+} from "@/modules/identity/session/service";
 
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/lib/auth/session";
-import { destroySession } from "@/modules/identity/session/service";
 const SESSION_COOKIE = "agoraya_session";
 
 export async function GET() {
@@ -89,8 +92,17 @@ export async function POST(request: Request) {
     }
 
     const session = await createSession(result.userId);
+    const validation = await validateSession(session.token);
+    if (!validation.valid) {
+      await destroySession(session.token);
+      return NextResponse.json(
+        { error: "Akun belum memiliki akses aktif." },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     const response = NextResponse.json(
-      { ok: true },
+      { ok: true, roles: validation.roles ?? [] },
       { headers: { "Cache-Control": "no-store" } },
     );
     response.cookies.set(SESSION_COOKIE, session.token, {

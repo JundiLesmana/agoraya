@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LoaderCircle } from "lucide-react";
+import { getPostLoginRoute } from "@/lib/auth/post-login-route";
 
 export function LoginForm() {
   const router = useRouter();
@@ -28,24 +29,14 @@ export function LoginForm() {
       const result = (await response.json()) as {
         error?: string;
         ok?: boolean;
+        roles?: string[];
       };
       if (!response.ok || !result.ok) {
         setError(result.error ?? "NIK/email atau kata sandi tidak sesuai.");
         return;
       }
 
-      const sessionResponse = await fetch("/api/auth", { cache: "no-store" });
-      const session = (await sessionResponse.json()) as { roles?: string[] };
-      const roles = session.roles ?? [];
-      let target = "/reporting";
-      if (roles.includes("executive") || roles.includes("pimpinan")) {
-        target = "/executive/dashboard";
-      } else if (
-        roles.some((role) => role === "asn" || role === "staff" || role === "superadmin")
-      ) {
-        target = "/asn/dashboard";
-      }
-      router.replace(target);
+      router.replace(getPostLoginRoute(result.roles ?? []));
       router.refresh();
     } catch {
       setError(
