@@ -82,6 +82,7 @@ import { registerCitizen } from "@/modules/citizen/service";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import { hashPassword } from "@/modules/identity/password/service";
 import { db } from "@/lib/db";
+import { resetEnv } from "@/lib/env";
 
 const baseCommand = {
   nik: "3273010101010001",
@@ -104,7 +105,11 @@ describe("registerCitizen service", () => {
     vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
     vi.stubEnv("CLOUDINARY_API_KEY", "key");
     vi.stubEnv("CLOUDINARY_API_SECRET", "secret");
+    vi.stubEnv("DATABASE_URL", "postgresql://localhost:5432/agoraya_test");
+    vi.stubEnv("AUTH_SECRET", "test-secret-key-minimum-thirty-two-chars");
     vi.stubEnv("CITIZEN_KYC_TENANT_ID", kycTenantId);
+
+    resetEnv();
 
     dbMock.selectResults = [[], [], [{ id: kycTenantId }]];
     dbMock.selectCallIndex = 0;
@@ -187,6 +192,7 @@ describe("registerCitizen service", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("CITIZEN_KYC_TENANT_ID", "");
     vi.stubEnv("REPORTING_TENANT_ID", "");
+    resetEnv();
     dbMock.selectResults = [[], [], []];
 
     await expect(registerCitizen(baseCommand)).rejects.toMatchObject({

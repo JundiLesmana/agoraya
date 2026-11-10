@@ -1,13 +1,14 @@
 import { z } from "zod";
-import { and, eq, or } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
+import { and, eq } from "drizzle-orm";
+import { randomUUID, createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
-import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError, DatabaseError } from "@/lib/errors";
 import { hashPassword } from "@/modules/identity/password/service";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import { citizenProfiles, citizenAttachments } from "@/modules/citizen/db";
+import { kycRoster } from "@/modules/kyc/db";
 import { users } from "@/modules/identity/db";
 import { tenants } from "@/lib/db/schema";
 import type { RegisterCitizenCommand } from "./schema";
@@ -221,6 +222,9 @@ function dataUrlToBuffer(dataUrl: string): Buffer {
 async function resolveCitizenTenantId(database: ReturnType<typeof db>): Promise<string> {
   const env = getEnv();
   if (env.CITIZEN_KYC_TENANT_ID) return env.CITIZEN_KYC_TENANT_ID;
+  if (env.NODE_ENV === "production") {
+    throw new DatabaseError("CITIZEN_KYC_TENANT_ID is required in production.");
+  }
   const [tenant] = await database
     .select({ id: tenants.id })
     .from(tenants)
@@ -236,104 +240,131 @@ async function resolveCitizenTenantId(database: ReturnType<typeof db>): Promise<
 
 export async function registerCitizen(command: RegisterCitizenCommand) {
   const database = db();
-  const tenantId = await resolveCitizenTenantId(database);
+  const kycTenantId = await resolveCitizenTenantId(database);
 
-  const existing = await database
+  const citizenTenantId = randomUUID();
+
+  const existingByNik = await database
     .select({ id: users.id })
     .from(users)
-    .where(
-      and(
-        eq(users.tenantId, tenantId),
-        or(eq(users.nik, command.nik), eq(users.email, command.email)),
-      ),
-    )
+    .where(and(eq(users.tenantId, citizenTenantId), eq(users.nik, command.nik)))
     .limit(1);
-  if (existing.length > 0) {
-    throw new ConflictError("NIK atau email sudah terdaftar.");
+  if (existingByNik.length > 0) {
+    throw new ConflictError("NIK sudah terdaftar.");
+  }
+
+  const existingByEmail = await database
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.tenantId, citizenTenantId), eq(users.email, command.email)))
+    .limit(1);
+  if (existingByEmail.length > 0) {
+    throw new ConflictError("Email sudah terdaftar.");
+  }
+
+  const [reviewer] = await database
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.id, kycTenantId))
+    .limit(1);
+  if (!reviewer) {
+    throw new NotFoundError("Tenant verifikasi KYC tidak ditemukan.");
   }
 
   const userId = randomUUID();
   const passwordHash = await hashPassword(command.password);
+  const nikHash = createHash("sha256").update(command.nik).digest("hex");
+
+  // Upload attachments before opening the transaction so a CDN failure
+  // propagates without starting a transaction or writing any record.
+  const attachments = [
+    {
+      data: command.attachment,
+      fileName: command.attachmentFileName,
+      mimeType: command.attachmentMimeType,
+      type: "ktp",
+    },
+    {
+      data: command.selfie,
+      fileName: command.selfieFileName,
+      mimeType: command.selfieMimeType,
+      type: "selfie",
+    },
+  ];
+
+  const attachmentRows: typeof citizenAttachments.$inferInsert[] = [];
+  for (const attachment of attachments) {
+    const buffer = dataUrlToBuffer(attachment.data);
+    const uploaded = await uploadToCloudinary({
+      buffer,
+      tenantId: citizenTenantId,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      category: "citizen",
+    });
+    attachmentRows.push({
+      id: randomUUID(),
+      tenantId: citizenTenantId,
+      citizenProfileId: userId,
+      cloudinaryPublicId: uploaded.publicId,
+      cloudinarySecureUrl: uploaded.secureUrl,
+      resourceType: uploaded.resourceType,
+      attachmentType: attachment.type,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      size: uploaded.size ?? undefined,
+    });
+  }
 
   return database.transaction(async (tx) => {
-    const [user] = await tx
-      .insert(users)
-      .values({
-        id: userId,
-        tenantId,
-        email: command.email,
-        name: command.name,
-        nik: command.nik,
-        passwordHash,
-        status: "inactive",
-      })
-      .returning({
-        id: users.id,
-        email: users.email,
-        nik: users.nik,
-        status: users.status,
-      });
+    await tx.insert(tenants).values({
+      id: citizenTenantId,
+      name: "Agoraya Citizen",
+      slug: "agoraya-citizen",
+      status: "active",
+    });
 
-    const [profile] = await tx
-      .insert(citizenProfiles)
-      .values({
-        id: randomUUID(),
-        tenantId,
-        userId,
-        nik: command.nik,
-        name: command.name,
-        email: command.email,
-        phone: command.phone,
-        address: null,
-        status: "pending",
-      })
-      .returning({ id: citizenProfiles.id });
+    await tx.insert(users).values({
+      id: userId,
+      tenantId: citizenTenantId,
+      email: command.email,
+      name: command.name,
+      nik: command.nik,
+      passwordHash,
+      status: "inactive",
+    });
 
-    const attachments = [
-      {
-        data: command.attachment,
-        fileName: command.attachmentFileName,
-        mimeType: command.attachmentMimeType,
-        type: "ktp",
-      },
-      {
-        data: command.selfie,
-        fileName: command.selfieFileName,
-        mimeType: command.selfieMimeType,
-        type: "selfie",
-      },
-    ];
+    await tx.insert(kycRoster).values({
+      id: randomUUID(),
+      tenantId: kycTenantId,
+      userId,
+      nikHash,
+      name: command.name,
+      status: "pending",
+      submittedBy: userId,
+    });
 
-    for (const attachment of attachments) {
-      const buffer = dataUrlToBuffer(attachment.data);
-      const uploaded = await uploadToCloudinary({
-        buffer,
-        tenantId,
-        fileName: attachment.fileName,
-        mimeType: attachment.mimeType,
-        category: "citizen",
-      });
-      await tx.insert(citizenAttachments).values({
-        id: randomUUID(),
-        tenantId,
-        citizenProfileId: profile.id,
-        cloudinaryPublicId: uploaded.publicId,
-        cloudinarySecureUrl: uploaded.secureUrl,
-        resourceType: uploaded.resourceType,
-        attachmentType: attachment.type,
-        fileName: attachment.fileName,
-        mimeType: attachment.mimeType,
-        size: uploaded.size ?? undefined,
-      });
-    }
+    await tx.insert(citizenProfiles).values({
+      id: randomUUID(),
+      tenantId: citizenTenantId,
+      userId,
+      nik: command.nik,
+      name: command.name,
+      email: command.email,
+      phone: command.phone,
+      address: null,
+      status: "pending",
+    });
 
-    logger.info("citizen.registered", { userId, tenantId, nik: command.nik });
+    await tx.insert(citizenAttachments).values(attachmentRows);
+
+    logger.info("citizen.registered", { userId, tenantId: citizenTenantId, nik: command.nik });
 
     return {
-      nik: user.nik,
-      email: user.email,
-      status: user.status,
-      tenantId,
+      nik: command.nik,
+      email: command.email,
+      status: "pending",
+      tenantId: citizenTenantId,
     };
   });
 }
