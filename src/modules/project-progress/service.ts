@@ -1,19 +1,23 @@
 import { v2 as cloudinary } from "cloudinary";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, or, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { appendAuditEvent } from "@/modules/audit/service";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import {
   computeProgressDeviation,
   validatePhysicalProgressNonDecreasing,
 } from "@/lib/progress";
 import {
+  asnDatasetSubmissions,
   infrastructureProjects,
   projectProgressAttachments,
   projectProgressReports,
   tenants,
 } from "@/lib/db/schema";
+import { statisticOperatorAssignments } from "@/lib/db/schema/statistics-input";
 import type { Session } from "@/lib/auth/session";
 import type { ProgressReport } from "@/lib/progress";
 import type { ProjectDetail } from "./types";
@@ -26,6 +30,12 @@ const SIGNED_URL_TTL_SECONDS = 15 * 60;
 
 const reportFields = z.object({
   project_id: z.string().uuid("ID proyek tidak valid."),
+  source_dataset_submission_id: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional()
+    .default(null),
   periode_bulan: z.coerce.number().int().min(1).max(12),
   periode_tahun: z.coerce.number().int().min(2020).max(2100),
   progres_fisik: z.coerce.number().min(0).max(100),
@@ -288,6 +298,7 @@ function toProgressReport(
   return {
     id: report.id,
     projectId: report.projectId,
+    sourceDatasetSubmissionId: report.sourceDatasetSubmissionId ?? null,
     periodeBulan: report.periodMonth,
     periodeTahun: report.periodYear,
     progresFisik: report.physicalProgress,
@@ -508,6 +519,7 @@ export async function handleSubmit(
 
   const {
     project_id: projectId,
+    source_dataset_submission_id: sourceDatasetSubmissionId,
     periode_bulan: periodMonth,
     periode_tahun: periodYear,
     progres_fisik: physicalProgress,
@@ -526,6 +538,9 @@ export async function handleSubmit(
           id: infrastructureProjects.id,
           initialPhysicalProgress:
             infrastructureProjects.initialPhysicalProgress,
+          sector: infrastructureProjects.sector,
+          fiscalYear: infrastructureProjects.fiscalYear,
+          location: infrastructureProjects.location,
         })
         .from(infrastructureProjects)
         .where(eq(infrastructureProjects.id, projectId))
@@ -536,6 +551,67 @@ export async function handleSubmit(
           "Anda tidak berwenang menginput progres untuk proyek ini.",
           403,
         );
+      }
+      if (sourceDatasetSubmissionId) {
+        const [source] = await transaction
+          .select({ id: asnDatasetSubmissions.id })
+          .from(asnDatasetSubmissions)
+          .where(
+            and(
+              eq(asnDatasetSubmissions.id, sourceDatasetSubmissionId),
+              eq(asnDatasetSubmissions.tenantId, session.tenantId),
+              eq(asnDatasetSubmissions.status, "submitted"),
+              inArray(asnDatasetSubmissions.category, ["Proyek", "Statistik"]),
+              eq(asnDatasetSubmissions.sectorId, project.sector),
+              eq(asnDatasetSubmissions.referenceYear, project.fiscalYear),
+              or(
+                and(
+                  eq(asnDatasetSubmissions.assignmentType, "project"),
+                  eq(asnDatasetSubmissions.projectId, project.id),
+                ),
+                and(
+                  eq(asnDatasetSubmissions.assignmentType, "statistics"),
+                  sql`lower(btrim(${asnDatasetSubmissions.regionName})) = lower(btrim(${project.location}))`,
+                  exists(
+                    transaction
+                      .select({ id: statisticOperatorAssignments.id })
+                      .from(statisticOperatorAssignments)
+                      .where(
+                        and(
+                          eq(
+                            statisticOperatorAssignments.tenantId,
+                            asnDatasetSubmissions.tenantId,
+                          ),
+                          eq(
+                            statisticOperatorAssignments.userId,
+                            session.userId,
+                          ),
+                          eq(
+                            statisticOperatorAssignments.agencyId,
+                            asnDatasetSubmissions.agencyId,
+                          ),
+                          eq(
+                            statisticOperatorAssignments.regionId,
+                            asnDatasetSubmissions.regionId,
+                          ),
+                          eq(
+                            statisticOperatorAssignments.sectorId,
+                            asnDatasetSubmissions.sectorId,
+                          ),
+                        ),
+                      ),
+                  ),
+                ),
+              ),
+            ),
+          )
+          .limit(1);
+        if (!source) {
+          throw new ProgressServiceError(
+            "Dataset sumber harus terkirim dan sesuai dengan penugasan proyek ini.",
+            403,
+          );
+        }
       }
 
       const reports = await transaction
@@ -619,6 +695,7 @@ export async function handleSubmit(
         await transaction
           .update(projectProgressReports)
           .set({
+            sourceDatasetSubmissionId,
             physicalProgress,
             financialProgress,
             evaluationNotes,
@@ -633,6 +710,7 @@ export async function handleSubmit(
           tenantId: session.tenantId,
           projectId,
           reportedBy: session.userId,
+          sourceDatasetSubmissionId,
           periodMonth,
           periodYear,
           physicalProgress,
@@ -717,6 +795,38 @@ export async function handleSubmit(
       );
     }
     throw error;
+  }
+
+  try {
+    await appendAuditEvent(db(), {
+      actorId: uuidOrNull(session.userId),
+      action: "asn.project_progress.saved",
+      targetTable: "project_progress_reports",
+      targetId: uuidOrNull(result.report.id),
+      metadata: {
+        projectId,
+        periodMonth,
+        periodYear,
+        status: mode === "submit" ? "submitted" : "draft",
+        sourceDatasetSubmissionId,
+        attachmentCount: files.length,
+        result: "success",
+      },
+      occurredAt: new Date(),
+    });
+  } catch (error) {
+    logger.error("project_progress.audit_failed", {
+      projectId,
+      reportId: result.report.id,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    });
+    return NextResponse.json(
+      {
+        error:
+          "Progres tersimpan, tetapi pencatatan audit gagal. Hubungi administrator sebelum mengulangi perubahan.",
+      },
+      { status: 500 },
+    );
   }
 
   try {

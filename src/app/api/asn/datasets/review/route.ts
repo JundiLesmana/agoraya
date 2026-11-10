@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import { logger } from "@/lib/logger";
+import { db } from "@/lib/db";
+import { appendAuditEvent } from "@/modules/audit/service";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import {
   getPendingBpsDatasetReview,
   publishBpsDatasetReview,
@@ -11,7 +14,11 @@ export const dynamic = "force-dynamic";
 
 function isDatasetReviewer(roles: readonly string[]): boolean {
   return roles.some(
-    (role) => role === "asn" || role === "staff" || role === "superadmin",
+    (role) =>
+      role === "asn" ||
+      role === "staff" ||
+      role === "admin" ||
+      role === "superadmin",
   );
 }
 
@@ -83,6 +90,17 @@ export async function POST(request: Request): Promise<Response> {
         { status: 404 },
       );
     }
+    await appendAuditEvent(db(), {
+      actorId: uuidOrNull(authorization.session.userId),
+      action: "asn.dataset.bps_published",
+      targetTable: "datasets",
+      targetId: null,
+      metadata: {
+        slug: "statistik-bps",
+        result: "success",
+      },
+      occurredAt: new Date(),
+    });
     return NextResponse.json({ published: true });
   } catch (error) {
     logger.error("bps_dataset_review.publish_failed", {

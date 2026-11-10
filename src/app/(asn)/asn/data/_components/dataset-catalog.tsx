@@ -200,7 +200,7 @@ function DatasetFilters({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-3 sm:grid-cols-3">
       <label className="block space-y-1.5">
         <span className="text-sm font-medium">Kategori</span>
         <Select
@@ -364,7 +364,13 @@ function MetadataDetails({ dataset }: { dataset: DatasetMetadata }) {
   );
 }
 
-export function DatasetCatalog() {
+export function DatasetCatalog({
+  allowLegacyActions = false,
+  hideHeader = false,
+}: {
+  allowLegacyActions?: boolean;
+  hideHeader?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -515,9 +521,7 @@ export function DatasetCatalog() {
       );
       setRetryCount((count) => count + 1);
     } catch {
-      setImportError(
-        "Gagal menyinkronkan data dari BPS API. Coba lagi nanti.",
-      );
+      setImportError("Gagal menyinkronkan data dari BPS API. Coba lagi nanti.");
     } finally {
       setImportPending(false);
     }
@@ -535,13 +539,17 @@ export function DatasetCatalog() {
     setAddDatasetMessage("");
 
     if (
-      !DATA_CATEGORY_OPTIONS.some((option) => option.value === values.category) ||
+      !DATA_CATEGORY_OPTIONS.some(
+        (option) => option.value === values.category,
+      ) ||
       !values.title ||
       !values.summary ||
       !values.description
     ) {
       setAddDatasetPending(false);
-      setAddDatasetError("Judul, ringkasan, deskripsi, dan kategori wajib diisi.");
+      setAddDatasetError(
+        "Judul, ringkasan, deskripsi, dan kategori wajib diisi.",
+      );
       return;
     }
     if (!values.file) {
@@ -567,7 +575,8 @@ export function DatasetCatalog() {
         dataset?: { id: string; slug: string; category: string };
         error?: string;
       };
-      if (!response.ok) throw new Error(result.error ?? "Dataset gagal ditambahkan.");
+      if (!response.ok)
+        throw new Error(result.error ?? "Dataset gagal ditambahkan.");
       setAddDatasetMessage(result.message ?? "Dataset berhasil ditambahkan.");
       setAddDatasetOpen(false);
       setSelectedFile(null);
@@ -590,88 +599,60 @@ export function DatasetCatalog() {
         refreshKey={retryCount}
         onPublished={() => setRetryCount((count) => count + 1)}
       />
-      <header className="space-y-3">
-        <nav aria-label="Breadcrumb" className="text-muted-foreground text-xs">
-          <ol className="flex flex-wrap items-center gap-2">
-            <li>
-              <Link
-                className="hover:text-foreground underline-offset-4 hover:underline"
-                href="/"
-              >
-                Beranda
-              </Link>
-            </li>
-            <li aria-hidden="true">›</li>
-            <li>
-              <Link
-                className="hover:text-foreground underline-offset-4 hover:underline"
-                href="/data-pemerintah"
-              >
-                Data Pemerintah
-              </Link>
-            </li>
-            <li aria-hidden="true">›</li>
-            <li aria-current="page" className="text-foreground font-medium">
-              Dataset
-            </li>
-          </ol>
-        </nav>
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Katalog Dataset & Metadata Terbuka
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
-              Temukan dataset pemerintah, pahami konteks dan struktur datanya,
-              lalu akses sumber dalam format yang tersedia.
-            </p>
-          </div>
-          {catalog ? (
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">{catalog.total}</span>
-              <span className="text-muted-foreground text-sm">
-                dataset tersedia
-              </span>
-              <SourceBadge source="SIMULATED" className="text-[10px]" />
+      {!hideHeader ? (
+        <header className="space-y-3">
+          <nav
+            aria-label="Breadcrumb"
+            className="text-muted-foreground text-xs"
+          >
+            <ol className="flex flex-wrap items-center gap-2">
+              <li>
+                <Link
+                  className="hover:text-foreground underline-offset-4 hover:underline"
+                  href="/"
+                >
+                  Beranda
+                </Link>
+              </li>
+              <li aria-hidden="true">›</li>
+              <li>
+                <Link
+                  className="hover:text-foreground underline-offset-4 hover:underline"
+                  href="/data-pemerintah"
+                >
+                  Data Pemerintah
+                </Link>
+              </li>
+              <li aria-hidden="true">›</li>
+              <li aria-current="page" className="text-foreground font-medium">
+                Dataset
+              </li>
+            </ol>
+          </nav>
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Katalog Dataset & Metadata Terbuka
+              </h1>
+              <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
+                Temukan dataset pemerintah, pahami konteks dan struktur datanya,
+                lalu akses sumber dalam format yang tersedia.
+              </p>
             </div>
-          ) : null}
-        </div>
-      </header>
-
-      <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside aria-label="Filter dataset" className="h-fit">
-          <div className="hidden rounded-xl border p-4 lg:block">
-            <h2 className="mb-4 flex items-center gap-2 font-semibold">
-              <SlidersHorizontal aria-hidden="true" className="size-4" />
-              Filter dataset
-            </h2>
-            <DatasetFilters
-              categories={catalog?.filters.categories ?? []}
-              agencies={catalog?.filters.agencies ?? []}
-              category={category}
-              format={format}
-              agency={agency}
-              onChange={changeFilter}
-            />
+            {catalog ? (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{catalog.total}</span>
+                <span className="text-muted-foreground text-sm">
+                  dataset tersedia
+                </span>
+                <SourceBadge source="SIMULATED" className="text-[10px]" />
+              </div>
+            ) : null}
           </div>
-          <details className="rounded-xl border p-4 lg:hidden">
-            <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold">
-              <SlidersHorizontal aria-hidden="true" className="size-4" />
-              Filter dataset
-            </summary>
-            <div className="pt-4">
-              <DatasetFilters
-                categories={catalog?.filters.categories ?? []}
-                agencies={catalog?.filters.agencies ?? []}
-                category={category}
-                format={format}
-                agency={agency}
-                onChange={changeFilter}
-              />
-            </div>
-          </details>
-        </aside>
+        </header>
+      ) : null}
 
+      <div className="space-y-4">
         <section
           aria-labelledby="dataset-list-title"
           className="min-w-0 space-y-4"
@@ -679,31 +660,39 @@ export function DatasetCatalog() {
           <h2 id="dataset-list-title" className="sr-only">
             Daftar dataset
           </h2>
-          <div className="flex justify-end gap-2">
-            {importMessage || importError ? (
-              <p className="text-sm text-muted-foreground">
-                {importError ? `⚠ ${importError}` : importMessage}
+          {allowLegacyActions ? (
+            <>
+              <div className="flex justify-end gap-2">
+                {importMessage || importError ? (
+                  <p className="text-muted-foreground text-sm">
+                    {importError ? `⚠ ${importError}` : importMessage}
+                  </p>
+                ) : null}
+                {addDatasetMessage || addDatasetError ? (
+                  <p className="text-muted-foreground text-sm">
+                    {addDatasetError
+                      ? `⚠ ${addDatasetError}`
+                      : addDatasetMessage}
+                  </p>
+                ) : null}
+                <Button
+                  onClick={() => setAddDatasetOpen(true)}
+                  disabled={addDatasetPending}
+                >
+                  {addDatasetPending ? "Menambahkan..." : "Tambah Dataset"}
+                </Button>
+                <Button onClick={handleImport} disabled={importPending}>
+                  {importPending
+                    ? "Menyinkronkan..."
+                    : "Import BPS (Statistik)"}
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-right text-xs">
+                Impor BPS menunggu tinjauan sebelum metadata tampil di halaman
+                publik Statistik.
               </p>
-            ) : null}
-            {addDatasetMessage || addDatasetError ? (
-              <p className="text-sm text-muted-foreground">
-                {addDatasetError ? `⚠ ${addDatasetError}` : addDatasetMessage}
-              </p>
-            ) : null}
-            <Button
-              onClick={() => setAddDatasetOpen(true)}
-              disabled={addDatasetPending}
-            >
-              {addDatasetPending ? "Menambahkan..." : "Tambah Dataset"}
-            </Button>
-            <Button onClick={handleImport} disabled={importPending}>
-              {importPending ? "Menyinkronkan..." : "Import BPS (Statistik)"}
-            </Button>
-          </div>
-          <p className="text-muted-foreground text-right text-xs">
-            Impor BPS saat ini hanya menyinkronkan data statistik. Dataset BPS
-            menunggu tinjauan sebelum tampil di halaman publik Statistik.
-          </p>
+            </>
+          ) : null}
           <div className="flex flex-col gap-3 rounded-xl border p-3 sm:flex-row">
             <form
               onSubmit={submitSearch}
@@ -739,6 +728,22 @@ export function DatasetCatalog() {
               />
             </label>
           </div>
+          <details className="rounded-xl border bg-white px-3 py-2 dark:bg-slate-900">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-medium">
+              <SlidersHorizontal aria-hidden="true" className="size-4" />
+              Filter aktif
+            </summary>
+            <div className="pt-3">
+              <DatasetFilters
+                categories={catalog?.filters.categories ?? []}
+                agencies={catalog?.filters.agencies ?? []}
+                category={category}
+                format={format}
+                agency={agency}
+                onChange={changeFilter}
+              />
+            </div>
+          </details>
 
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <p className="text-muted-foreground" aria-live="polite">
@@ -858,15 +863,17 @@ export function DatasetCatalog() {
         </section>
       </div>
 
-      <AddDatasetModal
-        open={addDatasetOpen}
-        onOpenChange={setAddDatasetOpen}
-        selectedFile={selectedFile}
-        onFileChange={setSelectedFile}
-        serverError={addDatasetError}
-        onAdd={(values) => handleAddDataset(values)}
-        isPending={addDatasetPending}
-      />
+      {allowLegacyActions ? (
+        <AddDatasetModal
+          open={addDatasetOpen}
+          onOpenChange={setAddDatasetOpen}
+          selectedFile={selectedFile}
+          onFileChange={setSelectedFile}
+          serverError={addDatasetError}
+          onAdd={(values) => handleAddDataset(values)}
+          isPending={addDatasetPending}
+        />
+      ) : null}
 
       <Modal
         open={datasetSlug !== null}
@@ -966,14 +973,12 @@ function AddDatasetModal({
     >
       <form onSubmit={submit} className="space-y-4">
         {serverError ? (
-          <p role="alert" className="text-xs text-destructive">
+          <p role="alert" className="text-destructive text-xs">
             {serverError}
           </p>
         ) : null}
         <label className="block">
-          <span className="text-sm font-medium">
-            Kategori data pemerintah
-          </span>
+          <span className="text-sm font-medium">Kategori data pemerintah</span>
           <Select
             aria-label="Kategori data pemerintah"
             value={category}
@@ -982,7 +987,7 @@ function AddDatasetModal({
             options={DATA_CATEGORY_OPTIONS}
           />
           {!category && (
-            <p className="text-xs text-destructive" role="alert">
+            <p className="text-destructive text-xs" role="alert">
               Kategori wajib dipilih.
             </p>
           )}
@@ -1032,22 +1037,25 @@ function AddDatasetModal({
                 setSubmitError("Hanya berkas CSV yang diperbolehkan.");
               }
             }}
-            className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+            className="text-muted-foreground file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 block w-full text-sm file:mr-4 file:rounded-full file:border-0 file:px-4 file:py-2 file:text-sm file:font-semibold"
           />
           {selectedFile && (
-            <p className="text-xs text-muted-foreground">
-              {selectedFile.name} ·
-              {(selectedFile.size / 1024).toFixed(1)} KB
+            <p className="text-muted-foreground text-xs">
+              {selectedFile.name} ·{(selectedFile.size / 1024).toFixed(1)} KB
             </p>
           )}
         </label>
         {submitError ? (
-          <p role="alert" className="text-xs text-destructive">
+          <p role="alert" className="text-destructive text-xs">
             {submitError}
           </p>
         ) : null}
-        <footer className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-3">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <footer className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Batal
           </Button>
           <Button type="submit" disabled={isPending}>

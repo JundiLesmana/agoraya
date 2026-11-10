@@ -13,6 +13,8 @@ export * from './datasets';
 export * from './project-progress';
 export * from './service-applications';
 export * from './review-workflow';
+export * from './apbd-budget';
+export * from './asn-dataset-submissions';
 
 import * as enums from './enums';
 import * as foundation from './foundation';
@@ -29,6 +31,8 @@ import * as datasets from './datasets';
 import * as projectProgress from './project-progress';
 import * as serviceApplications from './service-applications';
 import * as reviewWorkflow from './review-workflow';
+import * as apbdBudget from './apbd-budget';
+import * as asnDatasetSubmissions from './asn-dataset-submissions';
 
-export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...decisionEngine, ...datasets, ...projectProgress , ...serviceApplications, ...reviewWorkflow} as const;
+export const tables = { ...foundation, ...identity, ...rbac, ...reporting, ...kyc, ...cms, ...analytics, ...bpsSnapshot, ...citizen, ...decisionEngine, ...datasets, ...projectProgress , ...serviceApplications, ...reviewWorkflow, ...apbdBudget, ...asnDatasetSubmissions} as const;
 export { enums };
