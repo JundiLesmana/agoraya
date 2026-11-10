@@ -91,8 +91,9 @@ function cloudinaryClient() {
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error(
-      "Cloudinary belum dikonfigurasi untuk unggahan dokumentasi.",
+    throw new ProgressServiceError(
+      "CDN belum dikonfigurasi untuk unggahan dokumentasi. Hubungi administrator.",
+      502,
     );
   }
   cloudinary.config({
