@@ -5,10 +5,13 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applicationRoles,
+  moduleAccess,
   permissions,
   rolePermissions,
   roles,
   tenants,
+  userApplicationRoles,
   userRoles,
   users,
 } from "../src/lib/db/schema/index.js";
@@ -21,25 +24,45 @@ const LOCAL_TENANT_SLUG = "agoraya-local-testing";
 const LocalSeedEnvSchema = z.object({
   DATABASE_URL_UNPOOLED: z.string().url(),
   LOCAL_SEED_TENANT_NAME: z.string().trim().min(1).max(255),
-  LOCAL_SEED_EXECUTIVE_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
-  LOCAL_SEED_ADMIN_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
-  LOCAL_SEED_CITIZEN_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
+  LOCAL_SEED_SUPERADMIN_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_ADMIN_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_MAKER_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_CHECKER_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_CITIZEN_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_KYC_CITIZEN_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_KYC_ASN_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_APBD_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_OPERATOR_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_VERIFIKATOR_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_CMS_OPERATOR_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_ASN_OPERATOR_PASSWORD: z.string().min(12).max(256),
+  LOCAL_SEED_EXECUTIVE_PASSWORD: z.string().min(12).max(256),
 });
 
 const ROLE_DEFINITIONS = [
   { key: "superadmin", name: "Superadmin" },
   { key: "admin", name: "Admin" },
-  { key: "executive", name: "Executive" },
+  { key: "maker", name: "Maker" },
+  { key: "checker", name: "Checker" },
   { key: "citizen", name: "Warga" },
+  { key: "asn", name: "ASN" },
+  { key: "staff", name: "Staff" },
+  { key: "executive", name: "Executive" },
+] as const;
+
+const APPLICATION_ROLE_DEFINITIONS = [
+  { key: "operator", name: "Operator" },
+  { key: "verifikator", name: "Verifikator" },
+  { key: "kyc_verifikator", name: "Verifikator KYC" },
+  { key: "cms_operator", name: "Operator CMS" },
+] as const;
+
+const MODULE_ACCESS_DEFINITIONS = [
+  "ogd",
+  "insight",
+  "kyc",
+  "pst",
+  "civic_reporting",
 ] as const;
 
 const PERMISSION_DEFINITIONS = [
@@ -53,22 +76,108 @@ const PERMISSION_DEFINITIONS = [
 
 const ACCOUNT_DEFINITIONS = [
   {
-    email: "testing@executive.com",
-    name: "Testing Executive",
-    passwordKey: "LOCAL_SEED_EXECUTIVE_PASSWORD",
-    roleKeys: ["superadmin", "executive"],
+    email: "superadmin@agoraya.test",
+    name: "Superadmin Local",
+    passwordKey: "LOCAL_SEED_SUPERADMIN_PASSWORD",
+    roleKeys: ["superadmin"],
+    applicationRoleKeys: ["operator", "verifikator", "kyc_verifikator", "cms_operator"],
+    moduleAccessKeys: ["ogd", "insight", "kyc", "pst", "civic_reporting"],
   },
   {
-    email: "testing@admin.com",
-    name: "Testing Admin",
+    email: "admin@agoraya.test",
+    name: "Admin Local",
     passwordKey: "LOCAL_SEED_ADMIN_PASSWORD",
     roleKeys: ["admin"],
+    applicationRoleKeys: ["operator", "verifikator", "kyc_verifikator"],
+    moduleAccessKeys: ["ogd", "insight", "kyc", "pst", "civic_reporting"],
   },
   {
-    email: "testing@citizen.com",
-    name: "Testing Citizen",
+    email: "maker@agoraya.test",
+    name: "Maker Local",
+    passwordKey: "LOCAL_SEED_MAKER_PASSWORD",
+    roleKeys: ["maker"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["civic_reporting"],
+  },
+  {
+    email: "checker@agoraya.test",
+    name: "Checker Local",
+    passwordKey: "LOCAL_SEED_CHECKER_PASSWORD",
+    roleKeys: ["checker"],
+    applicationRoleKeys: ["verifikator", "kyc_verifikator"],
+    moduleAccessKeys: ["civic_reporting", "kyc"],
+  },
+  {
+    email: "citizen@agoraya.test",
+    name: "Citizen Local",
     passwordKey: "LOCAL_SEED_CITIZEN_PASSWORD",
     roleKeys: ["citizen"],
+    applicationRoleKeys: [],
+    moduleAccessKeys: [],
+  },
+  {
+    email: "kyc-citizen@agoraya.test",
+    name: "KYC Citizen Verifikator",
+    passwordKey: "LOCAL_SEED_KYC_CITIZEN_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["kyc_verifikator"],
+    moduleAccessKeys: ["kyc"],
+  },
+  {
+    email: "kyc-asn@agoraya.test",
+    name: "KYC ASN Verifikator",
+    passwordKey: "LOCAL_SEED_KYC_ASN_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["kyc_verifikator"],
+    moduleAccessKeys: ["kyc"],
+  },
+  {
+    email: "apbd@agoraya.test",
+    name: "APBD Operator",
+    passwordKey: "LOCAL_SEED_APBD_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["insight"],
+  },
+  {
+    email: "operator@agoraya.test",
+    name: "General Operator",
+    passwordKey: "LOCAL_SEED_OPERATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["civic_reporting", "pst"],
+  },
+  {
+    email: "verifikator@agoraya.test",
+    name: "Verifikator General",
+    passwordKey: "LOCAL_SEED_VERIFIKATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["verifikator"],
+    moduleAccessKeys: ["civic_reporting"],
+  },
+  {
+    email: "cms-operator@agoraya.test",
+    name: "CMS Operator",
+    passwordKey: "LOCAL_SEED_CMS_OPERATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["cms_operator"],
+    moduleAccessKeys: ["ogd"],
+  },
+  {
+    email: "asn-operator@agoraya.test",
+    name: "ASN Statistics Operator",
+    passwordKey: "LOCAL_SEED_ASN_OPERATOR_PASSWORD",
+    roleKeys: ["asn"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["insight"],
+  },
+  {
+    email: "executive@agoraya.test",
+    name: "Executive Local",
+    passwordKey: "LOCAL_SEED_EXECUTIVE_PASSWORD",
+    roleKeys: ["executive", "superadmin"],
+    applicationRoleKeys: [],
+    moduleAccessKeys: ["ogd", "insight"],
   },
 ] as const;
 
@@ -183,6 +292,27 @@ async function main(): Promise<void> {
         roleIds.set(role.key, storedRole.id);
       }
 
+      const appRoleIds = new Map<string, string>();
+      for (const appRole of APPLICATION_ROLE_DEFINITIONS) {
+        await tx
+          .insert(applicationRoles)
+          .values({
+            id: randomUUID(),
+            key: appRole.key,
+            name: appRole.name,
+          })
+          .onConflictDoNothing({ target: applicationRoles.key });
+        const [storedAppRole] = await tx
+          .select({ id: applicationRoles.id })
+          .from(applicationRoles)
+          .where(eq(applicationRoles.key, appRole.key))
+          .limit(1);
+        if (!storedAppRole) {
+          throw new Error(`Application role ${appRole.key} tidak berhasil disiapkan.`);
+        }
+        appRoleIds.set(appRole.key, storedAppRole.id);
+      }
+
       for (const account of accountInputs) {
         const email = account.email.toLowerCase();
         const [existing] = await tx
@@ -230,6 +360,52 @@ async function main(): Promise<void> {
               set: { revokedAt: null, expiresAt: null },
             });
         }
+
+        for (const appRoleKey of account.applicationRoleKeys) {
+          const appRoleId = appRoleIds.get(appRoleKey);
+          if (!appRoleId) throw new Error(`Application role ${appRoleKey} tidak ditemukan.`);
+          await tx
+            .insert(userApplicationRoles)
+            .values({
+              id: randomUUID(),
+              tenantId: tenant.id,
+              userId,
+              applicationRoleId: appRoleId,
+              grantedAt: new Date(),
+            })
+            .onConflictDoNothing();
+          await tx
+            .update(userApplicationRoles)
+            .set({ revokedAt: null })
+            .where(
+              and(
+                eq(userApplicationRoles.userId, userId),
+                eq(userApplicationRoles.applicationRoleId, appRoleId),
+              ),
+            );
+        }
+
+        for (const moduleKey of account.moduleAccessKeys) {
+          await tx
+            .insert(moduleAccess)
+            .values({
+              id: randomUUID(),
+              tenantId: tenant.id,
+              userId,
+              moduleKey,
+              grantedAt: new Date(),
+            })
+            .onConflictDoNothing();
+          await tx
+            .update(moduleAccess)
+            .set({ revokedAt: null })
+            .where(
+              and(
+                eq(moduleAccess.userId, userId),
+                eq(moduleAccess.moduleKey, moduleKey),
+              ),
+            );
+        }
       }
 
       const superadminRoleId = roleIds.get("superadmin");
@@ -270,7 +446,7 @@ async function main(): Promise<void> {
     });
 
     console.log(
-      `Akun testing@executive.com, testing@admin.com, dan testing@citizen.com siap. Password disinkronkan dari .env.local.`,
+      `Akun testing lokal siap (${ACCOUNT_DEFINITIONS.length} akun): superadmin, admin, maker, checker, citizen, kyc-citizen, kyc-asn, apbd, operator, verifikator, cms-operator, asn-operator, executive. Password disinkronkan dari .env.local.`,
     );
   } finally {
     await client.end();
