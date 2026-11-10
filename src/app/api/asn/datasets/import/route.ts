@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import { logger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";
 import { isAppError } from "@/lib/errors";
+import { db } from "@/lib/db";
+import { appendAuditEvent } from "@/modules/audit/service";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import { BpsHttpAdapter, syncBpsStatistics } from "@/modules/integrations/bps";
+import {
+  AsnDatasetError,
+  importAssignedBpsDataset,
+} from "@/modules/asn-datasets/service";
 
 export const dynamic = "force-dynamic";
+const bpsImportScopeSchema = z.strictObject({
+  agencyId: z.string().trim().min(1).max(120),
+  regionId: z.string().trim().min(1).max(120),
+  sectorId: z.string().trim().min(1).max(100),
+});
 
 function getErrorProperty(
   error: unknown,
@@ -22,7 +35,11 @@ function getErrorProperty(
 
 function isDatasetOperator(roles: readonly string[]): boolean {
   return roles.some(
-    (role) => role === "asn" || role === "staff" || role === "superadmin",
+    (role) =>
+      role === "asn" ||
+      role === "staff" ||
+      role === "admin" ||
+      role === "superadmin",
   );
 }
 
@@ -50,9 +67,46 @@ async function authorizeOperator() {
  * tidak disimpan, hanya agregat statistik yang dimasukkan ke database
  * dan catalog metadata yang ditandai menunggu tinjauan sebelum publikasi.
  */
-export async function POST(): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
   const authorization = await authorizeOperator();
   if (!authorization.authorized) return authorization.response;
+
+  let scope: z.infer<typeof bpsImportScopeSchema> | undefined;
+  const contentLength = request.headers.get("content-length");
+  if (contentLength !== null && /^\d+$/.test(contentLength)) {
+    if (Number(contentLength) > 2048) {
+      return NextResponse.json(
+        { error: "Permintaan impor BPS melebihi batas ukuran." },
+        { status: 413 },
+      );
+    }
+  }
+  const requestText = await request.text();
+  if (requestText.length > 2048) {
+    return NextResponse.json(
+      { error: "Permintaan impor BPS melebihi batas ukuran." },
+      { status: 413 },
+    );
+  }
+  if (requestText.trim()) {
+    let payload: unknown;
+    try {
+      payload = JSON.parse(requestText);
+    } catch {
+      return NextResponse.json(
+        { error: "Format permintaan impor BPS tidak valid." },
+        { status: 400 },
+      );
+    }
+    const parsedScope = bpsImportScopeSchema.safeParse(payload);
+    if (!parsedScope.success) {
+      return NextResponse.json(
+        { error: "Penugasan statistik untuk impor BPS tidak valid." },
+        { status: 400 },
+      );
+    }
+    scope = parsedScope.data;
+  }
 
   try {
     const adapter = new BpsHttpAdapter();
@@ -68,6 +122,35 @@ export async function POST(): Promise<Response> {
       operator: authorization.session?.userId,
     });
 
+    if (result.synced) {
+      await appendAuditEvent(db(), {
+        actorId: uuidOrNull(authorization.session.userId),
+        action: "asn.dataset.bps_synced",
+        targetTable: "bps_statistics",
+        targetId: null,
+        metadata: {
+          recordCount: result.count,
+          sourceLabel: "BPS_API",
+          result: "success",
+        },
+        occurredAt: new Date(),
+      });
+    }
+
+    if (result.synced && scope) {
+      const submission = await importAssignedBpsDataset(
+        authorization.session,
+        scope,
+      );
+      return NextResponse.json({
+        imported: true,
+        count: result.count,
+        submission,
+        message:
+          "Snapshot statistik BPS berhasil dikirim ke penugasan yang dipilih.",
+      });
+    }
+
     return NextResponse.json({
       imported: result.synced,
       count: result.count,
@@ -77,6 +160,12 @@ export async function POST(): Promise<Response> {
         : "Sinkronisasi BPS gagal. Data snapshot terakhir tetap tersedia untuk publik.",
     });
   } catch (error) {
+    if (error instanceof AsnDatasetError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
     const cause = error instanceof Error ? error.cause : undefined;
     const missingEnvVars = isAppError(error)
       ? error.context?.missingEnvVars

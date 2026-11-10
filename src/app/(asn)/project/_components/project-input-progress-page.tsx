@@ -6,6 +6,7 @@ import { ProjectSelector } from "./project-selector";
 import { ProjectSummaryCard } from "./project-summary-card";
 import { ProgressForm } from "./progress-form";
 import { ProgressHistory } from "./progress-history";
+import { DatasetSourcePicker } from "../../_components/dataset-source-picker";
 import { AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { progressReportSchema, type ProgressReport } from "@/lib/progress";
@@ -28,6 +29,13 @@ export function ProjectInputProgressPage({
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
+  const [sourceDatasetSubmissionId, setSourceDatasetSubmissionId] = useState<
+    string | null
+  >(null);
+  const datasetSourceScope = useMemo(
+    () => (selectedId ? { kind: "project" as const, projectId: selectedId } : null),
+    [selectedId],
+  );
 
   useEffect(() => {
     if (!selectedId) {
@@ -36,6 +44,7 @@ export function ProjectInputProgressPage({
     }
 
     let active = true;
+    setSourceDatasetSubmissionId(null);
     setHistory([]);
     setHistoryLoading(true);
     setServerMessage(null);
@@ -148,6 +157,12 @@ export function ProjectInputProgressPage({
         formData.set("progres_keuangan", String(values.progresKeuangan));
         formData.set("catatan", values.catatan);
         formData.set("mode", mode);
+        if (sourceDatasetSubmissionId) {
+          formData.set(
+            "source_dataset_submission_id",
+            sourceDatasetSubmissionId,
+          );
+        }
         files.forEach((file) => formData.append("dokumen", file));
 
         const response = await fetch("/api/project-progress", {
@@ -210,7 +225,7 @@ export function ProjectInputProgressPage({
         setSaving(false);
       }
     },
-    [project],
+    [project, sourceDatasetSubmissionId],
   );
 
   return (
@@ -241,6 +256,15 @@ export function ProjectInputProgressPage({
             lastPhysical={lastPhysical}
             lastKeuangan={lastKeuangan}
           />
+
+          <div className="rounded-lg border p-4">
+            <DatasetSourcePicker
+              scope={datasetSourceScope}
+              value={sourceDatasetSubmissionId}
+              onChange={setSourceDatasetSubmissionId}
+              disabled={saving}
+            />
+          </div>
 
           <section className="border-t pt-4">
             <h2 className="flex items-center gap-2 text-sm font-semibold">

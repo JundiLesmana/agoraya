@@ -1,11 +1,15 @@
 import { Suspense } from "react";
 import { DatasetCatalog } from "./_components/dataset-catalog";
+import { DatasetSubmissionWorkspace } from "./_components/dataset-submission-workspace";
 
 export default function AsnDatasetCatalogPage() {
   return (
-    <Suspense fallback={<DatasetCatalogLoading />}>
-      <DatasetCatalog />
-    </Suspense>
+    <div className="space-y-8 pb-8">
+      <DatasetSubmissionWorkspace />
+      <Suspense fallback={<DatasetCatalogLoading />}>
+        <DatasetCatalog allowLegacyActions={false} hideHeader />
+      </Suspense>
+    </div>
   );
 }
 

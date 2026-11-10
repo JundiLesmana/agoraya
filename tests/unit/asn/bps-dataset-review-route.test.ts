@@ -3,9 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const requireModuleAccess = vi.fn();
 const getPendingBpsDatasetReview = vi.fn();
 const publishBpsDatasetReview = vi.fn();
+const appendAuditEvent = vi.fn();
 
 vi.mock("@/lib/auth/require-module-access", () => ({
   requireModuleAccess,
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: vi.fn(() => ({})),
+}));
+
+vi.mock("@/modules/audit/service", () => ({
+  appendAuditEvent,
 }));
 
 vi.mock("@/modules/integrations/bps/catalog", () => ({
@@ -36,6 +45,7 @@ describe("BPS dataset review route", () => {
       preview: [],
     });
     publishBpsDatasetReview.mockResolvedValue(true);
+    appendAuditEvent.mockResolvedValue(undefined);
   });
 
   it("mengizinkan operator ASN meninjau dataset yang menunggu publikasi", async () => {
@@ -87,5 +97,6 @@ describe("BPS dataset review route", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ published: true });
     expect(publishBpsDatasetReview).toHaveBeenCalledOnce();
+    expect(appendAuditEvent).toHaveBeenCalledOnce();
   });
 });

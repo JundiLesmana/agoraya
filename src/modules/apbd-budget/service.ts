@@ -15,6 +15,7 @@ type EntryRow = Row & {
   id: string;
   status: "draft" | "published";
   revisionOfId: string | null;
+  sourceDatasetSubmissionId: string | null;
   revisionReason: string;
   updatedBy: string;
   updatedAt: Date | string;
@@ -123,6 +124,7 @@ async function findEntry(
   return transaction.queryOne<EntryRow>(
     `SELECT entry.id::text AS id, entry.status,
        entry.revision_of_id::text AS "revisionOfId",
+       entry.source_dataset_submission_id::text AS "sourceDatasetSubmissionId",
        entry.revision_reason AS "revisionReason",
        users.name AS "updatedBy", entry.updated_at AS "updatedAt"
      FROM apbd_entries entry
@@ -335,6 +337,7 @@ async function createRevision(
 ): Promise<string> {
   const source = await transaction.queryOne<EntryRow>(
     `SELECT id::text AS id, status, revision_of_id::text AS "revisionOfId",
+       source_dataset_submission_id::text AS "sourceDatasetSubmissionId",
        revision_reason AS "revisionReason", updated_by::text AS "updatedBy",
        updated_at AS "updatedAt"
      FROM apbd_entries
@@ -375,10 +378,11 @@ async function createRevision(
   const draft = await transaction.queryOne<Row & { id: string }>(
     `INSERT INTO apbd_entries (
        tenant_id, agency_id, region_id, region_name, sector_id,
-       reference_year, status, revision_of_id, revision_reason,
-       created_by, updated_by
-     ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $9)
-     RETURNING id::text AS id`,
+      reference_year, status, revision_of_id, source_dataset_submission_id,
+      revision_reason,
+      created_by, updated_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10, $10)
+    RETURNING id::text AS id`,
     [
       session.tenantId,
       assignment.agencyId,
@@ -387,6 +391,7 @@ async function createRevision(
       assignment.sectorId,
       payload.referenceYear,
       source.id,
+      source.sourceDatasetSubmissionId,
       payload.revisionReason,
       session.userId,
     ],
@@ -484,6 +489,32 @@ export async function saveApbdWorkspace(
     session,
     async (transaction) => {
       const assignment = await requireAssignment(transaction, session, payload);
+      if (payload.sourceDatasetSubmissionId) {
+        const source = await transaction.queryOne<Row & { id: string }>(
+          `SELECT id::text AS id
+           FROM asn_dataset_submissions
+           WHERE id = $1 AND tenant_id = $2 AND status = 'submitted'
+             AND assignment_type IN ('statistics', 'apbd')
+             AND category IN ('Statistik', 'Anggaran')
+             AND agency_id = $3 AND region_id = $4 AND sector_id = $5
+             AND reference_year = $6
+           LIMIT 1`,
+          [
+            payload.sourceDatasetSubmissionId,
+            session.tenantId,
+            assignment.agencyId,
+            assignment.regionId,
+            assignment.sectorId,
+            payload.referenceYear,
+          ],
+        );
+        if (!source) {
+          throw new ApbdBudgetError(
+            "Dataset sumber harus terkirim dan sesuai dengan penugasan APBD ini.",
+            403,
+          );
+        }
+      }
       let entry = await findEntry(
         transaction,
         session,
@@ -515,6 +546,7 @@ export async function saveApbdWorkspace(
         );
         entry = await transaction.queryOne<EntryRow>(
           `SELECT id::text AS id, status, revision_of_id::text AS "revisionOfId",
+             source_dataset_submission_id::text AS "sourceDatasetSubmissionId",
              revision_reason AS "revisionReason", updated_by::text AS "updatedBy",
              updated_at AS "updatedAt"
            FROM apbd_entries WHERE id = $1 AND tenant_id = $2`,
@@ -549,8 +581,9 @@ export async function saveApbdWorkspace(
         entry = await transaction.queryOne<EntryRow>(
           `INSERT INTO apbd_entries (
              tenant_id, agency_id, region_id, region_name, sector_id,
-             reference_year, status, created_by, updated_by
-           ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $7)
+             reference_year, status, source_dataset_submission_id,
+             created_by, updated_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $8)
            ON CONFLICT (
              tenant_id, agency_id, region_id, sector_id, reference_year
            ) WHERE status = 'draft'
@@ -558,6 +591,7 @@ export async function saveApbdWorkspace(
              updated_at = NOW()
            RETURNING id::text AS id, status,
              revision_of_id::text AS "revisionOfId",
+             source_dataset_submission_id::text AS "sourceDatasetSubmissionId",
              revision_reason AS "revisionReason",
              updated_by::text AS "updatedBy", updated_at AS "updatedAt"`,
           [
@@ -567,6 +601,7 @@ export async function saveApbdWorkspace(
             assignment.regionName,
             assignment.sectorId,
             payload.referenceYear,
+            payload.sourceDatasetSubmissionId,
             session.userId,
           ],
         );
@@ -730,11 +765,18 @@ export async function saveApbdWorkspace(
         }
         const updated = await transaction.queryOne<Row & { id: string }>(
           `UPDATE apbd_entries SET status = 'published',
+             source_dataset_submission_id = $5,
              published_at = COALESCE(published_at, $3),
              updated_by = $4, updated_at = $3
            WHERE id = $1 AND tenant_id = $2 AND status = 'draft'
            RETURNING id::text AS id`,
-          [entry.id, session.tenantId, now, session.userId],
+          [
+            entry.id,
+            session.tenantId,
+            now,
+            session.userId,
+            payload.sourceDatasetSubmissionId,
+          ],
         );
         if (!updated) {
           throw new ApbdBudgetError(
@@ -753,20 +795,46 @@ export async function saveApbdWorkspace(
             JSON.stringify({
               referenceYear: payload.referenceYear,
               itemCount: items.length,
+              sourceDatasetSubmissionId:
+                payload.sourceDatasetSubmissionId ?? null,
             }),
           ],
         );
       } else {
         await transaction.query(
-          `UPDATE apbd_entries SET updated_by = $3, updated_at = $4
+          `UPDATE apbd_entries SET source_dataset_submission_id = $3,
+             updated_by = $4, updated_at = $5
            WHERE id = $1 AND tenant_id = $2 AND status = 'draft'`,
-          [entry.id, session.tenantId, session.userId, now],
+          [
+            entry.id,
+            session.tenantId,
+            payload.sourceDatasetSubmissionId,
+            session.userId,
+            now,
+          ],
+        );
+        await transaction.query(
+          `INSERT INTO audit_events (
+             id, actor_id, action, target_table, target_id, metadata
+           ) VALUES (gen_random_uuid(), $1, 'apbd_entry.saved',
+             'apbd_entries', $2, $3::jsonb)`,
+          [
+            session.userId,
+            entry.id,
+            JSON.stringify({
+              referenceYear: payload.referenceYear,
+              itemCount: items.length,
+              sourceDatasetSubmissionId:
+                payload.sourceDatasetSubmissionId ?? null,
+            }),
+          ],
         );
       }
 
       const updatedEntry = await transaction.queryOne<EntryRow>(
         `SELECT entry.id::text AS id, entry.status,
            entry.revision_of_id::text AS "revisionOfId",
+           entry.source_dataset_submission_id::text AS "sourceDatasetSubmissionId",
            entry.revision_reason AS "revisionReason",
            users.name AS "updatedBy", entry.updated_at AS "updatedAt"
          FROM apbd_entries entry

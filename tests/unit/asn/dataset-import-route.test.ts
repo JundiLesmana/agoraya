@@ -4,6 +4,19 @@ const requireModuleAccess = vi.fn();
 const syncBpsStatistics = vi.fn();
 const upsertBpsDatasetCatalog = vi.fn();
 const loggerError = vi.fn();
+const appendAuditEvent = vi.fn();
+
+vi.mock("@/lib/db", () => ({
+  db: vi.fn(() => ({})),
+}));
+
+vi.mock("@/modules/audit/service", () => ({
+  appendAuditEvent,
+}));
+
+vi.mock("@/modules/rbac/audit", () => ({
+  uuidOrNull: (value: string | null | undefined) => value ?? null,
+}));
 
 vi.mock("@/lib/auth/require-module-access", () => ({
   requireModuleAccess,
@@ -34,6 +47,9 @@ vi.mock("@/lib/env", () => ({
 }));
 
 describe("ASN dataset import route", () => {
+  const request = () =>
+    new Request("http://localhost/api/asn/datasets/import", { method: "POST" });
+
   beforeEach(() => {
     vi.resetAllMocks();
     loggerError.mockReset();
@@ -50,7 +66,7 @@ describe("ASN dataset import route", () => {
 
   it("menyinkronkan data BPS yang tersedia saat ini untuk operator ASN", async () => {
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.imported).toBe(true);
@@ -65,7 +81,7 @@ describe("ASN dataset import route", () => {
       error: "BPS API down",
     });
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.imported).toBe(false);
@@ -78,7 +94,7 @@ describe("ASN dataset import route", () => {
       response: Response.json({ error: "Forbidden" }, { status: 403 }),
     });
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
     expect(response.status).toBe(403);
     expect(syncBpsStatistics).not.toHaveBeenCalled();
   });
@@ -89,7 +105,7 @@ describe("ASN dataset import route", () => {
       session: { userId: "user-2", roles: ["citizen"] },
     });
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
     expect(response.status).toBe(403);
     expect(syncBpsStatistics).not.toHaveBeenCalled();
   });
@@ -107,7 +123,7 @@ describe("ASN dataset import route", () => {
     );
 
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
 
     expect(response.status).toBe(500);
     expect(loggerError).toHaveBeenCalledWith("asn_dataset.import_failed", {
@@ -138,7 +154,7 @@ describe("ASN dataset import route", () => {
     );
 
     const { POST } = await import("@/app/api/asn/datasets/import/route");
-    const response = await POST();
+    const response = await POST(request());
 
     expect(response.status).toBe(500);
     expect(loggerError).toHaveBeenCalledWith(

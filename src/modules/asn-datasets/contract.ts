@@ -192,6 +192,10 @@ export const datasetSourceSchema = z.strictObject({
   submittedAt: z.string().datetime(),
 });
 
+export const datasetSourcesResponseSchema = z.strictObject({
+  sources: z.array(datasetSourceSchema),
+});
+
 export type DatasetAssignment = z.infer<typeof datasetAssignmentSchema>;
 export type DatasetSubmissionPayload = z.infer<
   typeof datasetSubmissionPayloadSchema

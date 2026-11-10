@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { getDefaultDatabase } from "@/lib/db/client";
 import type { Database, Row } from "@/lib/db/types";
 import type { Session } from "@/lib/auth/session";
-import { appendAuditEvent, uuidOrNull } from "@/modules/audit/service";
+import { appendAuditEvent } from "@/modules/audit/service";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import {
   asnDatasetSubmissions,
   bpsStatistics,

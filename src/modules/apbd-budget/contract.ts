@@ -60,6 +60,7 @@ export const apbdSavePayloadSchema = z
     sectorId: z.string().trim().min(1).max(100),
     status: APBD_ENTRY_STATUSES,
     revisionOfId: z.string().uuid().optional(),
+    sourceDatasetSubmissionId: z.string().uuid().nullable().optional().default(null),
     revisionReason: z
       .string()
       .trim()
@@ -114,6 +115,7 @@ const apbdEntryViewSchema = z.strictObject({
   id: z.string().uuid(),
   status: APBD_ENTRY_STATUSES,
   revisionOfId: z.string().uuid().nullable(),
+  sourceDatasetSubmissionId: z.string().uuid().nullable(),
   revisionReason: z.string(),
   updatedBy: z.string(),
   updatedAt: z.string().datetime(),

@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DatasetSourcePicker } from "../../_components/dataset-source-picker";
 import {
   APBD_PERIODS,
   apbdWorkspaceResponseSchema,
@@ -152,6 +153,9 @@ export function ApbdWorkspace() {
   const [regionId, setRegionId] = useState("");
   const [sectorId, setSectorId] = useState("");
   const [entry, setEntry] = useState<ApbdWorkspaceResponse["entry"]>(null);
+  const [sourceDatasetSubmissionId, setSourceDatasetSubmissionId] = useState<
+    string | null
+  >(null);
   const [items, setItems] = useState<EditableItem[]>([]);
   const [loadedContext, setLoadedContext] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -216,6 +220,19 @@ export function ApbdWorkspace() {
   );
   const currentContext = makeContextQuery(year, agencyId, regionId, sectorId);
   const contextReady = loadedContext === currentContext;
+  const datasetSourceScope = useMemo(
+    () =>
+      contextReady && selectedAssignment
+        ? {
+            kind: "apbd" as const,
+            agencyId,
+            regionId,
+            sectorId,
+            referenceYear: Number(year),
+          }
+        : null,
+    [agencyId, contextReady, regionId, sectorId, selectedAssignment, year],
+  );
   const totals = useMemo(
     () =>
       calculateApbdTotals(
@@ -265,6 +282,7 @@ export function ApbdWorkspace() {
       setLoadedContext(null);
       loadedContextRef.current = null;
       setEntry(null);
+      setSourceDatasetSubmissionId(null);
       setItems([]);
       try {
         const query = makeContextQuery(
@@ -284,6 +302,9 @@ export function ApbdWorkspace() {
         }
         setAssignments(parsed.data.assignments);
         setEntry(parsed.data.entry);
+        setSourceDatasetSubmissionId(
+          parsed.data.entry?.sourceDatasetSubmissionId ?? null,
+        );
         setItems(toEditableItems(parsed.data.entry));
         loadedContextRef.current = nextContextKey;
         setLoadedContext(nextContextKey);
@@ -427,6 +448,7 @@ export function ApbdWorkspace() {
         ...(revisionOfId
           ? { revisionOfId, revisionReason: revisionReason.trim() }
           : {}),
+        sourceDatasetSubmissionId,
         items: items.map((item) => ({
           ...(item.id && !revisionOfId ? { id: item.id } : {}),
           code: item.code.trim(),
@@ -1138,6 +1160,12 @@ export function ApbdWorkspace() {
                   Terakhir diperbarui {new Date(entry.updatedAt).toLocaleString("id-ID")} oleh {entry.updatedBy}
                 </p>
               ) : null}
+              <DatasetSourcePicker
+                scope={datasetSourceScope}
+                value={sourceDatasetSubmissionId}
+                onChange={setSourceDatasetSubmissionId}
+                disabled={locked || loadingEntry || saving || !contextReady}
+              />
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
