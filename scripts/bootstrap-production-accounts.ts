@@ -5,10 +5,13 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
+  applicationRoles,
+  moduleAccess,
   permissions,
   rolePermissions,
   roles,
   tenants,
+  userApplicationRoles,
   userRoles,
   users,
 } from "../src/lib/db/schema/index.js";
@@ -19,31 +22,63 @@ const ENV_FILE = ".env";
 const BootstrapEnvSchema = z.object({
   DATABASE_URL_UNPOOLED: z.string().url(),
   BOOTSTRAP_TENANT_NAME: z.string().trim().min(1).max(255),
+  BOOTSTRAP_TENANT_SLUG: z.string().trim().min(1).max(255),
   BOOTSTRAP_EXECUTIVE_EMAIL: z.string().email(),
   BOOTSTRAP_EXECUTIVE_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_EXECUTIVE_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
+  BOOTSTRAP_EXECUTIVE_PASSWORD: z.string().min(12).max(256),
   BOOTSTRAP_ADMIN_EMAIL: z.string().email(),
   BOOTSTRAP_ADMIN_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_ADMIN_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().min(12).max(256),
   BOOTSTRAP_CITIZEN_EMAIL: z.string().email(),
   BOOTSTRAP_CITIZEN_NAME: z.string().trim().min(1).max(255),
-  BOOTSTRAP_CITIZEN_PASSWORD: z
-    .string()
-    .min(12, "harus minimal 12 karakter")
-    .max(256, "maksimal 256 karakter"),
+  BOOTSTRAP_CITIZEN_PASSWORD: z.string().min(12).max(256),
+  BOOTSTRAP_KYC_CITIZEN_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_KYC_CITIZEN_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_KYC_CITIZEN_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_KYC_ASN_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_KYC_ASN_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_KYC_ASN_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_APBD_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_APBD_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_APBD_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_OPERATOR_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_OPERATOR_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_OPERATOR_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_VERIFIKATOR_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_VERIFIKATOR_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_VERIFIKATOR_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_CMS_OPERATOR_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_CMS_OPERATOR_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_CMS_OPERATOR_PASSWORD: z.string().min(12).max(256).optional(),
+  BOOTSTRAP_ASN_OPERATOR_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_ASN_OPERATOR_NAME: z.string().trim().min(1).max(255).optional(),
+  BOOTSTRAP_ASN_OPERATOR_PASSWORD: z.string().min(12).max(256).optional(),
 });
 
 const ROLE_DEFINITIONS = [
   { key: "superadmin", name: "Superadmin" },
   { key: "admin", name: "Admin" },
-  { key: "executive", name: "Executive" },
+  { key: "maker", name: "Maker" },
+  { key: "checker", name: "Checker" },
   { key: "citizen", name: "Warga" },
+  { key: "asn", name: "ASN" },
+  { key: "staff", name: "Staff" },
+  { key: "executive", name: "Executive" },
+] as const;
+
+const APPLICATION_ROLE_DEFINITIONS = [
+  { key: "operator", name: "Operator" },
+  { key: "verifikator", name: "Verifikator" },
+  { key: "kyc_verifikator", name: "Verifikator KYC" },
+  { key: "cms_operator", name: "Operator CMS" },
+] as const;
+
+const MODULE_ACCESS_DEFINITIONS = [
+  "ogd",
+  "insight",
+  "kyc",
+  "pst",
+  "civic_reporting",
 ] as const;
 
 const PERMISSION_DEFINITIONS = [
@@ -55,277 +90,126 @@ const PERMISSION_DEFINITIONS = [
   { key: "audit:read", description: "Baca log audit" },
 ] as const;
 
+const ACCOUNT_DEFINITIONS = [
+  {
+    emailKey: "BOOTSTRAP_EXECUTIVE_EMAIL",
+    nameKey: "BOOTSTRAP_EXECUTIVE_NAME",
+    passwordKey: "BOOTSTRAP_EXECUTIVE_PASSWORD",
+    roleKeys: ["executive", "superadmin"],
+    applicationRoleKeys: [],
+    moduleAccessKeys: ["ogd", "insight"],
+    optional: false,
+  },
+  {
+    emailKey: "BOOTSTRAP_ADMIN_EMAIL",
+    nameKey: "BOOTSTRAP_ADMIN_NAME",
+    passwordKey: "BOOTSTRAP_ADMIN_PASSWORD",
+    roleKeys: ["admin"],
+    applicationRoleKeys: ["operator", "verifikator", "kyc_verifikator"],
+    moduleAccessKeys: ["ogd", "insight", "kyc", "pst", "civic_reporting"],
+    optional: false,
+  },
+  {
+    emailKey: "BOOTSTRAP_CITIZEN_EMAIL",
+    nameKey: "BOOTSTRAP_CITIZEN_NAME",
+    passwordKey: "BOOTSTRAP_CITIZEN_PASSWORD",
+    roleKeys: ["citizen"],
+    applicationRoleKeys: [],
+    moduleAccessKeys: [],
+    optional: false,
+  },
+  {
+    emailKey: "BOOTSTRAP_KYC_CITIZEN_EMAIL",
+    nameKey: "BOOTSTRAP_KYC_CITIZEN_NAME",
+    passwordKey: "BOOTSTRAP_KYC_CITIZEN_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["kyc_verifikator"],
+    moduleAccessKeys: ["kyc"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_KYC_ASN_EMAIL",
+    nameKey: "BOOTSTRAP_KYC_ASN_NAME",
+    passwordKey: "BOOTSTRAP_KYC_ASN_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["kyc_verifikator"],
+    moduleAccessKeys: ["kyc"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_APBD_EMAIL",
+    nameKey: "BOOTSTRAP_APBD_NAME",
+    passwordKey: "BOOTSTRAP_APBD_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["insight"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_OPERATOR_EMAIL",
+    nameKey: "BOOTSTRAP_OPERATOR_NAME",
+    passwordKey: "BOOTSTRAP_OPERATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["civic_reporting", "pst"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_VERIFIKATOR_EMAIL",
+    nameKey: "BOOTSTRAP_VERIFIKATOR_NAME",
+    passwordKey: "BOOTSTRAP_VERIFIKATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["verifikator"],
+    moduleAccessKeys: ["civic_reporting"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_CMS_OPERATOR_EMAIL",
+    nameKey: "BOOTSTRAP_CMS_OPERATOR_NAME",
+    passwordKey: "BOOTSTRAP_CMS_OPERATOR_PASSWORD",
+    roleKeys: ["staff"],
+    applicationRoleKeys: ["cms_operator"],
+    moduleAccessKeys: ["ogd"],
+    optional: true,
+  },
+  {
+    emailKey: "BOOTSTRAP_ASN_OPERATOR_EMAIL",
+    nameKey: "BOOTSTRAP_ASN_OPERATOR_NAME",
+    passwordKey: "BOOTSTRAP_ASN_OPERATOR_PASSWORD",
+    roleKeys: ["asn"],
+    applicationRoleKeys: ["operator"],
+    moduleAccessKeys: ["insight"],
+    optional: true,
+  },
+] as const;
+
 function getEnv() {
-  if (!existsSync(ENV_FILE)) {
-    throw new Error(
-      `${ENV_FILE} tidak ditemukan. Salin .env.example ke file tersebut, isi nilainya, lalu jalankan ulang.`,
-    );
+  if (existsSync(ENV_FILE)) {
+    process.loadEnvFile(ENV_FILE);
   }
 
-  process.loadEnvFile(ENV_FILE);
   const parsed = BootstrapEnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const invalid = parsed.error.issues
       .map((issue) => `${issue.path.join(".")} (${issue.message})`)
       .join(", ");
-    throw new Error(`Konfigurasi bootstrap tidak valid: ${invalid}`);
-  }
-
-  const url = new URL(parsed.data.DATABASE_URL_UNPOOLED);
-  const databaseName = decodeURIComponent(url.pathname.slice(1));
-  if (
-    !["postgres:", "postgresql:"].includes(url.protocol) ||
-    !url.hostname.endsWith(".neon.tech") ||
-    url.hostname.includes("-pooler")
-  ) {
     throw new Error(
-      "DATABASE_URL_UNPOOLED harus merupakan direct connection string Neon, bukan URL pooler.",
+      `Konfigurasi bootstrap production tidak valid: ${invalid}. Pastikan env sudah terisi (file ${ENV_FILE} opsional jika env sudah lengkap).`,
     );
   }
-  if (!databaseName) {
-    throw new Error("DATABASE_URL_UNPOOLED tidak memuat nama database.");
-  }
-  if (
-    new Set([
-      parsed.data.BOOTSTRAP_EXECUTIVE_EMAIL.toLowerCase(),
-      parsed.data.BOOTSTRAP_ADMIN_EMAIL.toLowerCase(),
-      parsed.data.BOOTSTRAP_CITIZEN_EMAIL.toLowerCase(),
-    ]).size !== 3
-  ) {
-    throw new Error("Setiap akun bootstrap harus menggunakan email berbeda.");
-  }
 
-  return { env: parsed.data, databaseName, host: url.hostname };
+  return parsed.data;
 }
 
-function tenantSlug(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  if (!slug) throw new Error("Nama tenant tidak menghasilkan slug yang valid.");
-  return slug;
-}
-
-async function main(): Promise<void> {
-  const { env, databaseName, host } = getEnv();
-  console.log(
-    `Target bootstrap: Neon ${host}/${databaseName}. Tidak ada password yang akan dicetak.`,
-  );
-  const confirmation = await new Promise<string>((resolve) => {
-    process.stdout.write(
-      `Ketik persis "${databaseName}" untuk membuat tiga akun production: `,
-    );
-    process.stdin.setEncoding("utf8");
-    process.stdin.once("data", (value) => resolve(value.toString().trim()));
-  });
-  if (confirmation !== databaseName) {
-    throw new Error("Konfirmasi database tidak cocok; bootstrap dibatalkan.");
-  }
-
-  const client = postgres(env.DATABASE_URL_UNPOOLED, {
-    max: 1,
-    connect_timeout: 10,
-  });
-
+function redactDatabaseUrl(raw: string): string {
   try {
-    const database = drizzle(client);
-    const passwords = {
-      executive: await hashPassword(env.BOOTSTRAP_EXECUTIVE_PASSWORD),
-      admin: await hashPassword(env.BOOTSTRAP_ADMIN_PASSWORD),
-      citizen: await hashPassword(env.BOOTSTRAP_CITIZEN_PASSWORD),
-    };
-
-    await database.transaction(async (tx) => {
-      const slug = tenantSlug(env.BOOTSTRAP_TENANT_NAME);
-      await tx
-        .insert(tenants)
-        .values({
-          id: randomUUID(),
-          name: env.BOOTSTRAP_TENANT_NAME,
-          slug,
-          status: "active",
-        })
-        .onConflictDoNothing({ target: tenants.slug });
-
-      const [tenant] = await tx
-        .select({ id: tenants.id })
-        .from(tenants)
-        .where(eq(tenants.slug, slug))
-        .limit(1);
-      if (!tenant) throw new Error("Tenant bootstrap tidak berhasil dibuat.");
-
-      const roleIds = new Map<string, string>();
-      for (const role of ROLE_DEFINITIONS) {
-        await tx
-          .insert(roles)
-          .values({
-            id: randomUUID(),
-            tenantId: tenant.id,
-            name: role.name,
-            key: role.key,
-          })
-          .onConflictDoNothing();
-        const [storedRole] = await tx
-          .select({ id: roles.id })
-          .from(roles)
-          .where(and(eq(roles.tenantId, tenant.id), eq(roles.key, role.key)))
-          .limit(1);
-        if (!storedRole) {
-          throw new Error(`Role ${role.key} tidak berhasil disiapkan.`);
-        }
-        roleIds.set(role.key, storedRole.id);
-      }
-
-      const ensureUser = async (input: {
-        email: string;
-        name: string;
-        passwordHash: string;
-        roleKeys: readonly string[];
-      }): Promise<string> => {
-        const email = input.email.toLowerCase();
-        const [existing] = await tx
-          .select({
-            id: users.id,
-            tenantId: users.tenantId,
-            status: users.status,
-            passwordHash: users.passwordHash,
-          })
-          .from(users)
-          .where(eq(users.email, email))
-          .limit(1);
-
-        let userId: string;
-        if (existing) {
-          if (existing.tenantId !== tenant.id) {
-            throw new Error(
-              `Akun ${email} sudah terdaftar pada tenant lain; tidak ada perubahan dilakukan.`,
-            );
-          }
-          if (existing.status !== "active") {
-            throw new Error(
-              `Akun ${email} tidak aktif; aktifkan melalui alur administrasi sebelum bootstrap.`,
-            );
-          }
-          userId = existing.id;
-          if (!existing.passwordHash) {
-            await tx
-              .update(users)
-              .set({ passwordHash: input.passwordHash })
-              .where(eq(users.id, userId));
-          }
-        } else {
-          userId = randomUUID();
-          await tx.insert(users).values({
-            id: userId,
-            tenantId: tenant.id,
-            email,
-            name: input.name,
-            passwordHash: input.passwordHash,
-            status: "active",
-          });
-        }
-
-        for (const roleKey of input.roleKeys) {
-          const roleId = roleIds.get(roleKey);
-          if (!roleId) throw new Error(`Role ${roleKey} tidak ditemukan.`);
-
-          const [grant] = await tx
-            .select({
-              revokedAt: userRoles.revokedAt,
-              expiresAt: userRoles.expiresAt,
-            })
-            .from(userRoles)
-            .where(
-              and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)),
-            )
-            .limit(1);
-          if (grant) {
-            if (
-              grant.revokedAt ||
-              (grant.expiresAt && grant.expiresAt <= new Date())
-            ) {
-              throw new Error(
-                `Role ${roleKey} untuk ${email} sudah dicabut atau kedaluwarsa; bootstrap tidak akan mengaktifkannya kembali.`,
-              );
-            }
-          } else {
-            await tx.insert(userRoles).values({ userId, roleId });
-          }
-        }
-
-        return userId;
-      };
-
-      await ensureUser({
-        email: env.BOOTSTRAP_EXECUTIVE_EMAIL,
-        name: env.BOOTSTRAP_EXECUTIVE_NAME,
-        passwordHash: passwords.executive,
-        roleKeys: ["superadmin", "executive"],
-      });
-      await ensureUser({
-        email: env.BOOTSTRAP_ADMIN_EMAIL,
-        name: env.BOOTSTRAP_ADMIN_NAME,
-        passwordHash: passwords.admin,
-        roleKeys: ["admin"],
-      });
-      await ensureUser({
-        email: env.BOOTSTRAP_CITIZEN_EMAIL,
-        name: env.BOOTSTRAP_CITIZEN_NAME,
-        passwordHash: passwords.citizen,
-        roleKeys: ["citizen"],
-      });
-
-      const superadminRoleId = roleIds.get("superadmin");
-      if (!superadminRoleId)
-        throw new Error("Role superadmin tidak ditemukan.");
-      for (const permission of PERMISSION_DEFINITIONS) {
-        await tx
-          .insert(permissions)
-          .values({
-            id: randomUUID(),
-            key: permission.key,
-            description: permission.description,
-          })
-          .onConflictDoNothing();
-        const [storedPermission] = await tx
-          .select({ id: permissions.id })
-          .from(permissions)
-          .where(eq(permissions.key, permission.key))
-          .limit(1);
-        if (!storedPermission) {
-          throw new Error(
-            `Permission ${permission.key} tidak berhasil disiapkan.`,
-          );
-        }
-        const [grant] = await tx
-          .select({ revokedAt: rolePermissions.revokedAt })
-          .from(rolePermissions)
-          .where(
-            and(
-              eq(rolePermissions.roleId, superadminRoleId),
-              eq(rolePermissions.permissionId, storedPermission.id),
-            ),
-          )
-          .limit(1);
-        if (grant?.revokedAt) {
-          throw new Error(
-            `Permission ${permission.key} untuk superadmin telah dicabut; bootstrap tidak akan mengaktifkannya kembali.`,
-          );
-        }
-        if (!grant) {
-          await tx.insert(rolePermissions).values({
-            roleId: superadminRoleId,
-            permissionId: storedPermission.id,
-          });
-        }
-      }
-    });
-    console.log(
-      `Akun executive, admin, dan citizen siap untuk tenant ${env.BOOTSTRAP_TENANT_NAME}. Password akun yang sudah memiliki password tidak diubah.`,
-    );
-  } finally {
-    await client.end();
+    const url = new URL(raw);
+    if (url.password) url.password = "***";
+    if (url.username) url.username = "***";
+    url.search = "";
+    return url.toString();
+  } catch {
+    return "<invalid DATABASE_URL_UNPOOLED>";
   }
 }
 
@@ -352,16 +236,280 @@ function describeError(error: unknown): string {
     ].filter(Boolean);
 
     if (parts.length > 0) details.push(parts.join(": "));
-
     current = record.cause;
+  }
+
+  if (error instanceof AggregateError && Array.isArray(error.errors)) {
+    const nested = error.errors
+      .map((e) => (e && typeof e === "object" && "code" in e ? String((e as { code?: unknown }).code) : ""))
+      .filter(Boolean);
+    if (nested.length > 0) details.push(`inner: ${nested.join(", ")}`);
   }
 
   return details.length > 0
     ? details.join(" — penyebab: ")
-    : "Detail error tidak tersedia; periksa status database sebelum mencoba ulang.";
+    : "Detail error tidak tersedia; periksa koneksi dan schema database production.";
+}
+
+async function main(): Promise<void> {
+  const env = getEnv();
+  console.log(
+    `Target bootstrap production: ${redactDatabaseUrl(env.DATABASE_URL_UNPOOLED)}. Akun production akan dibuat/diupdate; tidak ada password yang dicetak.`,
+  );
+
+  const client = postgres(env.DATABASE_URL_UNPOOLED, {
+    max: 1,
+    connect_timeout: 30,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30,
+    ssl: "require",
+    prepare: false,
+    onnotice: (notice) => console.log("[pg notice]", notice.message),
+  });
+
+  try {
+    await client`SELECT 1`;
+    console.log("Database connection established successfully");
+  } catch (err) {
+    console.error("Failed to connect to database:", err);
+    throw err;
+  }
+
+  try {
+    const database = drizzle(client);
+
+    const accountInputs = await Promise.all(
+      ACCOUNT_DEFINITIONS
+        .filter((acc) => !acc.optional || (env[acc.emailKey] && env[acc.passwordKey] && env[acc.nameKey]))
+        .map(async (account) => {
+          const email = env[account.emailKey];
+          const name = env[account.nameKey];
+          const password = env[account.passwordKey];
+          if (!email || !name || !password) {
+            throw new Error(`Missing required env for ${account.emailKey}`);
+          }
+          return {
+            ...account,
+            email,
+            name,
+            passwordHash: await hashPassword(password),
+          };
+        }),
+    );
+
+    if (accountInputs.length < 3) {
+      throw new Error("Minimal 3 akun wajib (executive, admin, citizen) harus dikonfigurasi.");
+    }
+
+    await database.transaction(async (tx) => {
+      await tx
+        .insert(tenants)
+        .values({
+          id: randomUUID(),
+          name: env.BOOTSTRAP_TENANT_NAME,
+          slug: env.BOOTSTRAP_TENANT_SLUG,
+          status: "active",
+        })
+        .onConflictDoNothing({ target: tenants.slug });
+
+      const [tenant] = await tx
+        .select({ id: tenants.id })
+        .from(tenants)
+        .where(eq(tenants.slug, env.BOOTSTRAP_TENANT_SLUG))
+        .limit(1);
+      if (!tenant) throw new Error("Tenant production tidak berhasil dibuat.");
+
+      const roleIds = new Map<string, string>();
+      for (const role of ROLE_DEFINITIONS) {
+        await tx
+          .insert(roles)
+          .values({
+            id: randomUUID(),
+            tenantId: tenant.id,
+            name: role.name,
+            key: role.key,
+          })
+          .onConflictDoNothing();
+        const [storedRole] = await tx
+          .select({ id: roles.id })
+          .from(roles)
+          .where(and(eq(roles.tenantId, tenant.id), eq(roles.key, role.key)))
+          .limit(1);
+        if (!storedRole) {
+          throw new Error(`Role ${role.key} tidak berhasil disiapkan.`);
+        }
+        roleIds.set(role.key, storedRole.id);
+      }
+
+      const appRoleIds = new Map<string, string>();
+      for (const appRole of APPLICATION_ROLE_DEFINITIONS) {
+        await tx
+          .insert(applicationRoles)
+          .values({
+            id: randomUUID(),
+            key: appRole.key,
+            name: appRole.name,
+          })
+          .onConflictDoNothing({ target: applicationRoles.key });
+        const [storedAppRole] = await tx
+          .select({ id: applicationRoles.id })
+          .from(applicationRoles)
+          .where(eq(applicationRoles.key, appRole.key))
+          .limit(1);
+        if (!storedAppRole) {
+          throw new Error(`Application role ${appRole.key} tidak berhasil disiapkan.`);
+        }
+        appRoleIds.set(appRole.key, storedAppRole.id);
+      }
+
+      for (const account of accountInputs) {
+        const email = account.email.toLowerCase();
+        const [existing] = await tx
+          .select({ id: users.id, tenantId: users.tenantId })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        let userId: string;
+        if (existing) {
+          if (existing.tenantId !== tenant.id) {
+            throw new Error(
+              `Akun ${email} sudah terdaftar pada tenant lain; transaksi dibatalkan.`,
+            );
+          }
+          userId = existing.id;
+          await tx
+            .update(users)
+            .set({
+              name: account.name,
+              passwordHash: account.passwordHash,
+              status: "active",
+            })
+            .where(eq(users.id, userId));
+        } else {
+          userId = randomUUID();
+          await tx.insert(users).values({
+            id: userId,
+            tenantId: tenant.id,
+            email,
+            name: account.name,
+            passwordHash: account.passwordHash,
+            status: "active",
+          });
+        }
+
+        for (const roleKey of account.roleKeys) {
+          const roleId = roleIds.get(roleKey);
+          if (!roleId) throw new Error(`Role ${roleKey} tidak ditemukan.`);
+          await tx
+            .insert(userRoles)
+            .values({ userId, roleId })
+            .onConflictDoNothing();
+          await tx
+            .update(userRoles)
+            .set({ revokedAt: null, expiresAt: null })
+            .where(
+              and(
+                eq(userRoles.userId, userId),
+                eq(userRoles.roleId, roleId),
+              ),
+            );
+        }
+
+        for (const appRoleKey of account.applicationRoleKeys) {
+          const appRoleId = appRoleIds.get(appRoleKey);
+          if (!appRoleId) throw new Error(`Application role ${appRoleKey} tidak ditemukan.`);
+          await tx
+            .insert(userApplicationRoles)
+            .values({
+              id: randomUUID(),
+              tenantId: tenant.id,
+              userId,
+              applicationRoleId: appRoleId,
+              grantedAt: new Date(),
+            })
+            .onConflictDoNothing();
+          await tx
+            .update(userApplicationRoles)
+            .set({ revokedAt: null })
+            .where(
+              and(
+                eq(userApplicationRoles.userId, userId),
+                eq(userApplicationRoles.applicationRoleId, appRoleId),
+              ),
+            );
+        }
+
+        for (const moduleKey of account.moduleAccessKeys) {
+          await tx
+            .insert(moduleAccess)
+            .values({
+              id: randomUUID(),
+              tenantId: tenant.id,
+              userId,
+              moduleKey,
+              grantedAt: new Date(),
+            })
+            .onConflictDoNothing();
+          await tx
+            .update(moduleAccess)
+            .set({ revokedAt: null })
+            .where(
+              and(
+                eq(moduleAccess.userId, userId),
+                eq(moduleAccess.moduleKey, moduleKey),
+              ),
+            );
+        }
+      }
+
+      const superadminRoleId = roleIds.get("superadmin");
+      if (!superadminRoleId) {
+        throw new Error("Role superadmin tidak ditemukan.");
+      }
+
+      for (const permission of PERMISSION_DEFINITIONS) {
+        await tx
+          .insert(permissions)
+          .values({
+            id: randomUUID(),
+            key: permission.key,
+            description: permission.description,
+          })
+          .onConflictDoNothing();
+        const [storedPermission] = await tx
+          .select({ id: permissions.id })
+          .from(permissions)
+          .where(eq(permissions.key, permission.key))
+          .limit(1);
+        if (!storedPermission) {
+          throw new Error(
+            `Permission ${permission.key} tidak berhasil disiapkan.`,
+          );
+        }
+        await tx
+          .insert(rolePermissions)
+          .values({
+            roleId: superadminRoleId,
+            permissionId: storedPermission.id,
+          })
+          .onConflictDoUpdate({
+            target: [rolePermissions.roleId, rolePermissions.permissionId],
+            set: { revokedAt: null },
+          });
+      }
+    });
+
+    const emails = accountInputs.map((a) => a.email).join(", ");
+    console.log(`Bootstrap production selesai. Akun dibuat: ${emails}`);
+    console.log("Simpan password dengan aman.");
+  } finally {
+    await client.end();
+  }
 }
 
 main().catch((error: unknown) => {
-  console.error("Bootstrap akun production gagal:", describeError(error));
+  console.error("Bootstrap production gagal:", describeError(error));
   process.exitCode = 1;
 });
+
