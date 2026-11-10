@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
-      BOOTSTRAP_TENANT_NAME: Walikota Jakarta Barat
+      BOOTSTRAP_TENANT_NAME: Nama Tenant Kamu
       BOOTSTRAP_EXECUTIVE_EMAIL: executive@agoraya.com
       BOOTSTRAP_EXECUTIVE_NAME: Executive Agoraya
       BOOTSTRAP_EXECUTIVE_PASSWORD: ${{ secrets.BOOTSTRAP_EXECUTIVE_PASSWORD }}
