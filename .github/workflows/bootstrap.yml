@@ -1,0 +1,44 @@
+name: Bootstrap Production
+on: workflow_dispatch
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+      BOOTSTRAP_TENANT_NAME: Walikota Jakarta Barat
+      BOOTSTRAP_EXECUTIVE_EMAIL: executive@agoraya.com
+      BOOTSTRAP_EXECUTIVE_NAME: Executive Agoraya
+      BOOTSTRAP_EXECUTIVE_PASSWORD: ${{ secrets.BOOTSTRAP_EXECUTIVE_PASSWORD }}
+      BOOTSTRAP_ADMIN_EMAIL: admin@agoraya.com
+      BOOTSTRAP_ADMIN_NAME: Admin Agoraya
+      BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+      BOOTSTRAP_CITIZEN_EMAIL: citizen@agoraya.com
+      BOOTSTRAP_CITIZEN_NAME: Citizen Agoraya
+      BOOTSTRAP_CITIZEN_PASSWORD: ${{ secrets.BOOTSTRAP_CITIZEN_PASSWORD }}
+      BOOTSTRAP_KYC_CITIZEN_EMAIL: kyc-citizen@agoraya.com
+      BOOTSTRAP_KYC_CITIZEN_NAME: KYC Citizen Verifikator
+      BOOTSTRAP_KYC_CITIZEN_PASSWORD: ${{ secrets.BOOTSTRAP_KYC_CITIZEN_PASSWORD }}
+      BOOTSTRAP_KYC_ASN_EMAIL: kyc-asn@agoraya.com
+      BOOTSTRAP_KYC_ASN_NAME: KYC ASN Verifikator
+      BOOTSTRAP_KYC_ASN_PASSWORD: ${{ secrets.BOOTSTRAP_KYC_ASN_PASSWORD }}
+      BOOTSTRAP_APBD_EMAIL: apbd@agoraya.com
+      BOOTSTRAP_APBD_NAME: APBD Operator
+      BOOTSTRAP_APBD_PASSWORD: ${{ secrets.BOOTSTRAP_APBD_PASSWORD }}
+      BOOTSTRAP_OPERATOR_EMAIL: operator@agoraya.com
+      BOOTSTRAP_OPERATOR_NAME: General Operator
+      BOOTSTRAP_OPERATOR_PASSWORD: ${{ secrets.BOOTSTRAP_OPERATOR_PASSWORD }}
+      BOOTSTRAP_VERIFIKATOR_EMAIL: verifikator@agoraya.com
+      BOOTSTRAP_VERIFIKATOR_NAME: Verifikator General
+      BOOTSTRAP_VERIFIKATOR_PASSWORD: ${{ secrets.BOOTSTRAP_VERIFIKATOR_PASSWORD }}
+      BOOTSTRAP_CMS_OPERATOR_EMAIL: cms-operator@agoraya.com
+      BOOTSTRAP_CMS_OPERATOR_NAME: CMS Operator
+      BOOTSTRAP_CMS_OPERATOR_PASSWORD: ${{ secrets.BOOTSTRAP_CMS_OPERATOR_PASSWORD }}
+      BOOTSTRAP_ASN_OPERATOR_EMAIL: asn-operator@agoraya.com
+      BOOTSTRAP_ASN_OPERATOR_NAME: ASN Statistics Operator
+      BOOTSTRAP_ASN_OPERATOR_PASSWORD: ${{ secrets.BOOTSTRAP_ASN_OPERATOR_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:bootstrap:production
+EOF
