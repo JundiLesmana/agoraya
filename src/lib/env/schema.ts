@@ -16,6 +16,9 @@ export const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   DATABASE_URL_UNPOOLED: optionalEnv(z.string().url()),
   CRON_SECRET: optionalEnv(z.string().min(32)),
+  REPORTING_TENANT_ID: optionalEnv(z.string().uuid()),
+  CITIZEN_KYC_TENANT_ID: optionalEnv(z.string().uuid()),
+  ASN_KYC_TENANT_ID: optionalEnv(z.string().uuid()),
 
   AUTH_SECRET: z.string().min(32),
   OTP_EXPIRY_MINUTES: z.coerce.number().int().positive().default(5),
@@ -44,7 +47,13 @@ export const EnvSchema = z.object({
   AI_PROVIDER: optionalEnv(
     z.enum(["gemini", "cerebras", "groq", "openrouter"]),
   ),
-  AI_API_KEY: optionalEnv(z.string()),
-});
+  AI_API_KEY: z.string().optional(),
+}).refine(
+  (data) => !data.AI_PROVIDER || (data.AI_API_KEY ?? "").trim().length > 0,
+  {
+    message: "AI_API_KEY wajib diisi saat AI_PROVIDER disetel.",
+    path: ["AI_API_KEY"],
+  },
+);
 
 export type Env = z.infer<typeof EnvSchema>;

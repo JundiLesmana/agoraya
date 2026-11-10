@@ -75,6 +75,7 @@ export interface ProgressDocument {
 export interface ProgressReport {
   readonly id: string;
   readonly projectId: string;
+  readonly sourceDatasetSubmissionId: string | null;
   readonly periodeBulan: number;
   readonly periodeTahun: number;
   readonly progresFisik: number;
@@ -89,6 +90,7 @@ export interface ProgressReport {
 export const progressReportSchema = z.object({
   id: z.string(),
   projectId: z.string(),
+  sourceDatasetSubmissionId: z.string().uuid().nullable(),
   periodeBulan: z.number().int().min(1).max(12),
   periodeTahun: z.number().int(),
   progresFisik: z.number().min(0).max(100),

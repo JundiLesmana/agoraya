@@ -33,6 +33,7 @@ export const bpsSourceEnum = pgEnum("bps_source", [
   "BPS_API",
   "SIMULATED",
   "CITIZEN_UNVERIFIED",
+  "ASN_SUBMITTED",
 ]);
 export const cmsContentStatusEnum = pgEnum("cms_content_status", [
   "draft",

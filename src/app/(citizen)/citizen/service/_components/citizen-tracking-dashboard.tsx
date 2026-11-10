@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ArrowDownWideNarrow,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
-import { ServiceSpaceNavigation } from '@/components/service-space-navigation';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
   mapStoredServiceApplication,
@@ -37,7 +38,7 @@ import { formatDateTimeWib, getDaysUntilDeadline } from './tracking-format';
 type StatusFilter = 'Semua status' | TrackingStatus;
 type CategoryFilter = 'Semua kategori' | TrackingCategory;
 type SortOrder = 'Terbaru' | 'Terlama';
-type DialogName = 'contact' | 'document' | null;
+type DialogName = 'contact' | 'document' | 'accept-review' | 'request-revision' | null;
 
 const CATEGORY_OPTIONS = [
   { value: 'Semua kategori', label: 'Semua kategori' },
@@ -55,7 +56,9 @@ const STATUS_OPTIONS = [
   { value: 'Sedang diproses', label: 'Sedang diproses' },
   { value: 'Perlu dokumen', label: 'Perlu dokumen' },
   { value: 'Diverifikasi', label: 'Diverifikasi' },
+  { value: 'Menunggu Tinjauan Warga', label: 'Menunggu Tinjauan Warga' },
   { value: 'Selesai', label: 'Selesai' },
+  { value: 'Selesai (Ditutup)', label: 'Selesai (Ditutup)' },
   { value: 'Ditolak', label: 'Ditolak' },
   { value: 'Status lain', label: 'Status lain' },
 ] as const;
@@ -74,26 +77,34 @@ function getStatusStyle(status: TrackingStatus): string {
       return 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-300';
     case 'Diverifikasi':
       return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300';
+    case 'Menunggu Tinjauan Warga':
+      return 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-300';
     case 'Selesai':
+    case 'Selesai (Ditutup)':
       return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300';
     case 'Ditolak':
       return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300';
     case 'Status lain':
+      return 'border-border bg-muted text-muted-foreground';
+    default:
       return 'border-border bg-muted text-muted-foreground';
   }
 }
 
 function StatusBadge({ status }: { status: TrackingStatus }) {
   const StatusIcon =
-    status === 'Selesai'
+    status === 'Selesai' || status === 'Selesai (Ditutup)'
       ? CircleCheck
       : status === 'Perlu dokumen'
         ? FileText
         : status === 'Ditolak'
           ? AlertCircle
-        : status === 'Diverifikasi'
-          ? ShieldCheck
-          : Clock3;
+          : status === 'Diverifikasi'
+            ? ShieldCheck
+            : status === 'Menunggu Tinjauan Warga'
+              ? MessageCircle
+              : Clock3;
+
 
   return (
     <span
@@ -122,7 +133,8 @@ function SummaryCards({
     (application) => application.status === 'Perlu dokumen',
   ).length;
   const completedCount = applications.filter(
-    (application) => application.status === 'Selesai',
+    (application) =>
+      application.status === 'Selesai' || application.status === 'Selesai (Ditutup)',
   ).length;
   const summaries = [
     {
@@ -205,6 +217,7 @@ function ApplicationList({
   loadError,
   selectedId,
   onSelect,
+  onOpenReview,
   category,
   onCategoryChange,
   status,
@@ -224,6 +237,7 @@ function ApplicationList({
   loadError: string;
   selectedId: string | null;
   onSelect: (application: TrackingApplication) => void;
+  onOpenReview: (application: TrackingApplication) => void;
   category: CategoryFilter;
   onCategoryChange: (value: CategoryFilter) => void;
   status: StatusFilter;
@@ -388,13 +402,16 @@ function ApplicationList({
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={application.status} />
-                    <Link
-                      href={`/citizen/service/${application.id}`}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenReview(application);
+                      }}
                       className="mt-1.5 inline-flex items-center gap-1 text-xs text-blue-700 hover:underline dark:text-blue-300"
-                      onClick={(event) => event.stopPropagation()}
                     >
                       Lihat detail <ChevronRightIcon />
-                    </Link>
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {application.targetAt
@@ -433,10 +450,14 @@ function ApplicationDetails({
   application,
   onContact,
   onOpenDocumentDialog,
+  onAcceptReview,
+  onRequestRevision,
 }: {
   application: TrackingApplication;
   onContact: () => void;
   onOpenDocumentDialog: () => void;
+  onAcceptReview: () => void;
+  onRequestRevision: () => void;
 }) {
   const steps = ['Diterima', 'Verifikasi', 'Diproses', 'Selesai'];
   const timelineHeadingId = React.useId();
@@ -563,6 +584,126 @@ function ApplicationDetails({
           </div>
         ) : null}
 
+        {application.resolutionDetails ? (
+          <section className="space-y-4 border-t border-border pt-4" aria-labelledby="resolution-heading">
+            <div className="space-y-1">
+              <h3 id="resolution-heading" className="text-base font-semibold">
+                Tinjau Resolusi
+              </h3>
+              <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
+                <ol className="flex flex-wrap items-center gap-1">
+                  <li>Ruang Warga</li>
+                  <li aria-hidden="true">{` > `}</li>
+                  <li>Pengajuan Saya</li>
+                  <li aria-hidden="true">{` > `}</li>
+                  <li aria-current="page" className="font-medium text-primary">
+                    Tinjau Resolusi
+                  </li>
+                </ol>
+              </nav>
+            </div>
+
+            <dl className="grid gap-3 rounded-lg border border-border bg-muted/30 p-4 text-xs sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">Status pengajuan</dt>
+                <dd className="mt-1"><StatusBadge status={application.status} /></dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Diselesaikan pada</dt>
+                <dd className="mt-1 font-medium">
+                  {formatDateTimeWib(application.resolutionDetails.completedAt)}
+                </dd>
+              </div>
+            </dl>
+
+            <div className="rounded-lg border border-border p-4">
+              <h4 className="text-sm font-semibold">Permintaan Asli</h4>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{application.originalRequest}</p>
+            </div>
+
+            <div className="rounded-lg border border-border p-4">
+              <h4 className="text-sm font-semibold">Resolusi Instansi</h4>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {application.resolutionDetails.officialNote}
+              </p>
+              <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground">Petugas</dt>
+                  <dd className="mt-1 font-medium">{application.resolutionDetails.officerName}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Waktu penyelesaian</dt>
+                  <dd className="mt-1 font-medium">
+                    {formatDateTimeWib(application.resolutionDetails.completedAt)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="rounded-lg border border-border p-4">
+              <h4 className="text-sm font-semibold">Bukti Tindak Lanjut</h4>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {application.resolutionDetails.evidence.map((evidence) => (
+                  <div
+                    key={evidence.id}
+                    className="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs"
+                  >
+                    <p className="font-medium">{evidence.title}</p>
+                    <p className="mt-1 text-muted-foreground">{evidence.fileName}</p>
+                    <p className="mt-2 rounded-md bg-background px-2 py-2 text-muted-foreground">
+                      Preview {evidence.fileType === 'pdf' ? 'PDF' : 'gambar'} · {evidence.safePreviewLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
+                Pratinjau tersedia melalui akses terlindungi. Backend harus memvalidasi pemilik
+                pengajuan dan menggunakan signed URL atau middleware proteksi.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border p-4">
+              <h4 className="text-sm font-semibold">Area Aksi</h4>
+              {application.citizenReviewState === 'eligible' ? (
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={onAcceptReview} className="h-10 flex-1">
+                    Terima & Beri Umpan Balik
+                  </Button>
+                  <Button onClick={onRequestRevision} variant="outline" className="h-10 flex-1">
+                    Tolak & Minta Revisi
+                  </Button>
+                </div>
+              ) : null}
+              {application.citizenReviewState === 'accepted' && application.citizenReviewResult ? (
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+                  <p className="font-semibold">Selesai (Ditutup)</p>
+                  <p className="mt-1">Warga menerima resolusi dan menutup pengajuan.</p>
+                  <p className="mt-1">
+                    Rating: {application.citizenReviewResult.rating ?? '-'} / 5
+                    {application.citizenReviewResult.comment
+                      ? ` · Umpan balik: ${application.citizenReviewResult.comment}`
+                      : ' · Tanpa komentar tambahan.'}
+                  </p>
+                  <p className="mt-2 text-[11px] leading-5">
+                    Aksi tolak dinonaktifkan permanen setelah resolusi diterima.
+                  </p>
+                </div>
+              ) : null}
+              {application.citizenReviewState === 'revision_requested' && application.citizenReviewResult ? (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                  <p className="font-semibold">Revisi telah diminta</p>
+                  <p className="mt-1">Alasan warga: {application.citizenReviewResult.reason}</p>
+                </div>
+              ) : null}
+              {application.status !== 'Menunggu Tinjauan Warga' && application.citizenReviewState === 'unavailable' ? (
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  Aksi review hanya aktif saat status Menunggu Tinjauan Warga.
+                </p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         <section aria-labelledby={timelineHeadingId} className="border-t border-border pt-4">
           <h3 id={timelineHeadingId} className="text-base font-semibold">
             Riwayat progres
@@ -665,6 +806,7 @@ function EducationSection() {
 }
 
 export function CitizenTrackingDashboard() {
+  const router = useRouter();
   const [applications, setApplications] = React.useState<TrackingApplication[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState('');
@@ -679,6 +821,9 @@ export function CitizenTrackingDashboard() {
   const [activeDialog, setActiveDialog] = React.useState<DialogName>(null);
   const [contactMessage, setContactMessage] = React.useState('');
   const [interactionNotice, setInteractionNotice] = React.useState('');
+  const [reviewRating, setReviewRating] = React.useState(5);
+  const [reviewComment, setReviewComment] = React.useState('');
+  const [revisionReason, setRevisionReason] = React.useState('');
 
   React.useEffect(() => {
     const controller = new AbortController();
@@ -746,6 +891,13 @@ export function CitizenTrackingDashboard() {
     setIsMobileDetailOpen(true);
   }
 
+  function openApplicationReview(application: TrackingApplication) {
+    setSelectedId(application.id);
+    setInteractionNotice('');
+    setIsMobileDetailOpen(false);
+    router.push(`/citizen/service/${application.id}`);
+  }
+
   function handleTrackingSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedTrackingNumber = trackingNumber.trim().toUpperCase();
@@ -780,6 +932,96 @@ export function CitizenTrackingDashboard() {
     setInteractionNotice(
       'Pesan simulasi tidak dikirim ke instansi. Integrasi pesan aman belum tersedia.',
     );
+  }
+
+  function openAcceptReview() {
+    setReviewRating(5);
+    setReviewComment('');
+    setInteractionNotice('');
+    setActiveDialog('accept-review');
+  }
+
+  function openRevisionRequest() {
+    setRevisionReason('');
+    setInteractionNotice('');
+    setActiveDialog('request-revision');
+  }
+
+  function handleAcceptReview(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedApplication || selectedApplication.status !== 'Menunggu Tinjauan Warga') return;
+
+    const submittedAt = new Date().toISOString();
+    setApplications((current) =>
+      current.map((application) =>
+        application.id !== selectedApplication.id
+          ? application
+          : {
+              ...application,
+              status: 'Selesai (Ditutup)',
+              progressLabel: 'Selesai (Ditutup)',
+              progressDescription: 'Resolusi telah diterima warga dan pengajuan ditutup.',
+              citizenReviewState: 'accepted',
+              citizenReviewResult: {
+                action: 'accepted',
+                rating: reviewRating,
+                comment: reviewComment.trim() || undefined,
+                submittedAt,
+              },
+              timeline: [
+                ...application.timeline,
+                {
+                  title: 'Warga menerima resolusi',
+                  description: reviewComment.trim()
+                    ? `Rating ${reviewRating}/5. Umpan balik: ${reviewComment.trim()}`
+                    : `Rating ${reviewRating}/5 tanpa komentar tambahan.`,
+                  occurredAt: submittedAt,
+                  completed: true,
+                },
+              ],
+            },
+      ),
+    );
+    setActiveDialog(null);
+    setReviewComment('');
+    setInteractionNotice('Resolusi diterima. Pengajuan ditutup dan ringkasan umpan balik disimpan.');
+  }
+
+  function handleRevisionRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const reason = revisionReason.trim();
+    if (!selectedApplication || selectedApplication.status !== 'Menunggu Tinjauan Warga' || !reason) {
+      return;
+    }
+
+    const submittedAt = new Date().toISOString();
+    setApplications((current) =>
+      current.map((application) =>
+        application.id !== selectedApplication.id
+          ? application
+          : {
+              ...application,
+              citizenReviewState: 'revision_requested',
+              citizenReviewResult: {
+                action: 'revision_requested',
+                reason,
+                submittedAt,
+              },
+              timeline: [
+                ...application.timeline,
+                {
+                  title: 'Warga meminta revisi',
+                  description: `Alasan revisi: ${reason}`,
+                  occurredAt: submittedAt,
+                  completed: false,
+                },
+              ],
+            },
+      ),
+    );
+    setActiveDialog(null);
+    setRevisionReason('');
+    setInteractionNotice('Permintaan revisi dicatat pada timeline pengajuan.');
   }
 
   return (
@@ -832,11 +1074,6 @@ export function CitizenTrackingDashboard() {
               </Button>
             </div>
           </div>
-          <ServiceSpaceNavigation
-            activeSpace="citizen"
-            statisticsHref="/tracking/stat"
-            excludeSpaces={["agency"]}
-          />
         </div>
       </section>
 
@@ -863,6 +1100,7 @@ export function CitizenTrackingDashboard() {
               onTrackingSearch={handleTrackingSearch}
               searchError={searchError}
               searchMessage={searchMessage}
+              onOpenReview={openApplicationReview}
               onOpenDocumentDialog={() => setActiveDialog('document')}
             />
             <aside className="hidden lg:block">
@@ -875,6 +1113,8 @@ export function CitizenTrackingDashboard() {
                     setActiveDialog('contact');
                   }}
                   onOpenDocumentDialog={() => setActiveDialog('document')}
+                  onAcceptReview={openAcceptReview}
+                  onRequestRevision={openRevisionRequest}
                 />
               ) : (
                 <Card className="rounded-xl p-8 text-center text-sm text-muted-foreground">
@@ -924,6 +1164,8 @@ export function CitizenTrackingDashboard() {
                 setActiveDialog('contact');
               }}
               onOpenDocumentDialog={() => setActiveDialog('document')}
+              onAcceptReview={openAcceptReview}
+              onRequestRevision={openRevisionRequest}
             />
           ) : null}
         </div>
@@ -988,6 +1230,82 @@ export function CitizenTrackingDashboard() {
         >
           Simpan pilihan (simulasi)
         </button>
+      </Modal>
+
+      <Modal
+        open={activeDialog === 'accept-review' && Boolean(selectedApplication)}
+        onOpenChange={(open) => setActiveDialog(open ? 'accept-review' : null)}
+        title="Terima & Beri Umpan Balik"
+        description="Rating 1–5 wajib diisi. Komentar opsional dan jangan sertakan data sensitif."
+        footer={
+          <Button form="accept-review-form" type="submit">
+            Simpan penerimaan
+          </Button>
+        }
+        modal={false}
+      >
+        <form id="accept-review-form" onSubmit={handleAcceptReview} className="space-y-4">
+          <label className="block text-sm font-medium" htmlFor="review-rating">
+            Rating layanan
+          </label>
+          <Select
+            aria-label="Rating layanan"
+            value={String(reviewRating)}
+            onChange={(event) => setReviewRating(Number(event.target.value))}
+            options={[
+              { value: '1', label: '1 - Sangat buruk' },
+              { value: '2', label: '2 - Buruk' },
+              { value: '3', label: '3 - Cukup' },
+              { value: '4', label: '4 - Baik' },
+              { value: '5', label: '5 - Sangat baik' },
+            ]}
+            className="h-10"
+          />
+          <label className="block text-sm font-medium" htmlFor="review-comment">
+            Komentar (opsional)
+          </label>
+          <Textarea
+            id="review-comment"
+            value={reviewComment}
+            onChange={(event) => setReviewComment(event.target.value)}
+            placeholder="Tuliskan umpan balik Anda tanpa data pribadi sensitif."
+            rows={4}
+            maxLength={500}
+          />
+        </form>
+      </Modal>
+
+      <Modal
+        open={activeDialog === 'request-revision' && Boolean(selectedApplication)}
+        onOpenChange={(open) => setActiveDialog(open ? 'request-revision' : null)}
+        title="Tolak & Minta Revisi"
+        description="Alasan revisi wajib diisi agar instansi tahu tindak lanjut yang dibutuhkan."
+        footer={
+          <Button
+            form="request-revision-form"
+            type="submit"
+            variant="outline"
+            disabled={!revisionReason.trim()}
+          >
+            Kirim permintaan revisi
+          </Button>
+        }
+        modal={false}
+      >
+        <form id="request-revision-form" onSubmit={handleRevisionRequest} className="space-y-3">
+          <label className="block text-sm font-medium" htmlFor="revision-reason">
+            Alasan revisi
+          </label>
+          <Textarea
+            id="revision-reason"
+            value={revisionReason}
+            onChange={(event) => setRevisionReason(event.target.value)}
+            placeholder="Jelaskan bagian resolusi yang masih perlu diperbaiki."
+            rows={4}
+            required
+            maxLength={500}
+          />
+        </form>
       </Modal>
     </div>
   );

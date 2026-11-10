@@ -7,15 +7,9 @@ import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-type RouteContext = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-
 export async function GET(
   _request: Request,
-  { params }: RouteContext,
+  context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const session = await getCurrentSession();
   if (!session) {
@@ -25,35 +19,32 @@ export async function GET(
     );
   }
 
-  const { id } = await params;
+  const { id } = await context.params;
 
   try {
-    const [application] = await db()
-      .select({
-        id: serviceApplications.id,
-        trackingNumber: serviceApplications.trackingNumber,
-        category: serviceApplications.category,
-        serviceType: serviceApplications.serviceType,
-        serviceId: serviceApplications.serviceId,
-        routeKey: serviceApplications.routeKey,
-        serviceName: serviceApplications.serviceName,
-        agency: serviceApplications.agency,
-        status: serviceApplications.status,
-        applicantName: serviceApplications.applicantName,
-        contactEmail: serviceApplications.contactEmail,
-        payload: serviceApplications.payload,
-        submittedAt: serviceApplications.submittedAt,
-        updatedAt: serviceApplications.updatedAt,
-      })
-      .from(serviceApplications)
-      .where(
-        and(
-          eq(serviceApplications.id, id),
-          eq(serviceApplications.tenantId, session.tenantId),
-          eq(serviceApplications.applicantUserId, session.userId),
-        ),
-      )
-      .limit(1);
+    const application = await db().query.serviceApplications.findFirst({
+      columns: {
+        id: true,
+        trackingNumber: true,
+        category: true,
+        serviceType: true,
+        serviceId: true,
+        routeKey: true,
+        serviceName: true,
+        agency: true,
+        status: true,
+        applicantName: true,
+        contactEmail: true,
+        payload: true,
+        submittedAt: true,
+        updatedAt: true,
+      },
+      where: and(
+        eq(serviceApplications.id, id),
+        eq(serviceApplications.tenantId, session.tenantId),
+        eq(serviceApplications.applicantUserId, session.userId),
+      ),
+    });
 
     if (!application) {
       return NextResponse.json(

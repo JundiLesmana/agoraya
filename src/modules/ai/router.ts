@@ -28,7 +28,7 @@ export async function routeAiRequest(request: AiRequest): Promise<{ response: Ai
   const prompt = fillPromptTemplate(promptTemplate.template, request.context);
   const guardrail = checkGuardrails(prompt);
   if (!guardrail.allowed && !guardrail.modifiedContent) throw new Error('AI request blocked by guardrails');
-  const provider = getAiProvider(request.provider ?? 'openai');
+  const provider = getAiProvider(request.provider ?? 'gemini');
   const response = await provider.complete({ prompt: guardrail.modifiedContent ?? prompt, context: request.context });
   const validated = aiStructuredResponseSchema.safeParse(JSON.parse(response.content));
   logger.info('ai.request.completed', { provider: response.provider, promptId: request.promptId, evaluated: true });

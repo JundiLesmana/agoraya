@@ -46,7 +46,12 @@ const datasetFieldsSchema = z.object({
   summary: z.string(),
   category: z.string(),
   sourceOrganization: z.string(),
-  sourceLabel: z.enum(["BPS_API", "SIMULATED", "CITIZEN_UNVERIFIED"]),
+  sourceLabel: z.enum([
+    "BPS_API",
+    "SIMULATED",
+    "CITIZEN_UNVERIFIED",
+    "ASN_SUBMITTED",
+  ]),
   tags: z.array(z.string()),
   lastUpdatedAt: z.string().datetime(),
   downloadsCount: z.number().int().nonnegative(),

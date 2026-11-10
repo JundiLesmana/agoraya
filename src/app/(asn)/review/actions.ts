@@ -56,7 +56,7 @@ export async function saveReviewAssignment(
     .object({
       itemType: itemTypeSchema,
       itemId: uuidLike,
-      assigneeId: uuidLike.nullable(),
+      assigneeId: z.union([uuidLike, z.literal("self")]).nullable(),
     })
     .safeParse({
       ...commonFields(formData),
@@ -67,8 +67,10 @@ export async function saveReviewAssignment(
     return { error: "Pilihan petugas tidak valid.", success: null };
   }
 
-  const { itemType, itemId, assigneeId } = parsed.data;
+  const { itemType, itemId } = parsed.data;
   const database = db();
+  const requestedAssigneeId = parsed.data.assigneeId;
+  const assigneeId = requestedAssigneeId === "self" ? session.userId : requestedAssigneeId;
   let assignedName: string | null = null;
 
   if (assigneeId) {
@@ -189,6 +191,14 @@ export async function saveReviewAssignment(
   }
 
   revalidatePath("/review");
+  if (itemType === "service_application") {
+    revalidatePath("/asn/dashboard");
+    revalidatePath("/asn/queue");
+    revalidatePath("/asn/submission");
+    revalidatePath(`/asn/submission/${itemId}`);
+    revalidatePath(`/asn/dashboard/submission?id=${itemId}`);
+    revalidatePath(`/asn/dashboard/submissions/${itemId}`);
+  }
   return { error: null, success: "Penugasan berhasil disimpan." };
 }
 
@@ -446,6 +456,12 @@ export async function publishReviewUpdate(
 
   revalidatePath("/review");
   if (itemType === "service_application") {
+    revalidatePath("/asn/dashboard");
+    revalidatePath("/asn/queue");
+    revalidatePath("/asn/submission");
+    revalidatePath(`/asn/submission/${itemId}`);
+    revalidatePath(`/asn/dashboard/submission?id=${itemId}`);
+    revalidatePath(`/asn/dashboard/submissions/${itemId}`);
     revalidatePath(`/citizen/service/${itemId}`);
   }
   return {

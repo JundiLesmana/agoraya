@@ -13,7 +13,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { SourceBadge } from "@/components/source-badges/source-badge";
-import { ServiceSpaceNavigation } from "@/components/service-space-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +45,10 @@ function getStatusTone(status: TrackingStatus): string {
       return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300";
     case "Selesai":
       return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300";
+    case "Selesai (Ditutup)":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300";
+    case "Menunggu Tinjauan Warga":
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-300";
     case "Ditolak":
       return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300";
     case "Status lain":
@@ -176,11 +179,6 @@ function DetailHero({ application }: { application: TrackingApplication }) {
               </Link>
             </Button>
           </div>
-          <ServiceSpaceNavigation
-            activeSpace="citizen"
-            statisticsHref="/tracking/stat"
-            excludeSpaces={["agency"]}
-          />
         </div>
       </div>
     </section>

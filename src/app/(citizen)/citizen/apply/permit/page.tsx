@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  Upload,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,24 +19,30 @@ import {
   type PermitServiceOption,
 } from "@/lib/permit-applications/types";
 
-type PermitDetails = {
-  namaPemohon: string;
-  kontakNotifikasi: string;
-  kecamatan: string;
-  kelurahan: string;
-  judulPermohonan: string;
-  uraian: string;
-  namaUsaha: string;
-  bidangUsaha: string;
-  alamatUsaha: string;
-  statusKepemilikanTempat: string;
-  namaKegiatan: string;
-  jenisKegiatan: string;
-  tanggalKegiatan: string;
-  lokasiKegiatan: string;
-  jenisIzin: string;
-  tujuanIzin: string;
-};
+ type PermitDetails = {
+   namaPemohon: string;
+   kontakNotifikasi: string;
+   kecamatan: string;
+   kelurahan: string;
+   judulPermohonan: string;
+   uraian: string;
+   namaUsaha: string;
+   bidangUsaha: string;
+   alamatUsaha: string;
+   statusKepemilikanTempat: string;
+   namaKegiatan: string;
+   jenisKegiatan: string;
+   tanggalKegiatan: string;
+   lokasiKegiatan: string;
+   jenisIzin: string;
+   tujuanIzin: string;
+ };
+
+ type PermitAttachment = {
+   label: string;
+   file: File | null;
+ };
+
 
 const INITIAL_DETAILS: PermitDetails = {
   namaPemohon: "",
@@ -56,6 +69,14 @@ const STEP_LABELS = [
   "Lampiran",
   "Tinjau & kirim",
 ] as const;
+
+function getRequiredAttachments(service: PermitServiceOption): PermitAttachment[] {
+  return service.requiredDocuments.map((label) => ({ label, file: null }));
+}
+
+function hasAllRequiredAttachments(attachments: PermitAttachment[]) {
+  return attachments.length > 0 && attachments.every((attachment) => attachment.file);
+}
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -205,6 +226,9 @@ export default function PermitApplicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
   const [submittedAt, setSubmittedAt] = useState("");
+  const [attachments, setAttachments] = useState<PermitAttachment[]>([]);
+  const attachmentInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const canReviewSubmission = hasAllRequiredAttachments(attachments);
 
   function updateDetail(key: keyof PermitDetails, value: string) {
     setDetails((current) => ({ ...current, [key]: value }));
@@ -221,6 +245,13 @@ export default function PermitApplicationPage() {
       setError(validationError);
       return;
     }
+    setAttachments((current) => {
+      const next = getRequiredAttachments(selectedService);
+      return current.length === next.length &&
+        current.every((item, index) => item.label === next[index]?.label)
+        ? current
+        : next;
+    });
     setError("");
     setStep(3);
   }
@@ -394,6 +425,7 @@ export default function PermitApplicationPage() {
                         selectedService={selectedService}
                         onSelect={(service) => {
                           setSelectedService(service);
+                          setAttachments(getRequiredAttachments(service));
                           setDetails((current) => ({
                             ...current,
                             judulPermohonan: service.name,
@@ -671,18 +703,94 @@ export default function PermitApplicationPage() {
                       belum diunggah atau dikirim ke backend pada versi ini.
                     </p>
                     <ul className="mt-4 space-y-3">
-                      {selectedService.requiredDocuments.map((document) => (
-                        <li
-                          key={document}
-                          className="border-border flex items-center gap-3 rounded-lg border p-3 text-sm"
-                        >
-                          <CheckCircle2
-                            className="text-primary size-4"
-                            aria-hidden="true"
-                          />
-                          {document}
-                        </li>
-                      ))}
+                      {attachments.map((attachment, index) => {
+                        const inputId = `permit-attachment-${selectedService.id}-${index}`;
+                        const hasFile = Boolean(attachment.file);
+
+                        return (
+                          <li
+                            key={attachment.label}
+                            className="border-border rounded-xl border p-4"
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="font-medium">{attachment.label}</p>
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                  {hasFile
+                                    ? "Berkas disimpan sementara di halaman ini."
+                                    : "Format PDF, JPG, atau PNG hingga 10 MB."}
+                                </p>
+                              </div>
+                              <input
+                                id={inputId}
+                                ref={(element) => {
+                                  attachmentInputRefs.current[attachment.label] = element;
+                                }}
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                className="sr-only"
+                                aria-label={`Unggah ${attachment.label}`}
+                                onChange={(event) => {
+                                  const file = event.currentTarget.files?.[0] ?? null;
+                                  setAttachments((current) =>
+                                    current.map((item, itemIndex) =>
+                                      itemIndex === index ? { ...item, file } : item,
+                                    ),
+                                  );
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant={hasFile ? "outline" : "default"}
+                                  onClick={() =>
+                                    attachmentInputRefs.current[attachment.label]?.click()
+                                  }
+                                >
+                                  <Upload className="size-4" aria-hidden="true" />
+                                  {hasFile ? "Ganti berkas" : "Unggah berkas"}
+                                </Button>
+                                {hasFile ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    aria-label={`Hapus ${attachment.label}`}
+                                    onClick={() => {
+                                      setAttachments((current) =>
+                                        current.map((item, itemIndex) =>
+                                          itemIndex === index
+                                            ? { ...item, file: null }
+                                            : item,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <X className="size-4" aria-hidden="true" />
+                                    Hapus
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </div>
+                            {hasFile ? (
+                              <div className="bg-muted mt-3 flex items-center gap-2 rounded-lg p-3 text-sm">
+                                <FileText
+                                  className="text-primary size-4 shrink-0"
+                                  aria-hidden="true"
+                                />
+                                <span className="truncate font-medium">
+                                  {attachment.file?.name}
+                                </span>
+                                <span className="text-muted-foreground shrink-0 text-xs">
+                                  {attachment.file
+                                    ? `${(attachment.file.size / (1024 * 1024)).toFixed(2)} MB`
+                                    : null}
+                                </span>
+                              </div>
+                            ) : null}
+                          </li>
+                        );
+                      })}
                     </ul>
                     <p className="text-muted-foreground mt-4 text-xs">
                       Saat integrasi unggah dokumen tersedia, lampiran perlu
@@ -751,6 +859,19 @@ export default function PermitApplicationPage() {
                           {details.uraian}
                         </dd>
                       </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-muted-foreground text-xs">
+                          Lampiran
+                        </dt>
+                        <dd className="mt-1 font-medium">
+                          {attachments.some((attachment) => attachment.file)
+                            ? attachments
+                                .filter((attachment) => attachment.file)
+                                .map((attachment) => attachment.file?.name)
+                                .join(", ")
+                            : "Belum ada lampiran yang dipilih"}
+                        </dd>
+                      </div>
                     </dl>
                   </>
                 ) : null}
@@ -791,7 +912,11 @@ export default function PermitApplicationPage() {
                     </Button>
                   ) : null}
                   {step === 3 ? (
-                    <Button type="button" onClick={() => setStep(4)}>
+                    <Button
+                      type="button"
+                      disabled={!canReviewSubmission}
+                      onClick={() => setStep(4)}
+                    >
                       Tinjau pengajuan{" "}
                       <ArrowRight className="size-4" aria-hidden="true" />
                     </Button>

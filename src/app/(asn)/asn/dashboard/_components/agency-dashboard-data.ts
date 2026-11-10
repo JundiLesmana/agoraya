@@ -41,12 +41,20 @@ export const serviceApplicationsResponseSchema = z.object({
       contactEmail: z.string(),
       payload: z.record(z.string(), z.unknown()),
       submittedAt: z.string().nullable(),
+      assigneeId: z.string().nullable(),
+      waitingTimeMinutes: z.number().int().nonnegative(),
     }),
   ),
 });
 
 export type AgencyApplicationStatus =
   "Diterima" | "Diproses" | "Perlu Dokumen" | "Selesai";
+
+export type SubmissionQueueStatus =
+  | "Menunggu Asignasi"
+  | "Sedang Ditangani"
+  | "Menunggu Warga"
+  | "Selesai";
 
 export type AgencySubmissionKind = "report" | "service_application";
 
@@ -70,6 +78,22 @@ export interface AgencyApplication {
   kind: AgencySubmissionKind;
   routeKey?: string;
   rawPayload?: Record<string, unknown>;
+}
+
+export interface SubmissionQueueItem {
+  id: string;
+  trackingNumber: string;
+  serviceName: string;
+  serviceType: string;
+  category: string;
+  agency: string;
+  applicantLabel: string;
+  applicantName: string;
+  submittedAt: string;
+  waitingTimeMinutes: number;
+  queueStatus: SubmissionQueueStatus;
+  status: string;
+  assigneeId: string | null;
 }
 
 export function toAgencyApplication(
@@ -103,6 +127,10 @@ export function toAgencyApplication(
   };
 }
 
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function categoryLabel(category: string): string {
   if (category === "permit") return "Perizinan";
   if (category === "education") return "Pendidikan";
@@ -111,8 +139,64 @@ function categoryLabel(category: string): string {
   return category;
 }
 
-function asString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
+function extractNik(payload: Record<string, unknown>): string | null {
+  const data = payload.data;
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  return asString(record.nik);
+}
+
+export function maskNik(nik: string): string {
+  const digits = nik.replace(/\D/g, "");
+  if (digits.length === 0) return "••••";
+  if (digits.length <= 4) return "•".repeat(digits.length);
+  return `${"•".repeat(digits.length - 4)}${digits.slice(-4)}`;
+}
+
+export function formatApplicantQueueLabel(
+  name: string,
+  payload: Record<string, unknown>,
+): string {
+  const maskedName = maskApplicantName(name);
+  const nik = extractNik(payload);
+  return nik ? `${maskedName} / ${maskNik(nik)}` : maskedName;
+}
+
+export function getSubmissionQueueStatus(
+  status: string,
+  assigneeId: string | null,
+): SubmissionQueueStatus {
+  if (status === "resolved" || status === "closed") return "Selesai";
+  if (status === "rejected" || status === "waiting_for_citizen") {
+    return "Menunggu Warga";
+  }
+  if (status === "verified" || status === "in_progress" || !!assigneeId) {
+    return "Sedang Ditangani";
+  }
+  return "Menunggu Asignasi";
+}
+
+export function getSlaTone(waitingTimeMinutes: number): "green" | "yellow" | "red" {
+  if (waitingTimeMinutes >= 24 * 60) return "red";
+  if (waitingTimeMinutes >= 8 * 60) return "yellow";
+  return "green";
+}
+
+export function formatWaitingTime(waitingTimeMinutes: number): string {
+  if (waitingTimeMinutes < 60) return `${waitingTimeMinutes} mnt`;
+  const hours = Math.floor(waitingTimeMinutes / 60);
+  const minutes = waitingTimeMinutes % 60;
+  if (minutes === 0) return `${hours} jam`;
+  return `${hours} jam ${minutes} mnt`;
+}
+
+export function getAverageWaitingTimeMinutes(
+  items: readonly SubmissionQueueItem[],
+): number {
+  if (items.length === 0) return 0;
+  return Math.round(
+    items.reduce((total, item) => total + item.waitingTimeMinutes, 0) / items.length,
+  );
 }
 
 function extractDescription(payload: Record<string, unknown>): string {
@@ -168,6 +252,35 @@ export function toAgencyApplicationFromService(
     kind: "service_application",
     routeKey: application.routeKey,
     rawPayload: application.payload,
+  };
+}
+
+export function toSubmissionQueueItem(
+  application: z.infer<
+    typeof serviceApplicationsResponseSchema
+  >["applications"][number],
+): SubmissionQueueItem {
+  const submittedAt = application.submittedAt ?? new Date(0).toISOString();
+  return {
+    id: application.id,
+    trackingNumber: application.trackingNumber,
+    serviceName: application.serviceName,
+    serviceType: application.serviceType,
+    category: categoryLabel(application.category),
+    agency: application.agency,
+    applicantLabel: formatApplicantQueueLabel(
+      application.applicantName,
+      application.payload,
+    ),
+    applicantName: application.applicantName,
+    submittedAt,
+    waitingTimeMinutes: application.waitingTimeMinutes,
+    queueStatus: getSubmissionQueueStatus(
+      application.status,
+      application.assigneeId,
+    ),
+    status: application.status,
+    assigneeId: application.assigneeId,
   };
 }
 

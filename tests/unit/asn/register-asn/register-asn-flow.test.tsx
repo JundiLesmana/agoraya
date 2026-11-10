@@ -4,17 +4,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { RegisterAsnForm } from "@/app/(auth)/register-asn/_components/register-asn-form";
 import RegisterAsnPage from "@/app/(auth)/register-asn/page";
+import { registerAsnSchema } from "@/modules/asn/schema";
 
 const fetchMock = vi.hoisted(() => ({
   urls: [] as string[],
+  bodies: [] as Array<string | undefined>,
 }));
 
 beforeEach(() => {
   fetchMock.urls = [];
+  fetchMock.bodies = [];
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       fetchMock.urls.push(String(input));
+      fetchMock.bodies.push(
+        typeof init?.body === "string" ? init.body : undefined,
+      );
       return new Response(
         JSON.stringify({
           ok: true,
@@ -151,6 +157,21 @@ describe("RegisterAsnForm — alur lima langkah", () => {
         status: "pending_approval",
       }),
     );
+    const registrationPayload = JSON.parse(
+      fetchMock.bodies[fetchMock.urls.indexOf("/api/asn/register")] ?? "{}",
+    ) as Record<string, unknown>;
+    expect(registerAsnSchema.safeParse(registrationPayload).success).toBe(true);
+    expect(registrationPayload).toMatchObject({
+      employmentStatus: "PNS",
+      nip: "198501012010011001",
+      rankGradePns: "Penata/I-C",
+      agencyType: "Instansi daerah",
+      field: "Pengelolaan Data dan Statistik",
+      positionType: "Jabatan fungsional",
+      domicileSameAsKtp: true,
+      domicileAddress: "Jl. Melati No. 23, Blok A",
+      idCardFileName: "kartu-pegawai.pdf",
+    });
     expect(onStepChange).toHaveBeenCalledTimes(4);
   });
 

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { SourceBadge } from '@/components/source-badges/source-badge';
 import { Clock, AlertTriangle } from 'lucide-react';
+import { PublishedApbdRecords } from './_components/published-apbd-records';
 
 const REGIONS = [
   { name: 'Kabupaten Bandung', alokasi: 'Rp 12,4 T', realisasi: 'Rp 9,8 T', capaian: 79 },
@@ -210,6 +211,7 @@ export default function AnggaranPage() {
           </div>
         </div>
       )}
+      <PublishedApbdRecords />
     </main>
   );
 }
