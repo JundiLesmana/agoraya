@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from "react";
+import type { IControl, Map as MapLibreMap } from "maplibre-gl";
 import { cn } from "@/lib/utils";
 
 /** A geographic point rendered as a map marker. */
@@ -31,6 +32,8 @@ export interface MapProps {
   className?: string;
   /** Accessible name for the map region. */
   ariaLabel?: string;
+  /** Called when the map finishes loading. Receives the map instance. */
+  onLoad?: (map: MapLibreMap) => (() => void) | undefined;
   /** Called when a marker is clicked. */
   onMarkerClick?: (id: string) => void;
   /** Marker color. */
@@ -67,7 +70,7 @@ interface MapLike {
   remove(): void;
 }
 type MapLibreGlobal = {
-  Map: new (options: Record<string, unknown>) => MapLike;
+  Map: new (options: Record<string, unknown>) => MapLibreMap;
   Marker: new (options?: Record<string, unknown>) => MarkerLike;
   Popup: new (options?: Record<string, unknown>) => PopupLike;
   NavigationControl: new () => unknown;
@@ -119,7 +122,7 @@ function loadMapLibre(): Promise<MapLibreGlobal> {
   });
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
     switch (char) {
       case "&":
@@ -144,16 +147,19 @@ export function Map({
   scrollZoom = true,
   className,
   ariaLabel = "Peta",
+  onLoad,
   onMarkerClick,
   markerColor = DEFAULT_MARKER_COLOR,
   selectedMarkerId = null,
 }: MapProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<MapLike | null>(null);
+  const mapRef = React.useRef<MapLibreMap | null>(null);
   const markersRef = React.useRef<MarkerLike[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const loadedRef = React.useRef(false);
+  const onLoadRef = React.useRef(onLoad);
+  const loadCleanupsRef = React.useRef<(() => void)[]>([]);
   const onMarkerClickRef = React.useRef(onMarkerClick);
   const selectedRef = React.useRef(selectedMarkerId);
   const centerRef = React.useRef(center);
@@ -165,6 +171,15 @@ export function Map({
   React.useEffect(() => {
     selectedRef.current = selectedMarkerId;
   }, [selectedMarkerId]);
+
+  React.useEffect(() => {
+    onLoadRef.current = onLoad;
+    const currentMap = mapRef.current;
+    if (currentMap && loaded && onLoad) {
+      const cleanup = onLoadRef.current?.(currentMap);
+      if (cleanup) loadCleanupsRef.current.push(cleanup);
+    }
+  }, [onLoad, loaded]);
   React.useEffect(() => {
     centerRef.current = center;
   }, [center]);
@@ -174,7 +189,7 @@ export function Map({
 
   React.useEffect(() => {
     let disposed = false;
-    let map: MapLike | null = null;
+    let map: MapLibreMap | null = null;
 
     void (async () => {
       try {
@@ -216,7 +231,7 @@ export function Map({
         mapRef.current = map;
 
         try {
-          map.addControl(new maplibregl.NavigationControl(), "top-right");
+          map.addControl(new maplibregl.NavigationControl() as IControl, "top-right");
         } catch {
           // Optional.
         }
@@ -241,6 +256,10 @@ export function Map({
           loadedRef.current = true;
           setError(null);
           setLoaded(true);
+          if (map) {
+            const cleanup = onLoadRef.current?.(map);
+            if (cleanup) loadCleanupsRef.current.push(cleanup);
+          }
           try {
             map?.resize();
           } catch {
@@ -267,6 +286,14 @@ export function Map({
         }
       });
       markersRef.current = [];
+      loadCleanupsRef.current.forEach((fn) => {
+        try {
+          fn();
+        } catch {
+          // Ignore.
+        }
+      });
+      loadCleanupsRef.current = [];
       if (map) {
         try {
           map.remove();

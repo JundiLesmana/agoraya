@@ -265,10 +265,7 @@ export function ProjectPrioritizationWorkspace({
     () =>
       assignableProjects.filter(
         (project) =>
-          project.tahunAnggaran === Number(fiscalYear) &&
-          (project.status === "Berjalan" ||
-            project.status === "ongoing" ||
-            project.status === "berjalan"),
+          project.tahunAnggaran === Number(fiscalYear),
       ),
     [assignableProjects, fiscalYear],
   );
