@@ -144,6 +144,8 @@ export function PovertyMap({
     year: number | null;
   } | null>(null);
 
+  const layersSetupRef = React.useRef(false);
+
   React.useEffect(() => {
     let active = true;
 
@@ -305,6 +307,15 @@ export function PovertyMap({
     [layersReady, mapFeatures, hovered, statsMap],
   );
 
+  const handleLoad = React.useCallback(
+    (map: MapLibreMap): (() => void) | undefined => {
+      if (layersSetupRef.current || !layersReady || !mapFeatures) return undefined;
+      layersSetupRef.current = true;
+      return setupLayers(map);
+    },
+    [setupLayers, layersReady, mapFeatures],
+  );
+
   const hoveredLabel = hoveredStat
     ? `${hoveredStat.value.toLocaleString("id-ID")} (${hoveredStat.year})`
     : "Belum ada wilayah diarahi";
@@ -337,13 +348,12 @@ export function PovertyMap({
         ) : (
           <>
             <MapComponent
-              style="https://demotiles.maplibre.org/style.json"
               center={[115.0, -2.0]}
               zoom={3.6}
               height={height}
               scrollZoom={false}
               ariaLabel={ariaLabel}
-              onLoad={setupLayers}
+              onLoad={handleLoad}
             />
             {stats.length === 0 && (
               <p

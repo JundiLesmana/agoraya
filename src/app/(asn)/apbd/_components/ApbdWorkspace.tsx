@@ -477,11 +477,22 @@ export function ApbdWorkspace() {
       setRevisionReason("");
       await loadContext({ year, agencyId, regionId, sectorId });
       setRowErrors(savedRowErrors);
-      setNotice(
-        status === "published"
-          ? "Data berhasil dipublikasikan ke portal warga."
-          : "Draf APBD berhasil disimpan.",
-      );
+      const auditWarning =
+        typeof result === "object" &&
+        result !== null &&
+        "auditWarning" in result &&
+        typeof result.auditWarning === "string"
+          ? result.auditWarning
+          : null;
+      if (auditWarning) {
+        setError(auditWarning);
+      } else {
+        setNotice(
+          status === "published"
+            ? "Data berhasil dipublikasikan ke portal warga."
+            : "Draf APBD berhasil disimpan.",
+        );
+      }
     } catch (saveError) {
       setError(
         saveError instanceof Error

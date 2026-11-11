@@ -40,6 +40,7 @@
     "db:bootstrap:production": "tsx scripts/bootstrap-production-accounts.ts",
     "db:reconcile-asn-kyc-tenant": "tsx scripts/reconcile-asn-kyc-tenant.ts",
     "db:reconcile-citizen-kyc-tenant": "tsx scripts/reconcile-citizen-kyc-tenant.ts",
+    "db:reconcile-service-application-tenant": "tsx scripts/reconcile-service-application-tenant.ts",
     "db:reset": "tsx scripts/reset-demo.ts",
     "db:rollback": "tsx scripts/rollback-migration.ts",
     "script:seed": "tsx scripts/seed.ts",

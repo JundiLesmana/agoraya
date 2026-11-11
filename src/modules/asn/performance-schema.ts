@@ -9,6 +9,9 @@ export const ASN_PERFORMANCE_TASK_TYPES = [
   "submit_cms",
   "review_cms",
   "review_kyc",
+  "review_workflow",
+  "access_management",
+  "decision_engine",
 ] as const;
 
 export type AsnPerformanceTaskType =

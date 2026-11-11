@@ -32,10 +32,20 @@ export const EnvSchema = z.object({
   CLOUDINARY_API_KEY: optionalEnv(z.string()),
   CLOUDINARY_API_SECRET: optionalEnv(z.string()),
 
-  BPS_API_KEY: optionalEnv(z.string()),
+  BPS_API_KEY: z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const stripped = value.replace(/\s+#.*$/, "").trim();
+      return stripped === "" ? undefined : stripped;
+    },
+    z.string().optional(),
+  ),
   BPS_STATISTICS_INDICATORS: z.preprocess(
-    (value) =>
-      typeof value === "string" && value.trim() === "" ? undefined : value,
+    (value) => {
+      if (typeof value !== "string") return value;
+      const stripped = value.replace(/\s+#.*$/, "").trim();
+      return stripped === "" ? undefined : stripped;
+    },
     z
       .string()
       .trim()
@@ -47,12 +57,30 @@ export const EnvSchema = z.object({
   AI_PROVIDER: optionalEnv(
     z.enum(["gemini", "cerebras", "groq", "openrouter"]),
   ),
-  AI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: optionalEnv(z.string().min(1)),
+  CEREBRAS_API_KEY: optionalEnv(z.string().min(1)),
+  GROQ_API_KEY: optionalEnv(z.string().min(1)),
+  OPENROUTER_API_KEY: optionalEnv(z.string().min(1)),
+  GEMINI_MODEL: optionalEnv(z.string().min(1).max(120)),
+  CEREBRAS_MODEL: optionalEnv(z.string().min(1).max(120)),
+  GROQ_MODEL: optionalEnv(z.string().min(1).max(120)),
+  OPENROUTER_MODEL: optionalEnv(z.string().min(1).max(160)),
+  AI_API_KEY: optionalEnv(z.string().min(1)),
 }).refine(
-  (data) => !data.AI_PROVIDER || (data.AI_API_KEY ?? "").trim().length > 0,
+  (data) => {
+    if (!data.AI_PROVIDER) return true;
+    const providerKey = {
+      gemini: data.GEMINI_API_KEY,
+      cerebras: data.CEREBRAS_API_KEY,
+      groq: data.GROQ_API_KEY,
+      openrouter: data.OPENROUTER_API_KEY,
+    }[data.AI_PROVIDER];
+    return Boolean(providerKey || data.AI_API_KEY);
+  },
   {
-    message: "AI_API_KEY wajib diisi saat AI_PROVIDER disetel.",
-    path: ["AI_API_KEY"],
+    message:
+      "API key untuk provider AI terpilih wajib diisi (atau gunakan AI_API_KEY lama selama migrasi).",
+    path: ["AI_PROVIDER"],
   },
 );
 

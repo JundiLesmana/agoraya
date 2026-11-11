@@ -135,6 +135,7 @@ export function StatisticalIndicatorWorkspace() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [auditWarning, setAuditWarning] = useState<string | null>(null);
   const entryRequestId = useRef(0);
 
   const years = useMemo(
@@ -369,6 +370,7 @@ export function StatisticalIndicatorWorkspace() {
     setSaving(true);
     setError(null);
     setNotice(null);
+    setAuditWarning(null);
     try {
       const rows = values
         .filter((row) => row.value.trim() !== "")
@@ -413,11 +415,15 @@ export function StatisticalIndicatorWorkspace() {
       if (!result.success) {
         throw new Error("Respons penyimpanan statistik tidak valid.");
       }
-      setNotice(
-        status === "published"
-          ? "Data berhasil dipublikasikan dan kini terkunci untuk perubahan biasa."
-          : "Draf statistik berhasil disimpan.",
-      );
+      if (result.data.auditWarning) {
+        setAuditWarning(result.data.auditWarning);
+      } else {
+        setNotice(
+          status === "published"
+            ? "Data berhasil dipublikasikan dan kini terkunci untuk perubahan biasa."
+            : "Draf statistik berhasil disimpan.",
+        );
+      }
       await loadEntry({
         referenceYear: Number(year),
         regionId,
@@ -520,6 +526,14 @@ export function StatisticalIndicatorWorkspace() {
           className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-4 py-3 text-sm"
         >
           {error}
+        </div>
+      ) : null}
+      {auditWarning ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+        >
+          {auditWarning}
         </div>
       ) : null}
       {notice ? (

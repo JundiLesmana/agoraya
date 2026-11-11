@@ -18,6 +18,7 @@ import {
   FileText,
   ImagePlus,
   Leaf,
+  MapPin,
   ShieldCheck,
   Trash2,
   UploadCloud,
@@ -28,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker, type LocationData } from "@/components/forms/location-picker";
 
 const CATEGORIES = ["Infrastruktur", "Dugaan korupsi", "Lingkungan"] as const;
 
@@ -82,20 +84,14 @@ const SUBCATEGORIES: Record<(typeof CATEGORIES)[number], string[]> = {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_FILES = 5;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^(?:\+62|62|0)8[1-9]\d{6,11}$/;
 
 interface ReportFormValues {
   category: string;
   subcategory: string;
   title: string;
   description: string;
-  province: string;
-  city: string;
-  location: string;
+  location: LocationData | null;
   name: string;
-  email: string;
-  phone: string;
   isPublic: boolean;
   showIdentity: boolean;
 }
@@ -110,7 +106,7 @@ const STEPS = [
   "Pilih kategori",
   "Detail masalah",
   "Bukti pendukung",
-  "Verifikasi identitas",
+  "Nama samaran",
 ] as const;
 
 function categoryIsValid(value: string): value is (typeof CATEGORIES)[number] {
@@ -144,12 +140,8 @@ function getInitialValues(
     subcategory: validSubcategory,
     title: "",
     description: "",
-    province: "",
-    city: "",
-    location: "",
+    location: null,
     name: "",
-    email: "",
-    phone: "",
     isPublic: true,
     showIdentity: false,
   };
@@ -163,19 +155,14 @@ function validateStep(step: number, values: ReportFormValues): boolean {
       values.title.trim().length <= 100 &&
       values.description.trim().length >= 50 &&
       values.subcategory.length > 0 &&
-      values.province.trim().length > 0 &&
-      values.city.trim().length > 0 &&
-      values.location.trim().length > 0
+      values.location !== null &&
+      values.location.province.trim().length > 0 &&
+      values.location.city.trim().length > 0 &&
+      values.location.address.trim().length > 0
     );
   }
   if (step === 3) {
-    return (
-      (!values.isPublic ||
-        !values.showIdentity ||
-        values.name.trim().length > 0) &&
-      EMAIL_PATTERN.test(values.email.trim()) &&
-      PHONE_PATTERN.test(values.phone.replace(/[\s()-]/g, ""))
-    );
+    return values.name.trim().length > 0 && values.name.trim().length <= 80;
   }
   return true;
 }
@@ -388,30 +375,20 @@ export function ReportForm({
   const subcategoryError = values.subcategory
     ? undefined
     : "Pilih kategori laporan yang lebih spesifik.";
-  const provinceError = values.province.trim()
+  const provinceError = values.location?.province.trim()
     ? undefined
-    : "Provinsi wajib diisi.";
-  const cityError = values.city.trim()
+    : "Provinsi wajib diisi (pilih dari peta).";
+  const cityError = values.location?.city.trim()
     ? undefined
-    : "Kabupaten atau kota wajib diisi.";
-  const locationError = values.location.trim()
+    : "Kabupaten atau kota wajib diisi (pilih dari peta).";
+  const locationError = values.location?.address.trim()
     ? undefined
-    : "Alamat atau patokan lokasi wajib diisi.";
+    : "Alamat atau patokan lokasi wajib diisi (pilih dari peta).";
   const nameError =
-    values.isPublic && values.showIdentity && !values.name.trim()
-      ? "Nama wajib diisi jika identitas ditampilkan."
-      : undefined;
-  const emailError =
-    values.email.trim().length === 0
-      ? "Email wajib diisi."
-      : !EMAIL_PATTERN.test(values.email.trim())
-        ? "Masukkan alamat email yang valid, misalnya nama@email.com."
-        : undefined;
-  const phoneError =
-    values.phone.trim().length === 0
-      ? "Nomor HP wajib diisi."
-      : !PHONE_PATTERN.test(values.phone.replace(/[\s()-]/g, ""))
-        ? "Masukkan nomor HP Indonesia yang valid, misalnya 081234567890 atau +6281234567890."
+    values.name.trim().length === 0
+      ? "Nama samaran wajib diisi."
+      : values.name.trim().length > 80
+        ? "Nama samaran maksimal 80 karakter."
         : undefined;
   const currentStepLabel =
     step === 0
@@ -475,9 +452,9 @@ export function ReportForm({
         </div>
 
         <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
-          Laporan dan informasi kontak akan disimpan untuk ditindaklanjuti oleh
-          instansi. Berkas lampiran saat ini belum diunggah; hanya nama berkas
-          yang disimpan.
+          Laporan dan nama samaran akan disimpan agar instansi dapat
+          menindaklanjuti laporan. Email dan nomor HP tidak dikumpulkan. Berkas
+          lampiran saat ini belum diunggah; hanya nama berkas yang disimpan.
         </div>
 
         {submissionReceipt ? (
@@ -628,67 +605,20 @@ export function ReportForm({
                   disabled={!selectedCategory}
                 />
               </FormField>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <FormField
-                  id="report-province"
-                  label="Provinsi"
-                  required
-                  error={provinceError}
-                >
-                  <Input
-                    id="report-province"
-                    value={values.province}
-                    aria-invalid={Boolean(provinceError)}
-                    aria-describedby={
-                      provinceError ? "report-province-error" : undefined
-                    }
-                    onChange={(event) =>
-                      updateValue("province", event.target.value)
-                    }
-                    placeholder="Contoh: Jawa Barat"
-                  />
-                </FormField>
-                <FormField
-                  id="report-city"
-                  label="Kabupaten / Kota"
-                  required
-                  error={cityError}
-                >
-                  <Input
-                    id="report-city"
-                    value={values.city}
-                    aria-invalid={Boolean(cityError)}
-                    aria-describedby={
-                      cityError ? "report-city-error" : undefined
-                    }
-                    onChange={(event) =>
-                      updateValue("city", event.target.value)
-                    }
-                    placeholder="Contoh: Kota Bandung"
-                  />
-                </FormField>
-              </div>
               <FormField
                 id="report-location"
-                label="Alamat / patokan lokasi"
+                label="Lokasi kejadian"
                 required
                 error={locationError}
               >
-                <Input
-                  id="report-location"
+                <LocationPicker
                   value={values.location}
-                  aria-invalid={Boolean(locationError)}
-                  aria-describedby={
-                    locationError ? "report-location-error" : undefined
-                  }
-                  onChange={(event) =>
-                    updateValue("location", event.target.value)
-                  }
-                  placeholder="Nama jalan, kelurahan, atau patokan terdekat"
+                  onChange={(location) => updateValue("location", location)}
+                  ariaLabel="Pilih lokasi kejadian di peta"
                 />
                 <p className="text-muted-foreground text-xs">
-                  Gunakan lokasi yang cukup jelas agar petugas dapat
-                  menemukannya.
+                  Klik pada peta untuk menentukan lokasi pasti. Provinsi, kabupaten/kota,
+                  dan alamat/patokan akan terisi otomatis berdasarkan titik yang dipilih.
                 </p>
               </FormField>
               {!validateStep(1, values) ? (
@@ -817,9 +747,10 @@ export function ReportForm({
           {step === 3 ? (
             <div className="space-y-5">
               <div>
-                <h2 className="text-lg font-semibold">Verifikasi identitas</h2>
+                <h2 className="text-lg font-semibold">Nama samaran Anda</h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Email dan nomor HP diperlukan untuk tindak lanjut laporan.
+                  Gunakan nama samaran, bukan nama asli. Email dan nomor HP
+                  tidak diminta.
                 </p>
               </div>
               <fieldset className="space-y-3">
@@ -856,10 +787,11 @@ export function ReportForm({
                   />
                   <span>
                     <span className="block font-medium">
-                      Saya tidak keberatan jika identitas saya ditampilkan
+                      Saya tidak keberatan jika nama samaran ditampilkan
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      Jika tidak dicentang, nama disamarkan pada laporan publik.
+                      Jika tidak dicentang, nama samaran tidak ditampilkan pada
+                      laporan publik.
                     </span>
                   </span>
                 </label>
@@ -869,69 +801,29 @@ export function ReportForm({
                     {!values.isPublic
                       ? "Privat"
                       : values.showIdentity
-                        ? "Publik dengan nama"
+                        ? "Publik dengan nama samaran"
                         : "Publik anonim"}
                   </strong>
                 </p>
               </fieldset>
-              {values.isPublic && values.showIdentity ? (
-                <FormField
+              <FormField
+                id="report-name"
+                label="Nama samaran Anda"
+                required
+                error={nameError}
+              >
+                <Input
                   id="report-name"
-                  label="Nama"
-                  required
-                  error={nameError}
-                >
-                  <Input
-                    id="report-name"
-                    autoComplete="name"
-                    value={values.name}
-                    aria-invalid={Boolean(nameError)}
-                    aria-describedby={
-                      nameError ? "report-name-error" : undefined
-                    }
-                    onChange={(event) =>
-                      updateValue("name", event.target.value)
-                    }
-                    placeholder="Nama yang ingin ditampilkan"
-                  />
-                </FormField>
-              ) : null}
-              <FormField
-                id="report-email"
-                label="Email"
-                required
-                error={emailError}
-              >
-                <Input
-                  id="report-email"
-                  type="email"
-                  autoComplete="email"
-                  value={values.email}
-                  aria-invalid={Boolean(emailError)}
+                  name="pseudonym"
+                  autoComplete="nickname"
+                  value={values.name}
+                  maxLength={80}
+                  aria-invalid={Boolean(nameError)}
                   aria-describedby={
-                    emailError ? "report-email-error" : undefined
+                    nameError ? "report-name-error" : undefined
                   }
-                  onChange={(event) => updateValue("email", event.target.value)}
-                  placeholder="nama@email.com"
-                />
-              </FormField>
-              <FormField
-                id="report-phone"
-                label="No HP"
-                required
-                error={phoneError}
-              >
-                <Input
-                  id="report-phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={values.phone}
-                  aria-invalid={Boolean(phoneError)}
-                  aria-describedby={
-                    phoneError ? "report-phone-error" : undefined
-                  }
-                  onChange={(event) => updateValue("phone", event.target.value)}
-                  placeholder="081234567890"
+                  onChange={(event) => updateValue("name", event.target.value)}
+                  placeholder="Contoh: Melati Senja"
                 />
               </FormField>
               <p className="flex items-start gap-2 rounded-md bg-blue-50 p-3 text-sm text-blue-900 dark:bg-blue-950/50 dark:text-blue-200">
@@ -939,8 +831,8 @@ export function ReportForm({
                   aria-hidden="true"
                   className="mt-0.5 size-4 shrink-0"
                 />
-                Data kontak disimpan secara terbatas untuk tindak lanjut. Berkas
-                asli tidak diunggah melalui formulir ini.
+                Jangan masukkan nama asli atau informasi pribadi ke nama
+                samaran. Email dan nomor HP tidak dikumpulkan.
               </p>
             </div>
           ) : null}

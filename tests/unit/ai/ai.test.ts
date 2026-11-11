@@ -2,10 +2,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fillPromptTemplate } from "@/modules/ai/prompts";
 import { aiExplanationOutputSchema, aiStructuredResponseSchema } from "@/modules/ai/schemas";
 import { checkGuardrails } from "@/modules/ai/guardrails";
-import { getAiProvider, geminiProvider } from "@/modules/ai/providers";
-import type { AiProviderName } from "@/modules/ai/types";
+import {
+  cerebrasProvider,
+  geminiProvider,
+  getAiProvider,
+  groqProvider,
+  openRouterProvider,
+} from "@/modules/ai/providers";
+import { routeAiRequest } from "@/modules/ai/router";
+import { resetEnv } from "@/lib/env";
 
 afterEach(() => {
+  vi.unstubAllEnvs();
+  resetEnv();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -17,10 +27,55 @@ describe("modules/ai", () => {
       expect(provider).toBe(geminiProvider);
     });
 
-    it("menolak provider yang belum diimplementasikan dengan error eksplisit", () => {
-      for (const name of ["cerebras", "groq", "openrouter"] as AiProviderName[]) {
-        expect(() => getAiProvider(name)).toThrow(/belum diimplementasikan/);
-      }
+    it("routes through the selected provider without persisting raw output", async () => {
+      vi.stubEnv("DATABASE_URL", "postgres://127.0.0.1:5432/agoraya_local");
+      vi.stubEnv("AUTH_SECRET", "test-secret-for-unit-tests-at-least-32-chars!");
+      vi.stubEnv("AI_PROVIDER", "gemini");
+      vi.stubEnv("GEMINI_API_KEY", "test-api-key");
+      process.env.DATABASE_URL = "******127.0.0.1:5432/agoraya_local";
+      process.env.AUTH_SECRET = "test-secret-for-unit-tests-at-least-32-chars!";
+      process.env.AI_PROVIDER = "gemini";
+      process.env.GEMINI_API_KEY = "test-api-key";
+      resetEnv();
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        summary: "Ringkasan",
+                        confidence: 0.9,
+                        labels: ["proyek"],
+                        secret: "field tambahan dihapus",
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+      const result = await routeAiRequest({
+        intent: "explain",
+        promptId: "classification",
+        context: { input: "Progres proyek", context: "data agregat" },
+      });
+      expect(result.response.content).not.toContain("secret");
+      expect(result.response.provider).toBe("gemini");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("mengembalikan adapter untuk keempat provider", () => {
+      expect(getAiProvider("gemini")).toBe(geminiProvider);
+      expect(getAiProvider("cerebras")).toBe(cerebrasProvider);
+      expect(getAiProvider("groq")).toBe(groqProvider);
+      expect(getAiProvider("openrouter")).toBe(openRouterProvider);
     });
   });
 

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker } from "@/components/forms/location-picker";
 import { SourceBadge } from "@/components/source-badges/source-badge";
 import {
   APPLICATION_STEPS,
@@ -32,6 +33,11 @@ import {
 type ApplicationDetails = {
   subject: string;
   location: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  kecamatan: string;
+  kelurahan: string;
   description: string;
   contactEmail: string;
   businessName: string;
@@ -44,6 +50,11 @@ type ApplicationDetails = {
 const INITIAL_DETAILS: ApplicationDetails = {
   subject: "",
   location: "",
+  address: "",
+  latitude: 0,
+  longitude: 0,
+  kecamatan: "",
+  kelurahan: "",
   description: "",
   contactEmail: "warga.simulasi@example.test",
   businessName: "",
@@ -92,8 +103,8 @@ function getDetailsError(
   if (service.category === "Pengaduan" && !details.subject.trim()) {
     return "Judul pengaduan wajib diisi.";
   }
-  if (service.category !== "Bansos" && !details.location.trim()) {
-    return "Alamat atau lokasi wajib diisi.";
+  if (service.category !== "Bansos" && !details.address.trim()) {
+    return "Alamat atau lokasi wajib dipilih dari peta.";
   }
   if ((service.category === "Bansos" || service.category === "Sosial") && !details.aidType.trim()) {
     return "Jenis bantuan wajib dipilih.";
@@ -468,14 +479,31 @@ function ServiceSpecificFields({
               placeholder="Contoh: Perizinan"
             />
           </label>
-          <label className="block space-y-1.5 text-sm">
-            <span className="font-medium">{locationLabel}</span>
-            <Input
-              value={details.location}
-              onChange={(event) => onChange("location", event.target.value)}
-              placeholder="Alamat lengkap lokasi usaha"
+          <div className="space-y-1.5">
+            <span className="font-medium text-sm">{locationLabel}</span>
+            <LocationPicker
+              value={{
+                province: "",
+                city: "",
+                kecamatan: details.kecamatan,
+                kelurahan: details.kelurahan,
+                address: details.address,
+                latitude: details.latitude,
+                longitude: details.longitude,
+              }}
+              onChange={(location) => {
+                if (location) {
+                  onChange("kecamatan", location.kecamatan);
+                  onChange("kelurahan", location.kelurahan);
+                  onChange("address", location.address);
+                  onChange("latitude", location.latitude.toString());
+                  onChange("longitude", location.longitude.toString());
+                  onChange("location", location.address);
+                }
+              }}
+              ariaLabel={`Pilih ${locationLabel.toLowerCase()} di peta`}
             />
-          </label>
+          </div>
         </>
       ) : (
         <>
@@ -487,14 +515,31 @@ function ServiceSpecificFields({
               placeholder="Ringkas masalah yang dilaporkan"
             />
           </label>
-          <label className="block space-y-1.5 text-sm">
-            <span className="font-medium">{locationLabel}</span>
-            <Input
-              value={details.location}
-              onChange={(event) => onChange("location", event.target.value)}
-              placeholder="Nama jalan, wilayah, atau patokan"
+          <div className="space-y-1.5">
+            <span className="font-medium text-sm">{locationLabel}</span>
+            <LocationPicker
+              value={{
+                province: "",
+                city: "",
+                kecamatan: details.kecamatan,
+                kelurahan: details.kelurahan,
+                address: details.address,
+                latitude: details.latitude,
+                longitude: details.longitude,
+              }}
+              onChange={(location) => {
+                if (location) {
+                  onChange("kecamatan", location.kecamatan);
+                  onChange("kelurahan", location.kelurahan);
+                  onChange("address", location.address);
+                  onChange("latitude", location.latitude.toString());
+                  onChange("longitude", location.longitude.toString());
+                  onChange("location", location.address);
+                }
+              }}
+              ariaLabel={`Pilih ${locationLabel.toLowerCase()} di peta`}
             />
-          </label>
+          </div>
         </>
       )}
       <label className="block space-y-1.5 text-sm">
@@ -502,8 +547,8 @@ function ServiceSpecificFields({
           {isAid
             ? "Jelaskan kebutuhan bantuan"
             : isPermit
-              ? "Tujuan pengajuan"
-              : "Ceritakan detail"}
+            ? "Tujuan pengajuan"
+            : "Ceritakan detail"}
         </span>
         <Textarea
           value={details.description}

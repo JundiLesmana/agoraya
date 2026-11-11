@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
 import { getCurrentSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
 
 function getWaitingTimeMinutes(submittedAt: Date, now = new Date()): number {
   return Math.max(
@@ -32,6 +33,24 @@ export async function GET(): Promise<Response> {
     if (!isAsnRole(session.roles)) {
       return NextResponse.json(
         { error: "Akses ASN diperlukan." },
+        { status: 403 },
+      );
+    }
+    const reportingTenantId = await resolveReportingTenantId();
+    if (!reportingTenantId) {
+      return NextResponse.json(
+        { error: "Tenant penerima pengajuan layanan belum dikonfigurasi atau tidak aktif." },
+        { status: 503 },
+      );
+    }
+    if (reportingTenantId !== session.tenantId) {
+      logger.error("service_applications.recipient_tenant_mismatch", {
+        userId: session.userId,
+        sessionTenantId: session.tenantId,
+        reportingTenantId,
+      });
+      return NextResponse.json(
+        { error: "Akun ASN tidak berada pada tenant penerima pengajuan layanan." },
         { status: 403 },
       );
     }

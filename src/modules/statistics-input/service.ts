@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { tenantCloudinaryFolder } from "@/lib/cloudinary/folders";
 import { getDefaultDatabase } from "@/lib/db/client";
 import type { Database, Row } from "@/lib/db/types";
 import type { Session } from "@/lib/auth/session";
@@ -93,15 +94,18 @@ export async function getPublishedStatisticInputs(
   database: Database = getDefaultDatabase(),
 ) {
   const entries = await database.query<PublishedEntryRow>(
-    `SELECT id::text AS id, region_id AS "regionId",
+    `SELECT DISTINCT ON (
+         tenant_id, region_id, sector_id, indicator_id, reference_year
+       )
+       id::text AS id, region_id AS "regionId",
        region_name AS "regionName",
        sector_id AS "sectorId", indicator_id AS "indicatorId",
        reference_year AS "referenceYear", source_name AS "sourceName",
        methodology, published_at AS "publishedAt"
      FROM statistic_entries
      WHERE status = 'published'
-     ORDER BY published_at DESC
-     LIMIT 50`,
+     ORDER BY tenant_id, region_id, sector_id, indicator_id, reference_year,
+       published_at DESC NULLS LAST, id DESC`,
   );
   if (!entries.length) return { entries: [] };
 
@@ -525,7 +529,12 @@ async function uploadDocuments(
       {
         resource_type: "raw",
         type: "authenticated",
-        folder: `tenant/${session.tenantId}/statistic-input/${payload.regionId}/${payload.referenceYear}`,
+        folder: tenantCloudinaryFolder(
+          session.tenantId,
+          "statistics-input",
+          payload.regionId,
+          String(payload.referenceYear),
+        ),
         public_id: crypto.randomUUID(),
         overwrite: false,
         unique_filename: false,
@@ -803,6 +812,10 @@ export async function saveStatisticsInput(
                 "statistic_values",
                 valueRow.id,
                 JSON.stringify({
+                  tenantId: session.tenantId,
+                  actorRole: session.roles.join(","),
+                  result: "success",
+                  status: payload.status,
                   periodValue: value.periodValue,
                   previousValue,
                   newValue: value.value,

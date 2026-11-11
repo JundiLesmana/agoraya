@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEnv, resetEnv, getEnv, isDev, isTest, isProd } from "@/lib/env";
 
-const originalEnv = process.env;
+const originalEnv = { ...process.env };
 
 const requiredBase: Record<string, string> = {
   NODE_ENV: "development",
@@ -20,7 +20,7 @@ describe("lib/env", () => {
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    process.env = { ...originalEnv };
     resetEnv();
     vi.restoreAllMocks();
   });
@@ -56,8 +56,29 @@ describe("lib/env", () => {
     expect(env.DATABASE_URL_UNPOOLED).toBeUndefined();
   });
 
+  it("requires the selected provider key and accepts provider-specific credentials", () => {
+    setEnv({
+      ...requiredBase,
+      AI_PROVIDER: "groq",
+      GROQ_API_KEY: "groq-test-key",
+      AI_API_KEY: "",
+    });
+    expect(loadEnv().GROQ_API_KEY).toBe("groq-test-key");
+
+    resetEnv();
+    setEnv({
+      ...requiredBase,
+      AI_PROVIDER: "groq",
+      GROQ_API_KEY: "",
+      AI_API_KEY: "",
+    });
+    expect(() => loadEnv()).toThrow(/AI_PROVIDER/);
+  });
+
   it("throws when required env vars are missing", () => {
     setEnv({}); // missing DATABASE_URL, AUTH_SECRET, etc.
+    delete process.env.DATABASE_URL;
+    delete process.env.AUTH_SECRET;
     expect(() => loadEnv()).toThrow(
       /Missing or invalid required environment variables/,
     );

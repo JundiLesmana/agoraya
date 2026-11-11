@@ -16,8 +16,8 @@ export const agencyDashboardResponseSchema = z.object({
       city: z.string(),
       address: z.string(),
       reporterName: z.string().nullable(),
-      reporterEmail: z.string(),
-      reporterPhone: z.string(),
+      reporterEmail: z.string().nullable().optional(),
+      reporterPhone: z.string().nullable().optional(),
       isPublic: z.boolean(),
       showIdentity: z.boolean(),
       attachments: z.array(z.string()),
@@ -107,12 +107,9 @@ export function toAgencyApplication(
     description: report.description,
     category: report.category,
     subcategory: report.subcategory,
-    applicantName:
-      report.showIdentity && report.reporterName
-        ? report.reporterName
-        : "Pelapor anonim",
-    email: report.reporterEmail,
-    phone: report.reporterPhone,
+    applicantName: report.reporterName ?? "Pelapor anonim",
+    email: report.reporterEmail ?? "",
+    phone: report.reporterPhone ?? "-",
     address: [report.address, report.city, report.province].join(", "),
     submittedAt,
     targetAt: report.responseDueAt ?? submittedAt,

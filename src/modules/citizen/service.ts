@@ -301,6 +301,7 @@ export async function registerCitizen(command: RegisterCitizenCommand) {
       fileName: attachment.fileName,
       mimeType: attachment.mimeType,
       category: "citizen",
+      module: "kyc",
     });
     attachmentRows.push({
       id: randomUUID(),

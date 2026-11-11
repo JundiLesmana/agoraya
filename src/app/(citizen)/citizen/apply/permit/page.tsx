@@ -13,30 +13,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationPicker } from "@/components/forms/location-picker";
 import {
   PERMIT_SERVICES,
   type PermitApplicationPayload,
   type PermitServiceOption,
 } from "@/lib/permit-applications/types";
 
- type PermitDetails = {
-   namaPemohon: string;
-   kontakNotifikasi: string;
-   kecamatan: string;
-   kelurahan: string;
-   judulPermohonan: string;
-   uraian: string;
-   namaUsaha: string;
-   bidangUsaha: string;
-   alamatUsaha: string;
-   statusKepemilikanTempat: string;
-   namaKegiatan: string;
-   jenisKegiatan: string;
-   tanggalKegiatan: string;
-   lokasiKegiatan: string;
-   jenisIzin: string;
-   tujuanIzin: string;
- };
+type PermitDetails = {
+  namaPemohon: string;
+  kontakNotifikasi: string;
+  kecamatan: string;
+  kelurahan: string;
+  alamat: string;
+  latitude: number;
+  longitude: number;
+  judulPermohonan: string;
+  uraian: string;
+  namaUsaha: string;
+  bidangUsaha: string;
+  alamatUsaha: string;
+  statusKepemilikanTempat: string;
+  namaKegiatan: string;
+  jenisKegiatan: string;
+  tanggalKegiatan: string;
+  lokasiKegiatan: string;
+  jenisIzin: string;
+  tujuanIzin: string;
+};
 
  type PermitAttachment = {
    label: string;
@@ -49,6 +53,9 @@ const INITIAL_DETAILS: PermitDetails = {
   kontakNotifikasi: "",
   kecamatan: "",
   kelurahan: "",
+  alamat: "",
+  latitude: 0,
+  longitude: 0,
   judulPermohonan: "",
   uraian: "",
   namaUsaha: "",
@@ -90,8 +97,8 @@ function getDetailsError(
   if (!isValidEmail(details.kontakNotifikasi)) {
     return "Masukkan alamat email dengan format yang benar.";
   }
-  if (!details.kecamatan) return "Kecamatan domisili wajib dipilih.";
-  if (!details.kelurahan) return "Kelurahan / desa wajib dipilih.";
+  if (!details.alamat) return "Alamat domisili wajib dipilih dari peta.";
+  if (!details.latitude || !details.longitude) return "Koordinat lokasi wajib dipilih dari peta.";
   if (!details.judulPermohonan.trim()) return "Judul permohonan wajib diisi.";
   if (!details.uraian.trim()) return "Ceritakan kebutuhan permohonan Anda.";
 
@@ -126,6 +133,9 @@ function createPayload(
     kontakNotifikasi: details.kontakNotifikasi.trim(),
     kecamatan: details.kecamatan,
     kelurahan: details.kelurahan,
+    alamat: details.alamat,
+    latitude: details.latitude,
+    longitude: details.longitude,
     judulPermohonan: details.judulPermohonan.trim(),
     uraian: details.uraian.trim(),
   };
@@ -462,40 +472,32 @@ export default function PermitApplicationPage() {
                           }
                         />
                       </label>
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium">
-                          Kecamatan domisili *
-                        </span>
-                        <select
-                          aria-label="Kecamatan domisili"
-                          value={details.kecamatan}
-                          onChange={(event) =>
-                            updateDetail("kecamatan", event.target.value)
-                          }
-                          className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-                        >
-                          <option value="">Pilih kecamatan</option>
-                          <option value="Kecamatan Melati">
-                            Kecamatan Melati
-                          </option>
-                        </select>
-                      </label>
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium">Kelurahan / desa *</span>
-                        <select
-                          aria-label="Kelurahan / desa"
-                          value={details.kelurahan}
-                          onChange={(event) =>
-                            updateDetail("kelurahan", event.target.value)
-                          }
-                          className="border-input bg-background h-10 w-full rounded-md border px-3 text-sm"
-                        >
-                          <option value="">Pilih kelurahan / desa</option>
-                          <option value="Kelurahan Melati">
-                            Kelurahan Melati
-                          </option>
-                        </select>
-                      </label>
+                      <div className="sm:col-span-2">
+                        <LocationPicker
+                          value={{
+                            province: "",
+                            city: "",
+                            kecamatan: details.kecamatan,
+                            kelurahan: details.kelurahan,
+                            address: details.alamat,
+                            latitude: details.latitude,
+                            longitude: details.longitude,
+                          }}
+                          onChange={(location) => {
+                            if (location) {
+                              setDetails((current) => ({
+                                ...current,
+                                kecamatan: location.kecamatan,
+                                kelurahan: location.kelurahan,
+                                alamat: location.address,
+                                latitude: location.latitude,
+                                longitude: location.longitude,
+                              }));
+                            }
+                          }}
+                          ariaLabel="Pilih alamat domisili di peta"
+                        />
+                      </div>
                       <label className="space-y-1.5 text-sm sm:col-span-2">
                         <span className="font-medium">Judul permohonan *</span>
                         <Input

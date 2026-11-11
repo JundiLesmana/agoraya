@@ -3,92 +3,73 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import StatisticsPage from "@/app/(public)/data/statistik/page";
 
+const publishedEntries = [
+  {
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    regionId: "region-jabar",
+    regionName: "Jawa Barat",
+    sectorId: "social",
+    indicatorId: "poverty",
+    indicatorName: "Tingkat kemiskinan",
+    unit: "%",
+    referenceYear: 2025,
+    sourceName: "BPS",
+    methodology: "Survei sosial ekonomi",
+    publishedAt: "2026-01-15T00:00:00.000Z",
+    values: [
+      { periodValue: "2024", value: 9.1 },
+      { periodValue: "2025", value: 8.7 },
+    ],
+  },
+  {
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    regionId: "region-jateng",
+    regionName: "Jawa Tengah",
+    sectorId: "social",
+    indicatorId: "population",
+    indicatorName: "Jumlah penduduk",
+    unit: "juta jiwa",
+    referenceYear: 2024,
+    sourceName: "BPS",
+    methodology: "Sensus penduduk",
+    publishedAt: "2025-01-15T00:00:00.000Z",
+    values: [{ periodValue: "2024", value: 37.9 }],
+  },
+];
+
+function mockPublishedStatistics(entries = publishedEntries) {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const body = String(input).includes("/api/v1/statistics/published")
+      ? { entries }
+      : {};
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
 afterEach(() => {
   window.history.replaceState(null, "", window.location.pathname);
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("regional statistics page", () => {
-  it("renders operator publications immediately after the regional indicator section", () => {
-    render(<StatisticsPage />);
-
-    const indicatorHeading = screen.getByRole("heading", {
-      name: "Telusuri indikator daerah",
-    });
-    const publicationTitle = screen.getByText(
-      "Publikasi terbaru dari operator statistik",
-    );
-    const indicatorSection = indicatorHeading.closest("section");
-    const publicationSection = publicationTitle.closest("section");
-    const apiSection = screen
-      .getByText("Indikator Teragregasi dari API Analitik")
-      .closest("section");
-
-    expect(
-      screen.getAllByText("Publikasi terbaru dari operator statistik"),
-    ).toHaveLength(1);
-    expect(indicatorSection).toBeTruthy();
-    expect(apiSection).toBeTruthy();
-    expect(publicationSection).toBeTruthy();
-    if (indicatorSection && apiSection && publicationSection) {
-      // Urutan bagian: indikator regional → bagian API teragregasi → publikasi operator.
-      expect(
-        Node.DOCUMENT_POSITION_FOLLOWING &
-          indicatorSection.compareDocumentPosition(apiSection),
-      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-      expect(
-        Node.DOCUMENT_POSITION_FOLLOWING &
-          apiSection.compareDocumentPosition(publicationSection),
-      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    }
-    expect(publicationSection?.className).toBe("w-full");
-  });
-
-  it("renders the dashboard structure and active public-data tab", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/analytics/statistics")) {
-        return Response.json({
-          source: "SIMULATED",
-          data: [
-            {
-              year: 2021,
-              value: 11.04,
-              regionCode: "31",
-              indicatorCode: "IND_KEMISKINAN",
-            },
-            {
-              year: 2025,
-              value: 8.7,
-              regionCode: "31",
-              indicatorCode: "IND_KEMISKINAN",
-            },
-          ],
-        });
-      }
-      if (url.includes("indonesia-provinces.geojson")) {
-        return Response.json({ type: "FeatureCollection", features: [] });
-      }
-      return Response.json({});
-    });
-    globalThis.fetch = fetchMock;
-
+  it("renders published statistics and the active public-data tab", async () => {
+    const fetchMock = mockPublishedStatistics();
     render(<StatisticsPage />);
 
     const title = screen.getByRole("heading", {
       level: 1,
       name: "Statistik Daerah",
     });
-    expect(title.classList.contains("text-3xl")).toBe(true);
-    const introduction = screen.getByText(
-      /Kenali kondisi penduduk, ekonomi, dan kesejahteraan/,
-    );
-    expect(introduction.classList.contains("text-base")).toBe(true);
-    expect(introduction.className).toContain("max-w-2xl");
     expect(title.className).toContain("sm:text-4xl");
     expect(
-      screen.getByRole("navigation", { name: "Breadcrumb" }).className,
-    ).toContain("text-xs");
-    expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toBeTruthy();
+      screen.getByRole("navigation", { name: "Breadcrumb" }),
+    ).toBeTruthy();
     const tabs = screen.getByRole("navigation", {
       name: "Kategori data pemerintah",
     });
@@ -97,179 +78,80 @@ describe("regional statistics page", () => {
         .getByRole("link", { name: "Statistik daerah" })
         .getAttribute("aria-current"),
     ).toBe("location");
-    expect(screen.getAllByText("Potret Jawa Barat").length).toBeGreaterThan(0);
+
     expect(
-      screen.getByRole("table", { name: /Daftar indikator daerah/ }),
+      await screen.findByRole("heading", { name: "Indikator terpublikasi" }),
     ).toBeTruthy();
+    expect(screen.getAllByText("Tingkat kemiskinan").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("8,7").length).toBeGreaterThan(0);
     expect(
-      screen.getByRole("heading", { name: "Sumber, cakupan & metodologi" }),
+      screen.getByRole("table", { name: "Rincian publikasi statistik" }),
     ).toBeTruthy();
-    expect(screen.queryByText("Indikator tahunan · simulasi")).toBeNull();
-    expect(screen.queryByText("Simulasi", { exact: true })).toBeNull();
-    // Grafik dan peta teragregasi berhasil dimuat dari API analitik (mock),
-    // sehingga kedua badge sumber tampil dan tidak ada pesan error.
-    expect(
-      fetchMock.mock.calls.length,
-      `fetch dipanggil ${fetchMock.mock.calls.length} kali`,
-    ).toBeGreaterThanOrEqual(2);
-    await new Promise((r) => setTimeout(r, 0));
-    expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).includes("latest=true"),
-      ),
-    ).toBe(true);
-    expect(screen.queryByText("Gagal memuat grafik statistik.")).toBeNull();
-    expect(screen.queryByText("Peta wilayah tidak dapat dimuat.")).toBeNull();
-    expect(
-      screen.queryByText(/Potret Jawa Barat: Perbandingan utama 2024 vs 2025/),
-    ).toBeNull();
-    expect(
-      screen.getByText("Selisih kecil, konteks tetap penting."),
-    ).toBeTruthy();
-    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
-      2,
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/statistics/published",
+      expect.objectContaining({ cache: "no-store" }),
     );
   });
 
-  it("applies shareable filters to cards and indicator table and supports search", () => {
+  it("filters published cards and table by selected region and year", async () => {
+    mockPublishedStatistics();
     render(<StatisticsPage />);
-    fireEvent.change(screen.getByRole("combobox", { name: "Wilayah utama" }), {
-      target: { value: "jateng" },
+    await screen.findByRole("heading", { name: "Indikator terpublikasi" });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Wilayah statistik" }), {
+      target: { value: "region-jateng" },
     });
-    fireEvent.change(screen.getByRole("combobox", { name: "Tahun" }), {
+    fireEvent.change(screen.getByRole("combobox", { name: "Tahun statistik" }), {
       target: { value: "2024" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Terapkan filter" }));
 
-    expect(screen.getByText("Potret Jawa Tengah")).toBeTruthy();
-    expect(screen.getByText("37,9 juta jiwa")).toBeTruthy();
-    expect(screen.getByText("Jawa Tengah · Utama")).toBeTruthy();
-    expect(window.location.search).toContain("wilayah=jateng");
-    expect(window.location.search).toContain("tahun=2024");
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Cari indikator" }), {
-      target: { value: "IPM" },
-    });
     const table = screen.getByRole("table", {
-      name: /Daftar indikator daerah/,
+      name: "Rincian publikasi statistik",
     });
-    expect(within(table).getByText("Indeks pembangunan manusia")).toBeTruthy();
-    expect(within(table).queryByText("Jumlah penduduk")).toBeNull();
+    expect(within(table).getByText("Jawa Tengah")).toBeTruthy();
+    expect(within(table).getByText("Jumlah penduduk")).toBeTruthy();
+    expect(within(table).queryByText("Jawa Barat")).toBeNull();
+    expect(screen.queryByText("Tingkat kemiskinan")).toBeNull();
   });
 
-  it("offers all Indonesian provinces and years from 2020 through 2025", () => {
+  it("updates the indicator trend from the selected publication", async () => {
+    mockPublishedStatistics();
+    render(<StatisticsPage />);
+    await screen.findByRole("heading", { name: "Indikator terpublikasi" });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Pilih indikator tren" }), {
+      target: { value: "poverty" },
+    });
+
+    expect(
+      screen.getByRole("img", {
+        name: "Tingkat kemiskinan, 2024: 9.1 %",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("img", {
+        name: "Tingkat kemiskinan, 2025: 8.7 %",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("shows an explicit empty state when no statistics have been published", async () => {
+    mockPublishedStatistics([]);
     render(<StatisticsPage />);
 
-    const regionSelect = screen.getByRole("combobox", {
-      name: "Wilayah utama",
-    }) as HTMLSelectElement;
-    const provinceOptions = Array.from(regionSelect.options);
-    expect(provinceOptions).toHaveLength(38);
-    expect(provinceOptions.map((option) => option.label)).toContain(
-      "Provinsi Aceh",
-    );
-    expect(provinceOptions.map((option) => option.label)).toContain(
-      "Provinsi Papua Barat Daya",
-    );
-
-    const yearSelect = screen.getByRole("combobox", {
-      name: "Tahun",
-    }) as HTMLSelectElement;
     expect(
-      Array.from(yearSelect.options).map((option) => option.value),
-    ).toEqual(["2025", "2024", "2023", "2022", "2021", "2020"]);
+      await screen.findByText(
+        "Belum ada data statistik ASN yang dipublikasikan untuk filter ini. Data draf tidak ditampilkan.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Unduh CSV" })).toHaveProperty(
+      "disabled",
+      true,
+    );
   });
 
-  it("keeps unavailable province/year combinations explicit instead of showing other data", () => {
-    render(<StatisticsPage />);
-
-    fireEvent.change(screen.getByRole("combobox", { name: "Wilayah utama" }), {
-      target: { value: "provinsi-aceh" },
-    });
-    fireEvent.change(screen.getByRole("combobox", { name: "Tahun" }), {
-      target: { value: "2020" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Terapkan filter" }));
-
-    expect(
-      screen
-        .getByText(
-          /Data simulasi statistik belum tersedia untuk Aceh tahun 2020/,
-        )
-        .getAttribute("role"),
-    ).toBe("status");
-    expect(screen.queryByText("Potret Jawa Barat")).toBeNull();
-    expect(window.location.search).toContain("wilayah=provinsi-aceh");
-    expect(window.location.search).toContain("tahun=2020");
-  });
-
-  it("updates the trend and comparison list from the selected indicator and provinces", () => {
-    render(<StatisticsPage />);
-
-    fireEvent.change(
-      screen.getByRole("combobox", {
-        name: "Indikator grafik dan perbandingan",
-      }),
-      { target: { value: "kemiskinan" } },
-    );
-    expect(
-      screen.getByRole("table", {
-        name: /Perbandingan Tingkat kemiskinan Jawa Barat, Jawa Tengah, Jawa Timur/,
-      }),
-    ).toBeTruthy();
-    expect(
-      screen.getByText("Tingkat kemiskinan tahun 2025 · % penduduk"),
-    ).toBeTruthy();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Hapus Jawa Tengah dari perbandingan",
-      }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Tambah daerah" }));
-    fireEvent.change(
-      screen.getByRole("combobox", {
-        name: "Pilih provinsi untuk ditambahkan",
-      }),
-      { target: { value: "provinsi-aceh" } },
-    );
-
-    expect(screen.getByText("Data belum tersedia")).toBeTruthy();
-    expect(screen.getAllByText("Aceh", { exact: true })).not.toHaveLength(0);
-    for (const province of [
-      "provinsi-sumatera-utara",
-      "provinsi-sumatera-barat",
-    ]) {
-      fireEvent.click(screen.getByRole("button", { name: "Tambah daerah" }));
-      fireEvent.change(
-        screen.getByRole("combobox", {
-          name: "Pilih provinsi untuk ditambahkan",
-        }),
-        { target: { value: province } },
-      );
-    }
-
-    expect(
-      screen.getByText("5 provinsi dipilih · maksimal 5 provinsi"),
-    ).toBeTruthy();
-    expect(
-      screen
-        .getByRole("button", { name: "Tambah daerah" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
-    expect(
-      screen.getByRole("table", {
-        name: /Perbandingan Tingkat kemiskinan Jawa Barat, Jawa Timur, Aceh/,
-      }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", {
-        name: "Hapus Aceh dari perbandingan",
-      }),
-    ).toBeTruthy();
-  });
-
-  it("explains unavailable monthly data and provides metadata and downloads", () => {
+  it("downloads the filtered published dataset as CSV", async () => {
+    mockPublishedStatistics();
     const createObjectURL = vi.fn(() => "blob:statistics");
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
@@ -277,25 +159,12 @@ describe("regional statistics page", () => {
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {});
     render(<StatisticsPage />);
+    await screen.findByRole("heading", { name: "Indikator terpublikasi" });
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Frekuensi" }), {
-      target: { value: "bulanan" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Terapkan filter" }));
-    expect(
-      screen.getByText(/Tidak ada data bulanan pada snapshot yang tersedia/),
-    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Unduh CSV" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Metadata" }));
-    expect(screen.getByText(/"kolom"/)).toBeTruthy();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Unduh CSV dataset lengkap" }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Unduh JSON" }));
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
-    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
-    expect(anchorClick).toHaveBeenCalledTimes(2);
-    anchorClick.mockRestore();
-    vi.unstubAllGlobals();
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledOnce();
+    expect(anchorClick).toHaveBeenCalledOnce();
   });
 });

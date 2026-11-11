@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { tenantCloudinaryFolder } from "@/lib/cloudinary/folders";
 import { appendAuditEvent } from "@/modules/audit/service";
 import { uuidOrNull } from "@/modules/rbac/audit";
 import {
@@ -129,7 +130,12 @@ async function uploadImage(
     {
       resource_type: "image",
       type: "authenticated",
-      folder: `tenant/${tenantId}/project-progress/${projectId}/${reportId}`,
+      folder: tenantCloudinaryFolder(
+        tenantId,
+        "project-progress",
+        projectId,
+        reportId,
+      ),
       public_id: crypto.randomUUID(),
       overwrite: false,
       unique_filename: false,
@@ -345,6 +351,12 @@ export async function listAssignedProjects(
       })
       .from(infrastructureProjects)
       .innerJoin(tenants, eq(infrastructureProjects.tenantId, tenants.id))
+      .where(
+        and(
+          eq(infrastructureProjects.tenantId, session.tenantId),
+          eq(infrastructureProjects.assignedUserId, session.userId),
+        ),
+      )
       .orderBy(
         desc(infrastructureProjects.fiscalYear),
         infrastructureProjects.packageName,
@@ -366,6 +378,7 @@ export async function listAssignedProjects(
             projectProgressReports.projectId,
             projects.map((project) => project.id),
           ),
+          eq(projectProgressReports.tenantId, session.tenantId),
           eq(projectProgressReports.status, "submitted"),
         ),
       )
@@ -373,12 +386,18 @@ export async function listAssignedProjects(
         desc(projectProgressReports.periodYear),
         desc(projectProgressReports.periodMonth),
       );
+    const fiscalYearByProject = new Map(
+      projects.map((project) => [project.id, project.fiscalYear]),
+    );
     const latestByProject = new Map<
       string,
       { physicalProgress: number; financialProgress: number }
     >();
     for (const report of reports) {
-      if (!latestByProject.has(report.projectId)) {
+      if (
+        report.periodYear === fiscalYearByProject.get(report.projectId) &&
+        !latestByProject.has(report.projectId)
+      ) {
         latestByProject.set(report.projectId, {
           physicalProgress: report.physicalProgress,
           financialProgress: report.financialProgress,
@@ -416,14 +435,25 @@ export async function getProjectProgress(
       })
       .from(infrastructureProjects)
       .innerJoin(tenants, eq(infrastructureProjects.tenantId, tenants.id))
-      .where(eq(infrastructureProjects.id, projectId))
+      .where(
+        and(
+          eq(infrastructureProjects.id, projectId),
+          eq(infrastructureProjects.tenantId, session.tenantId),
+          eq(infrastructureProjects.assignedUserId, session.userId),
+        ),
+      )
       .limit(1);
     if (!project) return null;
 
     const reports = await transaction
       .select()
       .from(projectProgressReports)
-      .where(eq(projectProgressReports.projectId, projectId))
+      .where(
+        and(
+          eq(projectProgressReports.projectId, projectId),
+          eq(projectProgressReports.tenantId, session.tenantId),
+        ),
+      )
       .orderBy(
         desc(projectProgressReports.periodYear),
         desc(projectProgressReports.periodMonth),
@@ -433,7 +463,12 @@ export async function getProjectProgress(
       ? await transaction
           .select()
           .from(projectProgressAttachments)
-          .where(inArray(projectProgressAttachments.reportId, reportIds))
+          .where(
+            and(
+              inArray(projectProgressAttachments.reportId, reportIds),
+              eq(projectProgressAttachments.tenantId, session.tenantId),
+            ),
+          )
       : [];
     const attachmentsByReport = new Map<string, typeof attachments>();
     for (const attachment of attachments) {
@@ -444,7 +479,11 @@ export async function getProjectProgress(
     const history = reports.map((report) =>
       toProgressReport(report, attachmentsByReport.get(report.id) ?? []),
     );
-    const latest = history.find((report) => report.status === "submitted");
+    const latest = history.find(
+      (report) =>
+        report.status === "submitted" &&
+        report.periodeTahun === project.fiscalYear,
+    );
     return {
       project: toProjectDetail(
         project,
@@ -544,13 +583,25 @@ export async function handleSubmit(
           location: infrastructureProjects.location,
         })
         .from(infrastructureProjects)
-        .where(eq(infrastructureProjects.id, projectId))
+        .where(
+          and(
+            eq(infrastructureProjects.id, projectId),
+            eq(infrastructureProjects.tenantId, session.tenantId),
+            eq(infrastructureProjects.assignedUserId, session.userId),
+          ),
+        )
         .for("update")
         .limit(1);
       if (!project) {
         throw new ProgressServiceError(
           "Anda tidak berwenang menginput progres untuk proyek ini.",
           403,
+        );
+      }
+      if (periodYear !== project.fiscalYear) {
+        throw new ProgressServiceError(
+          "Tahun pelaporan harus sama dengan tahun anggaran proyek.",
+          400,
         );
       }
       if (sourceDatasetSubmissionId) {
@@ -618,7 +669,12 @@ export async function handleSubmit(
       const reports = await transaction
         .select()
         .from(projectProgressReports)
-        .where(eq(projectProgressReports.projectId, projectId));
+        .where(
+          and(
+            eq(projectProgressReports.projectId, projectId),
+            eq(projectProgressReports.tenantId, session.tenantId),
+          ),
+        );
       const samePeriod = reports.find(
         (report) =>
           report.periodYear === periodYear &&
@@ -640,7 +696,9 @@ export async function handleSubmit(
       const thisPeriod = periodIndex(periodYear, periodMonth);
       const submitted = reports.filter(
         (report) =>
-          report.status === "submitted" && report.id !== samePeriod?.id,
+          report.status === "submitted" &&
+          report.periodYear === periodYear &&
+          report.id !== samePeriod?.id,
       );
       const previous = submitted
         .filter(
@@ -688,11 +746,21 @@ export async function handleSubmit(
           await transaction
             .select({ publicId: projectProgressAttachments.cloudinaryPublicId })
             .from(projectProgressAttachments)
-            .where(eq(projectProgressAttachments.reportId, reportId))
+            .where(
+              and(
+                eq(projectProgressAttachments.reportId, reportId),
+                eq(projectProgressAttachments.tenantId, session.tenantId),
+              ),
+            )
         ).map((asset) => asset.publicId);
         await transaction
           .delete(projectProgressAttachments)
-          .where(eq(projectProgressAttachments.reportId, reportId));
+          .where(
+            and(
+              eq(projectProgressAttachments.reportId, reportId),
+              eq(projectProgressAttachments.tenantId, session.tenantId),
+            ),
+          );
         await transaction
           .update(projectProgressReports)
           .set({
@@ -704,7 +772,12 @@ export async function handleSubmit(
             submittedAt: mode === "submit" ? now : null,
             updatedAt: now,
           })
-          .where(eq(projectProgressReports.id, reportId));
+          .where(
+            and(
+              eq(projectProgressReports.id, reportId),
+              eq(projectProgressReports.tenantId, session.tenantId),
+            ),
+          );
       } else {
         await transaction.insert(projectProgressReports).values({
           id: reportId,
@@ -749,12 +822,22 @@ export async function handleSubmit(
       const [savedReport] = await transaction
         .select()
         .from(projectProgressReports)
-        .where(eq(projectProgressReports.id, reportId))
+        .where(
+          and(
+            eq(projectProgressReports.id, reportId),
+            eq(projectProgressReports.tenantId, session.tenantId),
+          ),
+        )
         .limit(1);
       const savedAttachments = await transaction
         .select()
         .from(projectProgressAttachments)
-        .where(eq(projectProgressAttachments.reportId, reportId));
+        .where(
+          and(
+            eq(projectProgressAttachments.reportId, reportId),
+            eq(projectProgressAttachments.tenantId, session.tenantId),
+          ),
+        );
       if (!savedReport)
         throw new Error("Laporan progres tersimpan tetapi tidak dapat dibaca.");
       return {
@@ -805,6 +888,8 @@ export async function handleSubmit(
       targetTable: "project_progress_reports",
       targetId: uuidOrNull(result.report.id),
       metadata: {
+        tenantId: session.tenantId,
+        actorRole: session.roles.join(","),
         projectId,
         periodMonth,
         periodYear,

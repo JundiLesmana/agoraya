@@ -145,7 +145,7 @@ export const datasetSubmissionSummarySchema = z.strictObject({
   sourceOrganization: z.string(),
   sourceLabel: z.enum(["BPS_API", "ASN_SUBMITTED"]),
   sourceKind: z.enum(["manual", "bps"]),
-  status: z.enum(["draft", "submitted"]),
+  status: z.enum(["draft", "submitted", "published"]),
   assignmentType: datasetAssignmentTypeSchema,
   agencyId: z.string().nullable(),
   regionId: z.string().nullable(),

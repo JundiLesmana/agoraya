@@ -12,7 +12,10 @@ export async function GET(request: Request): Promise<Response> {
     const authorization = await requireAsnAccessAdmin();
     if (!authorization.authorized) return authorization.response;
 
-    const result = await listAuditLogs(db(), parseListQuery(new URL(request.url).searchParams));
+    const result = await listAuditLogs(db(), {
+      ...parseListQuery(new URL(request.url).searchParams),
+      tenantId: authorization.session.tenantId,
+    });
     return NextResponse.json(result);
   } catch (error) {
     return auditApiError(error);

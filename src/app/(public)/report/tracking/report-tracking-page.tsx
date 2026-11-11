@@ -308,7 +308,8 @@ export function ReportTrackingPage({
           </form>
           <p className="text-muted-foreground mt-3 text-xs leading-5">
             Hanya laporan yang ditandai publik dapat dilacak di halaman ini.
-            Email dan nomor telepon pelapor tidak ditampilkan.
+            Nama samaran digunakan untuk pelaporan. Email dan nomor HP tidak
+            dikumpulkan.
           </p>
           {error ? (
             <p role="alert" className="text-destructive mt-3 text-sm">
@@ -631,8 +632,9 @@ export function ReportTrackingPage({
                       className="mt-0.5 size-4 shrink-0"
                       aria-hidden="true"
                     />
-                    Email dan nomor telepon tidak ditampilkan. Laporan privat
-                    hanya dapat dilihat oleh petugas berwenang.
+                    Nama samaran ditampilkan sesuai pilihan privasi. Email dan
+                    nomor HP tidak dikumpulkan. Laporan privat hanya dapat
+                    dilihat oleh petugas berwenang.
                   </p>
                 </div>
 

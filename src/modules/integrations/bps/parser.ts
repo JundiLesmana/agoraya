@@ -50,7 +50,7 @@ const BpsDataResponseSchema = z.object({
   var: z
     .array(
       BpsDimensionSchema.extend({
-        unit: z.string().optional(),
+        unit: z.string().nullable().optional(),
       }),
     )
     .min(1),

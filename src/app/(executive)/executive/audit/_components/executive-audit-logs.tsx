@@ -100,7 +100,7 @@ interface FilterState {
 }
 
 const INITIAL_FILTERS: FilterState = {
-  dateRange: "2026-10-22_2026-10-28",
+  dateRange: "7d",
   actor: "",
   module: "",
   action: "",
@@ -111,20 +111,18 @@ const INITIAL_FILTERS: FilterState = {
 
 function buildAuditParams(appliedFilters: FilterState): URLSearchParams {
   const params = new URLSearchParams();
-  if (appliedFilters.dateRange === "2026-10-22_2026-10-28") {
-    params.set("start_date", "2026-10-22");
-    params.set("end_date", "2026-10-28");
-  } else if (appliedFilters.dateRange === "7d") {
+  if (appliedFilters.dateRange === "7d" || appliedFilters.dateRange === "30d") {
+    const days = appliedFilters.dateRange === "7d" ? 7 : 30;
     const now = new Date();
-    const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
     params.set("start_date", start.toISOString().split("T")[0]);
     params.set("end_date", now.toISOString().split("T")[0]);
-  } else if (appliedFilters.dateRange === "30d") {
+  } else if (appliedFilters.dateRange === "all") {
     const now = new Date();
-    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    params.set("start_date", start.toISOString().split("T")[0]);
+    params.set("start_date", "1970-01-01");
     params.set("end_date", now.toISOString().split("T")[0]);
   }
+  if (appliedFilters.actor) params.set("actor_id", appliedFilters.actor);
   if (appliedFilters.module) params.set("module", appliedFilters.module);
   if (appliedFilters.action) params.set("action", appliedFilters.action);
   if (appliedFilters.result) params.set("result", appliedFilters.result);
@@ -172,7 +170,7 @@ function mapApiItem(item: ApiAuditItem, index: number): AuditItem {
     (item.actorId ? `Pengguna (${item.actorId.slice(0, 8)})` : "Petugas Terotorisasi");
   const actorRole =
     (typeof meta.actorRole === "string" && meta.actorRole) ||
-    (item.module === "executive" ? "Superadmin" : "Operator CMS");
+    "Petugas terdaftar";
 
   const objectLabel =
     (typeof meta.objectLabel === "string" && meta.objectLabel) ||
@@ -191,13 +189,21 @@ function mapApiItem(item: ApiAuditItem, index: number): AuditItem {
     moduleKey: item.module,
     moduleName: item.module.includes("executive")
       ? "Executive - hak akses"
+      : item.action.startsWith("asn.access.")
+        ? "Kontrol akses ASN"
       : item.module.includes("kyc")
         ? "Verifikasi akun ASN"
+        : item.module === "review"
+          ? "Review layanan & laporan"
         : `CMS - ${item.module}`,
     moduleCategory: item.module.includes("executive")
       ? "Executive"
+      : item.action.startsWith("asn.access.")
+        ? "Kontrol akses"
       : item.module.includes("kyc")
         ? "KYC"
+        : item.module === "review"
+          ? "Review"
         : "Open Government Data",
     objectLabel,
     objectType: item.objectType,
@@ -355,13 +361,11 @@ useEffect(() => {
   const accessChangeCount = filteredRecords.filter((r) => r.moduleKey === "executive").length;
 
   const dateRangeLabel =
-    appliedFilters.dateRange === "2026-10-22_2026-10-28"
-      ? "22–28 Oktober 2026"
-      : appliedFilters.dateRange === "7d"
-        ? "7 hari terakhir"
-        : appliedFilters.dateRange === "30d"
-          ? "30 hari terakhir"
-          : "Semua rentang";
+    appliedFilters.dateRange === "7d"
+      ? "7 hari terakhir"
+      : appliedFilters.dateRange === "30d"
+        ? "30 hari terakhir"
+        : "Semua rentang";
 
   function handleFilterSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -754,7 +758,6 @@ useEffect(() => {
                     onChange={(e) => updateFilter("dateRange", e.target.value)}
                     className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="2026-10-22_2026-10-28">22–28 Oktober 2026</option>
                     <option value="7d">7 hari terakhir</option>
                     <option value="30d">30 hari terakhir</option>
                     <option value="all">Semua rentang</option>

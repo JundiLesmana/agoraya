@@ -147,6 +147,7 @@ export class DualApprovalService {
         slot,
         decision,
         newStatus: updatedEntry.status,
+        result: "success",
       },
       actorId: approverId,
     });

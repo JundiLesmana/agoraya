@@ -156,20 +156,22 @@ describe("asn performance service", () => {
     delete process.env.PERFORMANCE_ACTION_MIN_TASKS;
   });
 
-  it("excludes ASN without tasks from summary aggregates and lowest-activity ranking", async () => {
+  it("includes staff without activity in summary and lowest-activity ranking", async () => {
     const filters = resolveAsnPerformanceFilters({ task_types: undefined });
 
     const summary = await getAsnPerformanceSummary("tenant-1", filters);
     const lowest = await getLowestActivityAsn("tenant-1", filters);
 
     expect(summary.totals).toEqual({
-      asnCount: 1,
+      asnCount: 2,
       assignedTasks: 3,
       completedTasks: 3,
-      completionRate: 1,
+      completionRate: null,
+      withActivityCount: 1,
+      noActivityCount: 1,
     });
-    expect(lowest.items).toHaveLength(1);
-    expect(lowest.items[0]?.userId).toBe("user-1");
+    expect(lowest.items).toHaveLength(2);
+    expect(lowest.items[0]?.userId).toBe("user-2");
   });
 
   it("shows no-assignment label and null completion rate in details", async () => {
@@ -182,7 +184,7 @@ describe("asn performance service", () => {
       assignedTasks: 0,
       completedTasks: 0,
       completionRate: null,
-      statusLabel: "Tidak ada penugasan",
+      statusLabel: "Belum ada aktivitas",
     });
   });
 
@@ -191,50 +193,18 @@ describe("asn performance service", () => {
 
     const trends = await getAsnPerformanceTrends("tenant-1", filters);
 
-    expect(trends.items).toEqual([
-      {
-        periodStart: "2026-02-01",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 1,
-          review_cms: 0,
-          review_kyc: 0,
-        },
-      },
-      {
-        periodStart: "2026-02-02",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 0,
-          review_cms: 1,
-          review_kyc: 0,
-        },
-      },
-      {
-        periodStart: "2026-02-03",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 0,
-          review_cms: 0,
-          review_kyc: 1,
-        },
-      },
+    expect(trends.items).toHaveLength(3);
+    expect(trends.items.map(({ periodStart, totalCompleted }) => ({
+      periodStart,
+      totalCompleted,
+    }))).toEqual([
+      { periodStart: "2026-02-01", totalCompleted: 1 },
+      { periodStart: "2026-02-02", totalCompleted: 1 },
+      { periodStart: "2026-02-03", totalCompleted: 1 },
     ]);
+    expect(trends.items[0]?.taskBreakdown.submit_cms).toBe(1);
+    expect(trends.items[1]?.taskBreakdown.review_cms).toBe(1);
+    expect(trends.items[2]?.taskBreakdown.review_kyc).toBe(1);
   });
 
   it("returns empty action-needed items when everyone meets threshold", async () => {

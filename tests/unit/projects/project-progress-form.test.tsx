@@ -65,7 +65,11 @@ describe("ProgressForm", () => {
   it("merender semua bidang wajib formulir input progres", () => {
     renderForm();
     expect(screen.getByLabelText(/bulan pelaporan/i)).toBeTruthy();
-    expect(screen.getByLabelText(/tahun anggaran/i)).toBeTruthy();
+    const fiscalYear = screen.getByLabelText(
+      /tahun anggaran/i,
+    ) as HTMLInputElement;
+    expect(fiscalYear.value).toBe("2025");
+    expect(fiscalYear.readOnly).toBe(true);
     expect(screen.getByLabelText(/progres fisik/i)).toBeTruthy();
     expect(screen.getByLabelText(/progres keuangan/i)).toBeTruthy();
     expect(screen.getByLabelText(/catatan evaluasi/i)).toBeTruthy();
@@ -104,6 +108,7 @@ describe("ProgressForm", () => {
     expect(screen.queryByTestId("error-progresFisik")).toBeNull();
     const hasil = captured();
     expect(hasil?.values).toMatchObject({
+      periodeTahun: 2025,
       progresFisik: 75,
       progresKeuangan: 52,
     });

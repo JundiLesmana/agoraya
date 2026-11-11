@@ -5,9 +5,9 @@ import {
   count,
   eq,
   exists,
+  gt,
   ilike,
   inArray,
-  isNotNull,
   isNull,
   or,
   sql,
@@ -19,7 +19,9 @@ import {
   applicationRoles,
   executiveAccess,
   moduleAccess,
+  roles,
   userApplicationRoles,
+  userRoles,
 } from "@/modules/rbac/db";
 import {
   accountCanReceiveAccess,
@@ -27,6 +29,7 @@ import {
 } from "@/modules/rbac/module-access";
 import type { ModuleAccessKey } from "@/modules/rbac/module-access";
 import { appendAsnAccessAuditEvent } from "@/modules/audit";
+import { hasNonCitizenAccountRole } from "./account-scope";
 import { kycRoster } from "@/modules/kyc/db";
 import { asnProfiles, jobPositions, users } from "@/modules/identity/db";
 import type {
@@ -53,6 +56,7 @@ interface AsnIdentityRow {
   readonly position: string | null;
   readonly emailVerifiedAt: Date | null;
   readonly kycStatus: string | null;
+  readonly systemRoles: readonly { key: string; name: string }[];
 }
 
 interface ExecutiveAccessDraftPayload {
@@ -175,7 +179,6 @@ async function getAsnIdentityRow(
       kycStatus: kycRoster.status,
     })
     .from(users)
-    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
     .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
     .leftJoin(
       kycRoster,
@@ -185,13 +188,25 @@ async function getAsnIdentityRow(
       and(
         eq(users.id, userId),
         eq(users.tenantId, tenantId),
-        eq(asnProfiles.tenantId, tenantId),
+        hasNonCitizenAccountRole(database, tenantId),
       ),
     )
     .limit(1);
   const identity = rows[0];
   if (!identity) throw new NotFoundError("ASN tidak ditemukan");
-  return identity;
+  const systemRoles = await database
+    .select({ key: roles.key, name: roles.name })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(
+      and(
+        eq(userRoles.userId, userId),
+        eq(roles.tenantId, tenantId),
+        isNull(userRoles.revokedAt),
+        or(isNull(userRoles.expiresAt), gt(userRoles.expiresAt, new Date())),
+      ),
+    );
+  return { ...identity, systemRoles };
 }
 
 export async function listAsnAccess(
@@ -201,8 +216,7 @@ export async function listAsnAccess(
   const database = db();
   const conditions = [
     eq(users.tenantId, tenantId),
-    eq(asnProfiles.tenantId, tenantId),
-    isNotNull(asnProfiles.userId),
+    hasNonCitizenAccountRole(database, tenantId),
   ];
 
   if (filters.q) {
@@ -273,7 +287,13 @@ export async function listAsnAccess(
     database
       .select({ total: count() })
       .from(users)
-      .leftJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+      .leftJoin(
+        asnProfiles,
+        and(
+          eq(asnProfiles.userId, users.id),
+          eq(asnProfiles.tenantId, tenantId),
+        ),
+      )
       .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
       .where(where),
     database
@@ -288,7 +308,13 @@ export async function listAsnAccess(
         position: jobPositions.name,
       })
       .from(users)
-      .leftJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+      .leftJoin(
+        asnProfiles,
+        and(
+          eq(asnProfiles.userId, users.id),
+          eq(asnProfiles.tenantId, tenantId),
+        ),
+      )
       .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
       .where(where)
       .orderBy(asc(users.name), asc(users.id))
@@ -305,7 +331,7 @@ export async function listAsnAccess(
     };
   }
 
-  const [roleRows, moduleRows, executiveRows] = await Promise.all([
+  const [roleRows, systemRoleRows, moduleRows, executiveRows] = await Promise.all([
     database
       .select({
         userId: userApplicationRoles.userId,
@@ -322,6 +348,22 @@ export async function listAsnAccess(
           inArray(userApplicationRoles.userId, userIds),
           eq(userApplicationRoles.tenantId, tenantId),
           isNull(userApplicationRoles.revokedAt),
+        ),
+      ),
+    database
+      .select({
+        userId: userRoles.userId,
+        key: roles.key,
+        name: roles.name,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(
+        and(
+          inArray(userRoles.userId, userIds),
+          eq(roles.tenantId, tenantId),
+          isNull(userRoles.revokedAt),
+          or(isNull(userRoles.expiresAt), gt(userRoles.expiresAt, new Date())),
         ),
       ),
     database
@@ -365,6 +407,10 @@ export async function listAsnAccess(
         .filter((role) => role.userId === person.id)
         .map(({ key, name }) => ({ key, name }))
         .sort((left, right) => left.key.localeCompare(right.key)),
+      systemRoles: systemRoleRows
+        .filter((role) => role.userId === person.id)
+        .map(({ key, name }) => ({ key, name }))
+        .sort((left, right) => left.key.localeCompare(right.key)),
       modules: moduleRows
         .filter((grant) => grant.userId === person.id)
         .map((grant) => parseModuleAccessKey(grant.moduleKey)),
@@ -387,7 +433,8 @@ export async function listAsnAccessOptions() {
 }
 
 export async function getAsnAccessSummary(tenantId: string) {
-  const [summary] = await db()
+  const database = db();
+  const [summary] = await database
     .select({
       total: count(),
       activeAndVerified: count(
@@ -411,7 +458,13 @@ export async function getAsnAccessSummary(tenantId: string) {
       ),
     })
     .from(users)
-    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+    .leftJoin(
+      asnProfiles,
+      and(
+        eq(asnProfiles.userId, users.id),
+        eq(asnProfiles.tenantId, tenantId),
+      ),
+    )
     .leftJoin(
       kycRoster,
       and(eq(kycRoster.userId, users.id), eq(kycRoster.tenantId, tenantId)),
@@ -426,8 +479,7 @@ export async function getAsnAccessSummary(tenantId: string) {
     .where(
       and(
         eq(users.tenantId, tenantId),
-        eq(asnProfiles.tenantId, tenantId),
-        isNotNull(asnProfiles.userId),
+        hasNonCitizenAccountRole(database, tenantId),
       ),
     );
 
@@ -447,12 +499,11 @@ async function getAccessState(
   const [user] = await database
     .select({ status: users.status })
     .from(users)
-    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
     .where(
       and(
         eq(users.id, userId),
         eq(users.tenantId, tenantId),
-        eq(asnProfiles.tenantId, tenantId),
+        hasNonCitizenAccountRole(database, tenantId),
       ),
     )
     .for("update")
@@ -558,6 +609,7 @@ export async function getAsnAccessDetail(userId: string, tenantId: string) {
     opd: identity.opd,
     unit: identity.unit,
     position: identity.position,
+    systemRoles: identity.systemRoles,
     accountStatus: accessState.accountStatus,
     applicationRoles: accessState.applicationRoles,
     modules: accessState.modules,
@@ -899,6 +951,8 @@ export async function updateAsnAccess(
       targetTable: "users",
       targetId: userId,
       metadata: {
+        tenantId,
+        result: "success",
         before: {
           applicationRoles: before.applicationRoles.map((role) => role.key),
           modules: before.modules,
@@ -958,7 +1012,13 @@ export async function getAsnActivationRequirements(
       kycStatus: kycRoster.status,
     })
     .from(users)
-    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+    .leftJoin(
+      asnProfiles,
+      and(
+        eq(asnProfiles.userId, users.id),
+        eq(asnProfiles.tenantId, tenantId),
+      ),
+    )
     .leftJoin(
       kycRoster,
       and(eq(kycRoster.userId, users.id), eq(kycRoster.tenantId, tenantId)),
@@ -967,7 +1027,7 @@ export async function getAsnActivationRequirements(
       and(
         eq(users.id, userId),
         eq(users.tenantId, tenantId),
-        eq(asnProfiles.tenantId, tenantId),
+        hasNonCitizenAccountRole(database, tenantId),
       ),
     )
     .limit(1);

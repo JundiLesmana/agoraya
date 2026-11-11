@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 
-import { AlertTriangle, List } from "lucide-react";
+import { AlertTriangle, List, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,8 +97,15 @@ const createRunResponseSchema = z.object({
   ),
 });
 
+const aiExplanationSchema = z.strictObject({
+  summary: z.string().min(1).max(600),
+  keyFactors: z.array(z.string().min(1).max(160)).min(1).max(4),
+  limitations: z.array(z.string().min(1).max(160)).min(1).max(4),
+});
+
 type PrioritizationRun = z.infer<typeof prioritizationRunSchema>;
 type PrioritizationRunDetail = z.infer<typeof prioritizationRunDetailSchema>;
+type AiExplanation = z.infer<typeof aiExplanationSchema>;
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString("id-ID", {
@@ -191,9 +198,17 @@ function errorMessageFromPayload(payload: unknown, fallback: string): string {
     typeof payload === "object" &&
     payload !== null &&
     "error" in payload &&
-    typeof (payload as { readonly error: unknown }).error === "string"
+    typeof payload.error === "string"
   ) {
-    return (payload as { readonly error: string }).error;
+    return payload.error;
+  }
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "message" in payload &&
+    typeof payload.message === "string"
+  ) {
+    return payload.message;
   }
   return fallback;
 }
@@ -208,14 +223,52 @@ export function ProjectPrioritizationWorkspace({
   const currentYear = new Date().getFullYear();
 
   const fiscalYearOptions = useMemo(() => {
-    const years = new Set<number>([currentYear]);
+    const years = new Set<number>();
     for (const project of assignableProjects) {
       years.add(project.tahunAnggaran);
     }
+    years.add(currentYear);
     return [...years]
       .sort((first, second) => second - first)
       .map((year) => ({ value: String(year), label: String(year) }));
   }, [assignableProjects, currentYear]);
+
+  const initialFiscalYear = useMemo(() => {
+    const hasCurrentYear = assignableProjects.some(
+      (project) => project.tahunAnggaran === currentYear,
+    );
+    if (hasCurrentYear) {
+      return String(currentYear);
+    }
+    if (assignableProjects.length > 0) {
+      const years = assignableProjects.map((p) => p.tahunAnggaran);
+      return String(Math.max(...years));
+    }
+    return String(currentYear);
+  }, [assignableProjects, currentYear]);
+
+  const [fiscalYear, setFiscalYear] = useState(initialFiscalYear);
+
+  useEffect(() => {
+    if (assignableProjects.length > 0) {
+      const hasCurrent = assignableProjects.some(
+        (p) => String(p.tahunAnggaran) === fiscalYear,
+      );
+      if (!hasCurrent) {
+        const years = assignableProjects.map((p) => p.tahunAnggaran);
+        setFiscalYear(String(Math.max(...years)));
+      }
+    }
+  }, [assignableProjects, fiscalYear]);
+
+  const fiscalYearProjects = useMemo(
+    () =>
+      assignableProjects.filter(
+        (project) =>
+          project.tahunAnggaran === Number(fiscalYear),
+      ),
+    [assignableProjects, fiscalYear],
+  );
 
   const [runs, setRuns] = useState<readonly PrioritizationRun[]>([]);
   const [runsLoading, setRunsLoading] = useState(true);
@@ -224,17 +277,26 @@ export function ProjectPrioritizationWorkspace({
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [explaining, setExplaining] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(
+    null,
+  );
+  const [explanationError, setExplanationError] = useState<string | null>(null);
   const [createMessage, setCreateMessage] = useState<{
     readonly kind: "info" | "success";
     readonly text: string;
   } | null>(null);
-  const [fiscalYear, setFiscalYear] = useState(String(currentYear));
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(
     new Set(),
   );
 
   const detailRequestId = useRef(0);
+  const explanationRequestId = useRef(0);
   const firstLoad = useRef(true);
+  const projectById = useMemo(
+    () => new Map(assignableProjects.map((project) => [project.id, project])),
+    [assignableProjects],
+  );
 
   const loadRuns = useCallback(async () => {
     setError(null);
@@ -356,6 +418,45 @@ export function ProjectPrioritizationWorkspace({
     [loadRuns],
   );
 
+  const explainSelectedRun = useCallback(async (runId: string) => {
+    const requestId = ++explanationRequestId.current;
+    setExplaining(true);
+    setAiExplanation(null);
+    setExplanationError(null);
+    try {
+      const response = await fetch(
+        `/api/v1/projects/prioritization/runs/${encodeURIComponent(runId)}/explanation`,
+        { method: "POST", cache: "no-store" },
+      );
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          errorMessageFromPayload(
+            payload,
+            "Penjelasan AI belum dapat dimuat.",
+          ),
+        );
+      }
+      const parsed = aiExplanationSchema.safeParse(payload);
+      if (!parsed.success) {
+        throw new Error("Respons penjelasan AI tidak sesuai format.");
+      }
+      if (requestId === explanationRequestId.current) {
+        setAiExplanation(parsed.data);
+      }
+    } catch (requestError) {
+      if (requestId === explanationRequestId.current) {
+        setExplanationError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Penjelasan AI belum dapat dimuat.",
+        );
+      }
+    } finally {
+      if (requestId === explanationRequestId.current) setExplaining(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadRuns();
   }, [loadRuns]);
@@ -365,6 +466,11 @@ export function ProjectPrioritizationWorkspace({
       setDetail(null);
       return;
     }
+    setDetail(null);
+    explanationRequestId.current += 1;
+    setAiExplanation(null);
+    setExplanationError(null);
+    setExplaining(false);
     void loadDetail(selectedRunId);
   }, [selectedRunId, loadDetail]);
 
@@ -547,6 +653,133 @@ export function ProjectPrioritizationWorkspace({
                   </div>
                 )}
 
+                <section className="mt-4 space-y-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold">
+                        Penjelasan berbantuan AI
+                      </h3>
+                      <p className="text-muted-foreground text-xs">
+                        AI merangkum dasar data dan batasannya; skor dan
+                        peringkat tetap dihitung oleh algoritma deterministik.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={explaining || detailItems.length === 0}
+                      loading={explaining}
+                      onClick={() => void explainSelectedRun(selectedDetail.run.runId)}
+                    >
+                      <Sparkles aria-hidden="true" className="mr-2 size-4" />
+                      {explaining ? "Menganalisis..." : "Jelaskan hasil dengan AI"}
+                    </Button>
+                  </div>
+                  {explanationError ? (
+                    <div
+                      role="alert"
+                      className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm"
+                    >
+                      <p>{explanationError}</p>
+                      <p className="mt-1 text-xs">
+                        Hasil deterministik tetap tersedia. Pastikan AI_PROVIDER
+                        dan API key provider terpilih telah dikonfigurasi.
+                      </p>
+                    </div>
+                  ) : null}
+                  {aiExplanation ? (
+                    <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20">
+                      <CardContent className="space-y-4 pt-5">
+                        <div>
+                          <Badge variant="secondary">Penjelasan AI</Badge>
+                          <p className="mt-2 text-sm leading-6">
+                            {aiExplanation.summary}
+                          </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div>
+                            <h4 className="text-xs font-semibold">
+                              Faktor yang tercermin dalam data
+                            </h4>
+                            <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1 text-xs">
+                              {aiExplanation.keyFactors.map((factor) => (
+                                <li key={factor}>{factor}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-semibold">
+                              Batasan analisis
+                            </h4>
+                            <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1 text-xs">
+                              {aiExplanation.limitations.map((limitation) => (
+                                <li key={limitation}>{limitation}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground border-t pt-3 text-xs">
+                          Penjelasan dibuat saat diminta dan tidak disimpan.
+                          Ini bukan keputusan atau rekomendasi tindakan; tinjau
+                          data sumber sebelum mengambil keputusan secara manual.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : null}
+                </section>
+
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Perbandingan skor prioritas</CardTitle>
+                    <p className="text-muted-foreground text-xs">
+                      Skor gabungan dari progres fisik, progres keuangan, dan
+                      nilai kontrak. Batang menunjukkan skor pada skala 0–100.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {detailItems.map((item) => {
+                      const project = projectById.get(item.projectId);
+                      const visualScore = Math.min(
+                        100,
+                        Math.max(0, item.score),
+                      );
+                      return (
+                        <div
+                          key={item.projectId}
+                          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,1.4fr)_4rem] sm:items-center"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {project?.namaPaket ?? `Proyek peringkat ${item.rank}`}
+                            </p>
+                            <p className="text-muted-foreground truncate text-xs">
+                              {project
+                                ? `${project.instansi} · ${project.lokasi}`
+                                : "Detail proyek tidak lagi tersedia pada penugasan akun ini"}
+                            </p>
+                          </div>
+                          <div
+                            className="bg-secondary h-2.5 overflow-hidden rounded-full"
+                            role="progressbar"
+                            aria-label={`Skor ${project?.namaPaket ?? `proyek peringkat ${item.rank}`}`}
+                            aria-valuenow={visualScore}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className="bg-blue-600 h-full rounded-full"
+                              style={{ width: `${visualScore}%` }}
+                            />
+                          </div>
+                          <span className="text-right text-sm font-semibold tabular-nums">
+                            {item.score.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-sm">
                     <caption className="text-muted-foreground mb-2 text-left text-xs">
@@ -584,8 +817,16 @@ export function ProjectPrioritizationWorkspace({
                           <td className="text-left">
                             <Badge variant="secondary">{item.rank}</Badge>
                           </td>
-                          <td className="text-left font-mono text-xs">
-                            {item.projectId}
+                          <td className="text-left">
+                            <span className="block font-medium">
+                              {projectById.get(item.projectId)?.namaPaket ??
+                                `Proyek peringkat ${item.rank}`}
+                            </span>
+                            <span className="text-muted-foreground block text-xs">
+                              {projectById.get(item.projectId)
+                                ? `${projectById.get(item.projectId)?.instansi} · ${projectById.get(item.projectId)?.lokasi}`
+                                : "Proyek tidak lagi tersedia pada penugasan akun ini"}
+                            </span>
                           </td>
                           <td className="text-right font-medium">
                             {item.score.toFixed(2)}
@@ -664,7 +905,10 @@ export function ProjectPrioritizationWorkspace({
               <Select
                 id="prioritization-fiscal-year"
                 value={fiscalYear}
-                onChange={(event) => setFiscalYear(event.target.value)}
+                onChange={(event) => {
+                  setFiscalYear(event.target.value);
+                  setSelectedProjectIds(new Set());
+                }}
                 options={fiscalYearOptions}
               />
             </div>
@@ -680,12 +924,12 @@ export function ProjectPrioritizationWorkspace({
                 id="prioritization-projects"
                 className="border-input max-h-48 space-y-2 overflow-y-auto rounded border p-2"
               >
-                {assignableProjects.length === 0 ? (
+                {fiscalYearProjects.length === 0 ? (
                   <p className="text-muted-foreground text-xs">
-                    Tidak ada proyek yang ditugaskan.
+                    Tidak ada proyek berjalan yang ditugaskan pada tahun ini.
                   </p>
                 ) : (
-                  assignableProjects.map((project) => {
+                  fiscalYearProjects.map((project) => {
                     const checked = selectedProjectIds.has(project.id);
                     return (
                       <label
@@ -703,7 +947,7 @@ export function ProjectPrioritizationWorkspace({
                             )
                           }
                         />
-                        {project.namaPaket} — {project.instansi}
+                        {project.namaPaket} — {project.instansi} · {project.lokasi}
                       </label>
                     );
                   })
@@ -711,7 +955,11 @@ export function ProjectPrioritizationWorkspace({
               </div>
             </div>
           </div>
-          <Button type="submit" disabled={creating} loading={creating}>
+          <Button
+            type="submit"
+            disabled={creating || fiscalYearProjects.length === 0}
+            loading={creating}
+          >
             {creating
               ? "Sedang menjalankan prioritisasi..."
               : "Jalankan prioritisasi"}

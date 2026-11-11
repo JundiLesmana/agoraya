@@ -219,7 +219,7 @@ describe("ProjectPrioritizationWorkspace", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("65.00")).toBeTruthy();
+      expect(screen.getAllByText("65.00")).toHaveLength(2);
     });
 
     expect(screen.getByText(/Tahun 2026/)).toBeTruthy();
@@ -228,14 +228,12 @@ describe("ProjectPrioritizationWorkspace", () => {
 
     const table = screen.getByRole("table");
     expect(within(table).getByText("1")).toBeTruthy();
-    expect(
-      screen.getByText(/44444444-4444-4444-8444-444444444444/i),
-    ).toBeTruthy();
-    expect(screen.getByText("65.00")).toBeTruthy();
+    expect(screen.getAllByText(/Peningkatan jalan provinsi/i).length).toBeGreaterThan(1);
+    expect(screen.getAllByText("65.00")).toHaveLength(2);
     expect(screen.getByText(/32\.00/)).toBeTruthy();
     expect(screen.getByText(/18\.00/)).toBeTruthy();
     expect(screen.getByText(/15\.00/)).toBeTruthy();
-    expect(screen.getByText(/Progres fisik/i)).toBeTruthy();
+    expect(screen.getAllByText(/Progres fisik/i).length).toBeGreaterThan(1);
     expect(screen.getByText(/Laporan diserahkan/i)).toBeTruthy();
     expect(screen.getByText(/Data awal proyek/i)).toBeTruthy();
 
@@ -255,6 +253,81 @@ describe("ProjectPrioritizationWorkspace", () => {
     expect(screen.queryByText(/inputSnapshot/i)).toBeNull();
     expect(screen.queryByText(/attachment/i)).toBeNull();
     expect(screen.queryByText(/catatan/i)).toBeNull();
+  });
+
+  it("menghubungkan penjelasan AI ke run terpilih tanpa mengubah peringkat", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(runsBody([runResponseBody(baseRun)])))
+      .mockResolvedValueOnce(jsonResponse(baseDetail))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          summary: "Hasil dihitung dari data progres dan nilai kontrak.",
+          keyFactors: ["Data progres fisik dan keuangan."],
+          limitations: ["Progres yang dikirim belum tentu terverifikasi."],
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <ProjectPrioritizationWorkspace
+        assignableProjects={assignableProjects}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Jelaskan hasil dengan AI/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Hasil dihitung dari data progres dan nilai kontrak/i),
+      ).toBeTruthy();
+    });
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, options]) =>
+          url ===
+            `/api/v1/projects/prioritization/runs/${baseRun.runId}/explanation` &&
+          options?.method === "POST",
+      ),
+    ).toBe(true);
+    expect(
+      screen.getByText(/bukan keputusan atau rekomendasi tindakan/i),
+    ).toBeTruthy();
+    expect(screen.getAllByText("65.00")).toHaveLength(2);
+  });
+
+  it("menampilkan error konfigurasi saat penjelasan AI gagal", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(runsBody([runResponseBody(baseRun)])))
+      .mockResolvedValueOnce(jsonResponse(baseDetail))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            code: "EXTERNAL_SERVICE_ERROR",
+            message: "Fitur penjelasan AI tidak dikonfigurasi.",
+          },
+          503,
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <ProjectPrioritizationWorkspace
+        assignableProjects={assignableProjects}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Jelaskan hasil dengan AI/i }),
+    );
+
+    expect(
+      await screen.findByText(/Fitur penjelasan AI tidak dikonfigurasi/i),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Hasil dihitung dari data progres/i)).toBeNull();
   });
 
   it("menampilkan error saat gagal memuat detail run terpilih", async () => {
@@ -308,7 +381,7 @@ describe("ProjectPrioritizationWorkspace", () => {
     fiscalYearSelect.value = "2025";
     fireEvent.change(fiscalYearSelect);
     fireEvent.click(
-      screen.getByLabelText(/Peningkatan jalan provinsi — Dinas Bina Marga/i),
+      screen.getByLabelText(/Rehabilitasi 12 sekolah — Dinas Pendidikan/i),
     );
 
     fireEvent.click(
@@ -332,7 +405,7 @@ describe("ProjectPrioritizationWorkspace", () => {
     const parsedBody = JSON.parse(postCall?.[1]?.body as string);
     expect(parsedBody.fiscalYear).toBe(2025);
     expect(parsedBody.projectIds).toEqual([
-      "44444444-4444-4444-8444-444444444444",
+      "55555555-5555-4555-8555-555555555555",
     ]);
     expect(parsedBody.tenantId).toBeUndefined();
     expect(parsedBody.weights).toBeUndefined();

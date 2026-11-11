@@ -511,6 +511,7 @@ async function uploadOutputDocuments(
       tenantId,
       fileName: file.name,
       mimeType: file.type,
+      module: "service-applications",
     });
     uploads.push({
       id: randomUUID(),

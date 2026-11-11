@@ -7,7 +7,8 @@ import { ProjectSummaryCard } from "./project-summary-card";
 import { ProgressForm } from "./progress-form";
 import { ProgressHistory } from "./progress-history";
 import { DatasetSourcePicker } from "../../_components/dataset-source-picker";
-import { AlertTriangle, Check } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, ArrowUpRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { progressReportSchema, type ProgressReport } from "@/lib/progress";
 
@@ -109,7 +110,11 @@ export function ProjectInputProgressPage({
   }, [initialProjects, selectedId]);
 
   const lastReport = history
-    .filter((report) => report.status === "submitted")
+    .filter(
+      (report) =>
+        report.status === "submitted" &&
+        report.periodeTahun === project?.tahunAnggaran,
+    )
     .sort(
       (a, b) =>
         b.periodeTahun - a.periodeTahun || b.periodeBulan - a.periodeBulan,
@@ -230,19 +235,6 @@ export function ProjectInputProgressPage({
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Input &amp; Progres Proyek
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Isikan capaian progres fisik dan keuangan proyek infrastruktur
-            secara berkala (bulanan) dengan dokumentasi foto lapangan sebagai
-            bukti fisik progres.
-          </p>
-        </div>
-      </header>
-
       {currentProject ? (
         <>
           <ProjectSelector
@@ -255,9 +247,15 @@ export function ProjectInputProgressPage({
             project={currentProject}
             lastPhysical={lastPhysical}
             lastKeuangan={lastKeuangan}
+            history={history}
           />
 
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+            <p className="text-sm font-semibold">Sumber data proyek</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Hubungkan laporan progres ke dataset yang sudah ditugaskan, atau
+              lanjutkan tanpa memilih sumber dataset.
+            </p>
             <DatasetSourcePicker
               scope={datasetSourceScope}
               value={sourceDatasetSubmissionId}
@@ -267,12 +265,25 @@ export function ProjectInputProgressPage({
           </div>
 
           <section className="border-t pt-4">
-            <h2 className="flex items-center gap-2 text-sm font-semibold">
-              <span aria-hidden="true">●</span> Formulir Input Progres Bulanan
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <span aria-hidden="true" className="text-primary">
+                ●
+              </span>{" "}
+              Formulir input progres bulanan
             </h2>
             <p className="text-muted-foreground text-sm">
-              Isi data capaian fisik dan keuangan untuk periode pelaporan yang
-              dipilih.
+              Isi capaian fisik dan keuangan sesuai bukti lapangan. Progres
+              fisik tidak boleh lebih rendah daripada laporan terkirim terakhir.
+            </p>
+            <p className="text-muted-foreground mt-2 text-xs">
+              Perlu membandingkan proyek?{" "}
+              <Link
+                href="/asn/project/prioritization"
+                className="text-primary inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
+              >
+                Buka prioritisasi
+                <ArrowUpRight aria-hidden="true" className="size-3.5" />
+              </Link>
             </p>
           </section>
 

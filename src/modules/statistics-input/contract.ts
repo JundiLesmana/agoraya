@@ -199,6 +199,7 @@ export const statisticWorkspaceResponseSchema = z.object({
 export const statisticSaveResponseSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["draft", "published"]),
+  auditWarning: z.string().optional(),
 });
 
 export const publishedStatisticInputsSchema = z.object({

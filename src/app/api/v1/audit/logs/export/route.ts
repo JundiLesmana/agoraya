@@ -23,7 +23,14 @@ export async function GET(request: Request): Promise<Response> {
 
     const searchParams = new URL(request.url).searchParams;
     const format = parseFormat(searchParams);
-    const result = await exportAuditLogs(db(), parseListQuery(searchParams), format);
+    const result = await exportAuditLogs(
+      db(),
+      {
+        ...parseListQuery(searchParams),
+        tenantId: authorization.session.tenantId,
+      },
+      format,
+    );
 
     return new Response(result.body, {
       status: 200,

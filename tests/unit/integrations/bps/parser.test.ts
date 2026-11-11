@@ -87,6 +87,26 @@ describe("BPS parser", () => {
     ]);
   });
 
+  it("menerima unit bernilai null dari API BPS resmi dan menggunakan fallback", () => {
+    const responseWithNullUnit = {
+      ...bpsResponse,
+      var: [
+        {
+          val: 413,
+          label: "Indeks Pembangunan Manusia",
+          unit: null,
+        },
+      ],
+    };
+    const parsed = parseBpsResponse(
+      responseWithNullUnit,
+      selector,
+      "124",
+      2024,
+    );
+    expect(parsed[0].unit).toBe("Tidak Ada Satuan");
+  });
+
   it("menolak respons rusak dan dimensi indikator yang tidak cocok", () => {
     expect(() =>
       parseBpsResponse({ status: "error" }, selector, "124", 2024),

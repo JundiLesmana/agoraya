@@ -133,6 +133,7 @@ export const publishedApbdResponseSchema = z.strictObject({
     z.strictObject({
       id: z.string().uuid(),
       agencyId: z.string(),
+      regionId: z.string(),
       regionName: z.string(),
       sectorId: z.string(),
       referenceYear: z.number().int(),
@@ -143,8 +144,8 @@ export const publishedApbdResponseSchema = z.strictObject({
           programName: z.string(),
           subactivityName: z.string(),
           periodValue: z.enum(["Q1", "Q2", "Q3", "Q4"]),
-          pagu: z.string().nullable(),
-          realisasi: z.string().nullable(),
+          pagu: apbdAmountSchema,
+          realisasi: apbdAmountSchema,
         }),
       ),
     }),

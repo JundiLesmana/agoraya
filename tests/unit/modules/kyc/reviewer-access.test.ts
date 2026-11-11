@@ -39,6 +39,14 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/lib/db", () => ({
+  db: vi.fn(() => ({})),
+}));
+
+vi.mock("@/modules/audit", () => ({
+  appendAuditEvent: vi.fn(async () => undefined),
+}));
+
 describe("KYC reviewer access", () => {
   beforeEach(() => {
     sessionState.value = {

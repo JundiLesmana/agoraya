@@ -35,6 +35,10 @@ vi.mock("@/lib/db", () => ({
   db: dbMock,
 }));
 
+vi.mock("@/lib/tenancy/reporting", () => ({
+  resolveReportingTenantId: vi.fn(async () => null),
+}));
+
 import CitizenSubmissionDetailPage from "@/app/(citizen)/citizen/service/[id]/page";
 
 function mockDetailQuery(row?: Record<string, unknown>) {

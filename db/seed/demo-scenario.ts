@@ -9,6 +9,7 @@ import {
   rbacPolicies,
   rolePermissions,
   roles,
+  ticketSubmissionDetails,
   tickets,
   tenants,
   userRoles,
@@ -175,6 +176,7 @@ export const TICKET_SEEDS: Array<{
   title: string;
   description: string;
   status: TicketStatus;
+  provenanceSource: "SIMULATED";
   urgency: string;
   location: { latitude: number; longitude: number; address: string };
 }> = [
@@ -187,6 +189,7 @@ export const TICKET_SEEDS: Array<{
     description:
       "Ada lobang besar di depan warung sembako yang membahayakan pengemudi sepeda motor.",
     status: "submitted",
+    provenanceSource: "SIMULATED",
     urgency: "high",
     location: {
       latitude: -6.2088,
@@ -203,6 +206,7 @@ export const TICKET_SEEDS: Array<{
     description:
       "Sampah tidak diangkir selama seminggu, menyebabkan bau busuk dan nyamuk.",
     status: "in_progress",
+    provenanceSource: "SIMULATED",
     urgency: "medium",
     location: {
       latitude: -6.212,
@@ -219,6 +223,7 @@ export const TICKET_SEEDS: Array<{
     description:
       "Beberapa lampu jalan di taman mati total sejak tiga hari lalu.",
     status: "resolved",
+    provenanceSource: "SIMULATED",
     urgency: "low",
     location: {
       latitude: -6.195,
@@ -227,6 +232,38 @@ export const TICKET_SEEDS: Array<{
     },
   },
 ];
+
+const TICKET_SUBMISSION_SEEDS = [
+  {
+    ticketId: TICKET_1,
+    reportNumber: "DEMO-REPORT-001",
+    subcategory: "Jalan rusak",
+    province: "DKI Jakarta",
+    city: "Jakarta Pusat",
+    address: "Jalan Sudirman, Jakarta Pusat",
+  },
+  {
+    ticketId: TICKET_2,
+    reportNumber: "DEMO-REPORT-002",
+    subcategory: "Sampah menumpuk",
+    province: "DKI Jakarta",
+    city: "Jakarta Selatan",
+    address: "RT 05, Kebayoran Baru",
+  },
+  {
+    ticketId: TICKET_3,
+    reportNumber: "DEMO-REPORT-003",
+    subcategory: "Lampu jalan",
+    province: "DKI Jakarta",
+    city: "Jakarta Pusat",
+    address: "Taman Kota, Menteng",
+  },
+].map((report) => ({
+  ...report,
+  isPublic: true,
+  showIdentity: false,
+  attachmentNames: [] as string[],
+}));
 
 const roleByKey = new Map(ROLE_SEEDS.map((r) => [r.key, r.id]));
 
@@ -324,6 +361,7 @@ export async function seedDemoScenario(
   for (const t of TICKET_SEEDS) {
     await dbx.insert(tickets).values(t);
   }
+  await dbx.insert(ticketSubmissionDetails).values(TICKET_SUBMISSION_SEEDS);
 
   await dbx.insert(auditEvents).values([
     {

@@ -16,7 +16,7 @@ const reportNumberSchema = z
   .string()
   .trim()
   .toUpperCase()
-  .regex(/^LP-\d{8}-[A-F0-9]{8}-[A-F0-9]{3}$/);
+  .regex(/^LP-\d{8}-(?:[A-F0-9]{12}|[A-F0-9]{8}-[A-F0-9]{3})$/);
 
 const listQuerySchema = z.object({
   category: z

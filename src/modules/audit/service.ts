@@ -33,6 +33,7 @@ const MASK_KEYS = [
 ] as const;
 
 export interface AuditLogFilters {
+  readonly tenantId?: string;
   readonly startDate?: string;
   readonly endDate?: string;
   readonly actorId?: string;
@@ -94,6 +95,7 @@ export type AuditDatabase = Pick<
 interface NormalizedFilters {
   readonly startDate: Date;
   readonly endDate: Date;
+  readonly tenantId: string | null;
   readonly actorId: string | null;
   readonly module: string | null;
   readonly action: string | null;
@@ -172,9 +174,13 @@ function normalizeFilters(filters: AuditLogFilters = {}): NormalizedFilters {
   if (filters.actorId && !UUID_PATTERN.test(filters.actorId)) {
     throw new ValidationError("actor_id must be a valid UUID.");
   }
+  if (filters.tenantId && !UUID_PATTERN.test(filters.tenantId)) {
+    throw new ValidationError("tenant_id must be a valid UUID.");
+  }
   return {
     startDate,
     endDate,
+    tenantId: filters.tenantId?.trim() || null,
     actorId: filters.actorId?.trim() || null,
     module: filters.module?.trim() || null,
     action: filters.action?.trim() || null,
@@ -265,6 +271,11 @@ function buildWhere(filters: NormalizedFilters): SQL[] {
     gte(auditEvents.createdAt, filters.startDate),
     lte(auditEvents.createdAt, filters.endDate),
   ];
+  if (filters.tenantId) {
+    conditions.push(
+      sql`${auditEvents.metadata} ->> 'tenantId' = ${filters.tenantId}`,
+    );
+  }
   if (filters.actorId) conditions.push(eq(auditEvents.actorId, filters.actorId));
   if (filters.action) conditions.push(eq(auditEvents.action, filters.action));
   if (filters.module) conditions.push(ilike(auditEvents.action, `${filters.module}.%`));
@@ -385,12 +396,20 @@ export async function listAuditLogs(
 export async function getAuditLogByEventId(
   database: Pick<AuditDatabase, "select">,
   eventId: string,
+  tenantId?: string,
 ): Promise<{ readonly data: AuditLogRecord }> {
   const parsedEventId = parseEventId(eventId);
   const rows = await database
     .select()
     .from(auditEvents)
-    .where(eq(auditEvents.chainSequence, parsedEventId.sequence))
+    .where(
+      and(
+        eq(auditEvents.chainSequence, parsedEventId.sequence),
+        ...(tenantId
+          ? [sql`${auditEvents.metadata} ->> 'tenantId' = ${tenantId}`]
+          : []),
+      ),
+    )
     .limit(1);
 
   const row = rows[0];
