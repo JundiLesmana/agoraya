@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   foreignKey,
   index,
@@ -11,6 +12,7 @@ import {
   integer,
   jsonb,
   boolean,
+  check,
 } from "drizzle-orm/pg-core";
 import { auditColumns, tenants, users } from "./foundation";
 import { ticketStatusEnum } from "./enums";
@@ -26,6 +28,10 @@ export const tickets = pgTable(
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description").notNull(),
     status: ticketStatusEnum("ticket_status").notNull().default("draft"),
+    provenanceSource: varchar("provenance_source", { length: 16 })
+      .$type<"ACTUAL" | "SIMULATED" | "BPS_API" | "AGGREGATE">()
+      .notNull()
+      .default("ACTUAL"),
     urgency: varchar("urgency", { length: 50 }).notNull().default("medium"),
     location: jsonb("location"),
     assigneeId: uuid("assignee_id").references(() => users.id),
@@ -49,6 +55,10 @@ export const tickets = pgTable(
       foreignColumns: [t.id],
       name: "tickets_duplicate_of_id_tickets_id_fk",
     }),
+    provenanceSourceCheck: check(
+      "tickets_provenance_source_check",
+      sql`${t.provenanceSource} IN ('ACTUAL', 'SIMULATED', 'BPS_API', 'AGGREGATE')`,
+    ),
   }),
 );
 export const ticketSubmissionDetails = pgTable(
@@ -64,8 +74,8 @@ export const ticketSubmissionDetails = pgTable(
     city: varchar("city", { length: 100 }).notNull(),
     address: text("address").notNull(),
     reporterName: varchar("reporter_name", { length: 255 }),
-    reporterEmail: varchar("reporter_email", { length: 255 }).notNull(),
-    reporterPhone: varchar("reporter_phone", { length: 32 }).notNull(),
+    reporterEmail: varchar("reporter_email", { length: 255 }),
+    reporterPhone: varchar("reporter_phone", { length: 32 }),
     isPublic: boolean("is_public").notNull().default(true),
     showIdentity: boolean("show_identity").notNull().default(false),
     attachmentNames: jsonb("attachment_names")

@@ -1,5 +1,5 @@
-import { StatisticsDashboard } from "./_components/statistics-dashboard";
+import { PublishedStatisticsDashboard } from "./_components/published-statistics-dashboard";
 
 export default function PublicRegionalStatisticsPage() {
-  return <StatisticsDashboard />;
+  return <PublishedStatisticsDashboard />;
 }

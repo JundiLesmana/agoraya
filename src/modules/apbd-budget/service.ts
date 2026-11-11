@@ -793,6 +793,10 @@ export async function saveApbdWorkspace(
             session.userId,
             entry.id,
             JSON.stringify({
+              tenantId: session.tenantId,
+              actorRole: session.roles.join(","),
+              result: "success",
+              status: payload.status,
               referenceYear: payload.referenceYear,
               itemCount: items.length,
               sourceDatasetSubmissionId:
@@ -860,6 +864,7 @@ export async function getPublishedApbdEntries(database: Database = getDefaultDat
     Row & {
       id: string;
       agencyId: string;
+      regionId: string;
       regionName: string;
       sectorId: string;
       referenceYear: number;
@@ -867,6 +872,7 @@ export async function getPublishedApbdEntries(database: Database = getDefaultDat
     }
   >(
     `SELECT entry.id::text AS id, entry.agency_id AS "agencyId",
+       entry.region_id AS "regionId",
        entry.region_name AS "regionName",
        entry.sector_id AS "sectorId", entry.reference_year AS "referenceYear",
        entry.published_at AS "publishedAt"
@@ -883,7 +889,7 @@ export async function getPublishedApbdEntries(database: Database = getDefaultDat
            AND (newer.published_at, newer.id) > (entry.published_at, entry.id)
        )
      ORDER BY entry.published_at DESC
-     LIMIT 100`,
+    `,
   );
   if (!entries.length) return { entries: [] };
 
@@ -917,6 +923,7 @@ export async function getPublishedApbdEntries(database: Database = getDefaultDat
     entries: entries.map((entry) => ({
       id: entry.id,
       agencyId: entry.agencyId,
+      regionId: entry.regionId,
       regionName: entry.regionName,
       sectorId: entry.sectorId,
       referenceYear: entry.referenceYear,

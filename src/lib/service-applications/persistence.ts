@@ -2,6 +2,7 @@
 import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
 
 export type ServiceApplicationCategory =
   | "permit"
@@ -141,12 +142,13 @@ export async function persistServiceApplication(
     };
   }
 
-  if (!session.tenantId) {
+  const tenantId = await resolveReportingTenantId();
+  if (!tenantId) {
     return {
       ok: false,
       status: 503,
       error:
-        "Tenant tujuan pengajuan layanan belum dikonfigurasi. Pengajuan tidak dapat disimpan.",
+        "Tenant penerima pengajuan layanan belum dikonfigurasi atau tidak aktif. Pengajuan tidak dapat disimpan.",
     };
   }
 
@@ -160,7 +162,7 @@ export async function persistServiceApplication(
     try {
       await database.insert(serviceApplications).values({
         id: randomUUID(),
-        tenantId: session.tenantId,
+        tenantId,
         applicantUserId: session.userId,
         trackingNumber,
         category: payload.category,

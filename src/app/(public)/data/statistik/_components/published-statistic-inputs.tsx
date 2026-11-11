@@ -32,7 +32,9 @@ export function PublishedStatisticInputs() {
     let active = true;
     async function loadPublishedInputs() {
       try {
-        const response = await fetch("/api/v1/statistics/published");
+        const response = await fetch("/api/v1/statistics/published", {
+          cache: "no-store",
+        });
         const payload: unknown = await response.json();
         if (!response.ok) throw new Error(getErrorMessage(payload));
         const parsed = publishedStatisticInputsSchema.safeParse(payload);

@@ -38,7 +38,12 @@ export function prioritizeProjects(
     projectPrioritizationProjectInputSchema.parse(input),
   );
 
-  const ongoing = validInputs.filter((input) => input.status === "ongoing");
+  const ongoing = validInputs.filter(
+    (input) =>
+      input.status === "ongoing" ||
+      input.status === "Berjalan" ||
+      input.status === "berjalan",
+  );
   if (ongoing.length === 0) {
     return [];
   }

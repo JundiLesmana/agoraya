@@ -19,7 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { reviewActivities, serviceApplications } from "@/lib/db/schema";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
 import { formatDateTimeWib, getDaysUntilDeadline } from "../_components/tracking-format";
 import { mapStoredServiceApplication, type TrackingApplication, type TrackingStatus } from "../_components/tracking-data";
 
@@ -71,9 +72,18 @@ function getDeadlineCopy(daysRemaining: number): string {
 }
 
 async function getCitizenApplicationDetail(id: string, tenantId: string, userId: string) {
+  const reportingTenantId = await resolveReportingTenantId();
+  const tenantIds = [
+    ...new Set(
+      [tenantId, reportingTenantId].filter(
+        (candidate): candidate is string => candidate !== null,
+      ),
+    ),
+  ];
   const [application] = await db()
     .select({
       id: serviceApplications.id,
+      tenantId: serviceApplications.tenantId,
       trackingNumber: serviceApplications.trackingNumber,
       category: serviceApplications.category,
       serviceType: serviceApplications.serviceType,
@@ -92,7 +102,7 @@ async function getCitizenApplicationDetail(id: string, tenantId: string, userId:
     .where(
       and(
         eq(serviceApplications.id, id),
-        eq(serviceApplications.tenantId, tenantId),
+        inArray(serviceApplications.tenantId, tenantIds),
         eq(serviceApplications.applicantUserId, userId),
       ),
     )
@@ -111,7 +121,7 @@ async function getCitizenApplicationDetail(id: string, tenantId: string, userId:
     .from(reviewActivities)
     .where(
       and(
-        eq(reviewActivities.tenantId, tenantId),
+        eq(reviewActivities.tenantId, application.tenantId),
         eq(reviewActivities.itemType, "service_application"),
         eq(reviewActivities.itemId, id),
         eq(reviewActivities.activityType, "public_update"),

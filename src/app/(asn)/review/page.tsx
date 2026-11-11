@@ -27,7 +27,6 @@ import { asnProfiles } from "@/modules/identity/db";
 import {
   maskApplicantName,
   maskEmail,
-  maskPhone,
 } from "@/app/(asn)/asn/dashboard/_components/agency-dashboard-data";
 import {
   formatDateTimeWib,
@@ -198,8 +197,6 @@ async function getReportDetail(
       applicantName: ticketSubmissionDetails.reporterName,
       assigneeId: tickets.assigneeId,
       assigneeName: users.name,
-      email: ticketSubmissionDetails.reporterEmail,
-      phone: ticketSubmissionDetails.reporterPhone,
       address: ticketSubmissionDetails.address,
       city: ticketSubmissionDetails.city,
       province: ticketSubmissionDetails.province,
@@ -248,13 +245,11 @@ async function getReportDetail(
     statusTone: statusInfo.statusTone,
     submittedAt,
     targetAt: row.targetAt?.toISOString() ?? null,
-    applicantName: row.showIdentity
-      ? (row.applicantName ?? "Pelapor anonim")
-      : "Pelapor anonim",
+    applicantName: row.applicantName ?? "Pelapor anonim",
     assigneeId: row.assigneeId,
     assigneeName: row.assigneeName,
-    email: row.email,
-    phone: row.phone,
+    email: "",
+    phone: "-",
     address: [row.address, row.city, row.province].filter(Boolean).join(", "),
     agency: null,
     routeKey: null,
@@ -345,14 +340,17 @@ async function getReviewDetail(
 
 async function recordReviewOpen(
   detail: ReviewDetail,
-  actorId: string,
+  session: Awaited<ReturnType<typeof requireAuth>>,
 ): Promise<void> {
   await appendAuditEvent(db(), {
-    actorId,
+    actorId: session.userId,
     action: "review.open",
     targetTable: detail.kind === "report" ? "tickets" : "service_applications",
     targetId: detail.id,
     metadata: {
+      tenantId: session.tenantId,
+      actorRole: session.roles.join(","),
+      result: "success",
       kind: detail.kind,
       trackingNumber: detail.trackingNumber,
       status: detail.status,
@@ -435,14 +433,13 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
     notFound();
   }
 
-  await recordReviewOpen(detail, session.userId);
+  await recordReviewOpen(detail, session);
 
   const daysUntilDeadline = detail.targetAt
     ? getDaysUntilDeadline(detail.targetAt)
     : null;
   const maskedName = maskApplicantName(detail.applicantName);
   const maskedEmailAddress = maskEmail(detail.email);
-  const maskedPhoneNumber = maskPhone(detail.phone);
   const [activities, staff] = await Promise.all([
     getReviewActivities(detail.kind, detail.id, session.tenantId),
     db()
@@ -804,7 +801,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
                 />
               )}
               {detail.kind === "report"
-                ? `Identitas pelapor: ${detail.showIdentity ? maskedName : "disamarkan"} · kontak ${maskedEmailAddress} · ${maskedPhoneNumber}.`
+                ? `Nama samaran pelapor: ${maskedName}. Kontak email dan nomor HP tidak dikumpulkan.`
                 : `Lokasi: ${detail.address}. Kontak pemohon dibatasi, ${maskedEmailAddress}.`}
             </div>
           </aside>

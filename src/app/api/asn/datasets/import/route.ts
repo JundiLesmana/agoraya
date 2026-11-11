@@ -129,6 +129,8 @@ export async function POST(request: Request): Promise<Response> {
         targetTable: "bps_statistics",
         targetId: null,
         metadata: {
+          tenantId: authorization.session.tenantId,
+          actorRole: authorization.session.roles.join(","),
           recordCount: result.count,
           sourceLabel: "BPS_API",
           result: "success",

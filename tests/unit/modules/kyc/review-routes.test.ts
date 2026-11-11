@@ -118,6 +118,10 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/modules/audit", () => ({
+  appendAuditEvent: vi.fn(async () => undefined),
+}));
+
 vi.mock("@/modules/kyc/review-detail-service", () => ({
   getKycReviewDetail: vi.fn(async () => detailState.value),
 }));

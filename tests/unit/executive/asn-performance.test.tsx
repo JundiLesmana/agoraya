@@ -8,19 +8,21 @@ const MOCK_SUMMARY = {
   data: {
     totals: {
       asnCount: 6,
-      assignedTasks: 66,
+      assignedTasks: 40,
       completedTasks: 40,
-      completionRate: 0.606,
+      completionRate: null,
+      withActivityCount: 6,
+      noActivityCount: 0,
     },
     byTaskType: {
-      layanan_kesehatan: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      layanan_pendidikan: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      layanan_sosial: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      laporan_warga: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      perizinan: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      submit_cms: { assignedTasks: 10, completedTasks: 6, completionRate: 0.6 },
-      review_cms: { assignedTasks: 8, completedTasks: 5, completionRate: 0.625 },
-      review_kyc: { assignedTasks: 8, completedTasks: 4, completionRate: 0.5 },
+      layanan_kesehatan: { assignedTasks: 5, completedTasks: 5, completionRate: null },
+      layanan_pendidikan: { assignedTasks: 5, completedTasks: 5, completionRate: null },
+      layanan_sosial: { assignedTasks: 5, completedTasks: 5, completionRate: null },
+      laporan_warga: { assignedTasks: 5, completedTasks: 5, completionRate: null },
+      perizinan: { assignedTasks: 4, completedTasks: 4, completionRate: null },
+      submit_cms: { assignedTasks: 6, completedTasks: 6, completionRate: null },
+      review_cms: { assignedTasks: 5, completedTasks: 5, completionRate: null },
+      review_kyc: { assignedTasks: 5, completedTasks: 5, completionRate: null },
     },
   },
 };
@@ -39,9 +41,9 @@ const MOCK_TRENDS = {
 const MOCK_LOWEST = {
   data: {
     items: [
-      { name: "Eka Wulandari", email: "eka@example.com", opd: "Dinas Kesehatan", position: "Analis", taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 0, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 0 }, completedTasks: 2, assignedTasks: 8 },
-      { name: "Dewa Mahendra", email: "dewa@example.com", opd: "Dinas Pendidikan", position: "Staf", taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 1, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 1, review_kyc: 0 }, completedTasks: 3, assignedTasks: 8 },
-      { name: "Citra Larasati", email: "citra@example.com", opd: "Dinas Sosial", position: "Analis", taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 0, layanan_sosial: 1, laporan_warga: 1, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 1 }, completedTasks: 4, assignedTasks: 8 },
+      { name: "Eka Wulandari", email: "eka@example.com", opd: "Dinas Kesehatan", position: "Analis", taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 0, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 0 }, completedTasks: 2, assignedTasks: 2 },
+      { name: "Dewa Mahendra", email: "dewa@example.com", opd: "Dinas Pendidikan", position: "Staf", taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 1, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 1, review_kyc: 0 }, completedTasks: 3, assignedTasks: 3 },
+      { name: "Citra Larasati", email: "citra@example.com", opd: "Dinas Sosial", position: "Analis", taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 0, layanan_sosial: 1, laporan_warga: 1, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 1 }, completedTasks: 4, assignedTasks: 4 },
     ],
   },
 };
@@ -49,12 +51,12 @@ const MOCK_LOWEST = {
 const MOCK_DETAILS = {
   data: {
     items: [
-      { userId: "u1", name: "Eka Wulandari", email: "eka@example.com", nip: "1", opd: "Dinas Kesehatan", unit: null, position: "Analis", assignedTasks: 8, completedTasks: 2, completionRate: 0.25, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 0, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 0 }, statusLabel: "Perlu perhatian" },
-      { userId: "u2", name: "Dewa Mahendra", email: "dewa@example.com", nip: "2", opd: "Dinas Pendidikan", unit: null, position: "Staf", assignedTasks: 8, completedTasks: 3, completionRate: 0.375, taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 1, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 1, review_kyc: 0 }, statusLabel: "Perlu perhatian" },
-      { userId: "u3", name: "Citra Larasati", email: "citra@example.com", nip: "3", opd: "Dinas Sosial", unit: null, position: "Analis", assignedTasks: 8, completedTasks: 4, completionRate: 0.5, taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 0, layanan_sosial: 1, laporan_warga: 1, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 1 }, statusLabel: "Cukup" },
-      { userId: "u4", name: "Bima Santosa", email: "bima@example.com", nip: "4", opd: "Dinas Perizinan", unit: null, position: "Staf", assignedTasks: 14, completedTasks: 9, completionRate: 0.643, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 1, layanan_sosial: 1, laporan_warga: 1, perizinan: 2, submit_cms: 1, review_cms: 1, review_kyc: 1 }, statusLabel: "Baik" },
-      { userId: "u5", name: "Aditya Nugraha", email: "aditya@example.com", nip: "5", opd: "Sekretariat", unit: null, position: "Kepala", assignedTasks: 14, completedTasks: 11, completionRate: 0.786, taskBreakdown: { layanan_kesehatan: 2, layanan_pendidikan: 2, layanan_sosial: 1, laporan_warga: 1, perizinan: 1, submit_cms: 1, review_cms: 2, review_kyc: 1 }, statusLabel: "Baik" },
-      { userId: "u6", name: "Farah Anindita", email: "farah@example.com", nip: "6", opd: "Bagian Umum", unit: null, position: "Staf", assignedTasks: 14, completedTasks: 11, completionRate: 0.786, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 1, layanan_sosial: 2, laporan_warga: 2, perizinan: 1, submit_cms: 1, review_cms: 1, review_kyc: 2 }, statusLabel: "Baik" },
+      { userId: "u1", name: "Eka Wulandari", email: "eka@example.com", nip: "1", opd: "Dinas Kesehatan", unit: null, position: "Analis", roles: ["Operator"], assignedTasks: 2, completedTasks: 2, completionRate: null, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 0, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 0 }, statusLabel: "Aktivitas tercatat" },
+      { userId: "u2", name: "Dewa Mahendra", email: "dewa@example.com", nip: "2", opd: "Dinas Pendidikan", unit: null, position: "Staf", roles: ["Admin"], assignedTasks: 3, completedTasks: 3, completionRate: null, taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 1, layanan_sosial: 0, laporan_warga: 0, perizinan: 0, submit_cms: 1, review_cms: 1, review_kyc: 0 }, statusLabel: "Aktivitas tercatat" },
+      { userId: "u3", name: "Citra Larasati", email: "citra@example.com", nip: "3", opd: "Dinas Sosial", unit: null, position: "Analis", roles: ["Verifikator"], assignedTasks: 4, completedTasks: 4, completionRate: null, taskBreakdown: { layanan_kesehatan: 0, layanan_pendidikan: 0, layanan_sosial: 1, laporan_warga: 1, perizinan: 0, submit_cms: 1, review_cms: 0, review_kyc: 1 }, statusLabel: "Aktivitas tercatat" },
+      { userId: "u4", name: "Bima Santosa", email: "bima@example.com", nip: "4", opd: "Dinas Perizinan", unit: null, position: "Staf", roles: ["ASN"], assignedTasks: 9, completedTasks: 9, completionRate: null, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 1, layanan_sosial: 1, laporan_warga: 1, perizinan: 2, submit_cms: 1, review_cms: 1, review_kyc: 1 }, statusLabel: "Aktivitas tercatat" },
+      { userId: "u5", name: "Aditya Nugraha", email: "aditya@example.com", nip: "5", opd: "Sekretariat", unit: null, position: "Kepala", roles: ["Superadmin"], assignedTasks: 11, completedTasks: 11, completionRate: null, taskBreakdown: { layanan_kesehatan: 2, layanan_pendidikan: 2, layanan_sosial: 1, laporan_warga: 1, perizinan: 1, submit_cms: 1, review_cms: 2, review_kyc: 1 }, statusLabel: "Aktivitas tercatat" },
+      { userId: "u6", name: "Farah Anindita", email: "farah@example.com", nip: "6", opd: "Bagian Umum", unit: null, position: "Staf", roles: ["Operator"], assignedTasks: 11, completedTasks: 11, completionRate: null, taskBreakdown: { layanan_kesehatan: 1, layanan_pendidikan: 1, layanan_sosial: 2, laporan_warga: 2, perizinan: 1, submit_cms: 1, review_cms: 1, review_kyc: 2 }, statusLabel: "Aktivitas tercatat" },
     ],
   },
 };
@@ -84,19 +86,17 @@ describe("ExecutiveAsnPerformance Component", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Kinerja ASN" })).toBeTruthy();
     expect(screen.getByText("Cakupan analisis")).toBeTruthy();
-    await waitFor(() => expect(screen.getByText("Tugas ditugaskan")).toBeTruthy());
-    expect(screen.getByText("Total selesai")).toBeTruthy();
-    expect(screen.getByText("Tingkat penyelesaian")).toBeTruthy();
-    expect(screen.getByText("Tugas tertunda")).toBeTruthy();
+    await waitFor(() => expect(screen.getAllByText("Aktivitas tercatat").length).toBeGreaterThan(0));
+    expect(screen.getByText("Petugas beraktivitas")).toBeTruthy();
+    expect(screen.getByText("Submit dan review")).toBeTruthy();
+    expect(screen.getByText("Akses dan keputusan")).toBeTruthy();
   });
 
   it("renders metric cards and details matching illustrative dataset", async () => {
     render(<ExecutiveAsnPerformance />);
 
-    await waitFor(() => expect(screen.getByText("66")).toBeTruthy());
-    expect(screen.getByText("40")).toBeTruthy();
-    expect(screen.getByText("60,6%")).toBeTruthy();
-    expect(screen.getByText("26")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("40")).toBeTruthy());
+    expect(screen.getAllByText("6").length).toBeGreaterThan(0);
   });
 
   it("renders ASN performance details table and rows", async () => {
@@ -110,12 +110,13 @@ describe("ExecutiveAsnPerformance Component", () => {
     expect(screen.getByText("Farah Anindita")).toBeTruthy();
   });
 
-  it("renders charts and action needed notice", async () => {
+  it("renders activity charts without inferring completion from activity events", async () => {
     render(<ExecutiveAsnPerformance />);
 
-    await waitFor(() => expect(screen.getByText("Tren penyelesaian tugas")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Tren aktivitas")).toBeTruthy());
     expect(screen.getByText("Aktivitas terendah")).toBeTruthy();
-    expect(screen.getByText(/Perlu tindak lanjut/)).toBeTruthy();
+    expect(screen.queryByText(/Tingkat penyelesaian/)).toBeNull();
+    expect(screen.queryByText(/Perlu tindak lanjut/)).toBeNull();
   });
 
   it("handles filter changes and reset", () => {

@@ -50,6 +50,7 @@ const asnRecordSchema = z.object({
   position: z.string().nullable(),
   accountStatus: z.enum(["active", "inactive", "suspended"]),
   applicationRoles: z.array(roleSchema),
+  systemRoles: z.array(roleSchema),
   modules: z.array(z.string()),
   executiveStatus: z.enum(["observer", "not_granted"]),
 });
@@ -858,7 +859,7 @@ export function AsnAccessDirectory() {
                 Kontrol akses ASN
               </h1>
               <p className="mt-1 max-w-2xl text-[11px] leading-5 text-slate-500">
-                Kelola kewenangan seluruh ASN terdaftar, dari laman CMS hingga ruang Executive.
+                Kelola kewenangan akun operasional non-warga, dari laman CMS hingga ruang Executive.
               </p>
             </div>
             <button
@@ -904,7 +905,7 @@ export function AsnAccessDirectory() {
                 className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4"
               >
                 <MetricCard
-                  label="ASN terdaftar"
+                  label="Akun operasional"
                   value={summary?.total ?? 0}
                   detail="Seluruh direktori instansi"
                   icon={<Users aria-hidden="true" className="size-4" />}
@@ -975,7 +976,7 @@ export function AsnAccessDirectory() {
                       Direktori ASN
                     </h2>
                     <p className="mt-0.5 text-[10px] text-slate-500">
-                      Pilih ASN terdaftar untuk meninjau cakupan dan mengubah hak akses.
+                      Pilih akun untuk meninjau cakupan dan mengubah hak akses.
                     </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[9px] font-semibold text-slate-500">
@@ -1167,7 +1168,7 @@ export function AsnAccessDirectory() {
                   <div className="px-4 py-12 text-center">
                     <Users aria-hidden="true" className="mx-auto size-6 text-slate-300" />
                     <h3 className="mt-2 text-sm font-semibold text-slate-700">
-                      Tidak ada ASN yang sesuai
+                      Tidak ada akun yang sesuai
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
                       Ubah filter atau atur ulang pencarian untuk melihat direktori.
@@ -1179,9 +1180,9 @@ export function AsnAccessDirectory() {
                       <table className="w-full min-w-[1020px] border-collapse text-left">
                         <thead>
                           <tr className="border-b border-slate-200 bg-slate-50/80 text-[9px] font-semibold text-slate-500">
-                            <th scope="col" className="px-4 py-2.5">ASN / identitas tersamar</th>
+                            <th scope="col" className="px-4 py-2.5">Akun / identitas tersamar</th>
                             <th scope="col" className="px-3 py-2.5">Jabatan / instansi</th>
-                            <th scope="col" className="px-3 py-2.5">Peran aplikasi</th>
+                            <th scope="col" className="px-3 py-2.5">Peran akun</th>
                             <th scope="col" className="px-3 py-2.5">Modul diberikan</th>
                             <th scope="col" className="px-3 py-2.5">Status akun</th>
                             <th scope="col" className="px-3 py-2.5">Executive</th>
@@ -1214,8 +1215,11 @@ export function AsnAccessDirectory() {
                                 </p>
                               </td>
                               <td className="px-3 py-3 align-middle text-[10px] text-slate-600">
-                                {person.applicationRoles.length
-                                  ? person.applicationRoles.map((role) => role.name).join(", ")
+                                {[...person.applicationRoles, ...person.systemRoles].length
+                                  ? [...person.applicationRoles, ...person.systemRoles]
+                                      .map((role) => role.name)
+                                      .filter((name, index, names) => names.indexOf(name) === index)
+                                      .join(", ")
                                   : "Belum ditetapkan"}
                               </td>
                               <td className="px-3 py-3 align-middle">

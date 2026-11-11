@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
+import { appendAuditEvent } from "@/modules/audit";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import {
   asnProfiles,
   reviewActivities,
@@ -44,6 +46,29 @@ function commonFields(formData: FormData) {
   };
 }
 
+async function recordReviewAudit(
+  session: Awaited<ReturnType<typeof requireAuth>>,
+  action: string,
+  targetTable: string,
+  targetId: string,
+  metadata: Readonly<Record<string, unknown>>,
+  result: "success" | "rejected" = "success",
+): Promise<void> {
+  await appendAuditEvent(db(), {
+    actorId: uuidOrNull(session.userId),
+    action,
+    targetTable,
+    targetId: uuidOrNull(targetId),
+    metadata: {
+      tenantId: session.tenantId,
+      actorRole: session.roles.join(","),
+      result,
+      ...metadata,
+    },
+    occurredAt: new Date(),
+  });
+}
+
 export async function saveReviewAssignment(
   _previousState: ReviewActionState = initialState,
   formData: FormData,
@@ -72,6 +97,7 @@ export async function saveReviewAssignment(
   const requestedAssigneeId = parsed.data.assigneeId;
   const assigneeId = requestedAssigneeId === "self" ? session.userId : requestedAssigneeId;
   let assignedName: string | null = null;
+  let assignmentChanged = false;
 
   if (assigneeId) {
     const [staff] = await database
@@ -156,6 +182,7 @@ export async function saveReviewAssignment(
     }
 
     if (previousAssigneeId !== assigneeId) {
+      assignmentChanged = true;
       await transaction.insert(reviewActivities).values({
         id: randomUUID(),
         tenantId: session.tenantId,
@@ -188,6 +215,15 @@ export async function saveReviewAssignment(
         "Penugasan berubah saat disimpan. Muat ulang halaman lalu coba kembali.",
       success: null,
     };
+  }
+  if (assignmentChanged) {
+    await recordReviewAudit(
+      session,
+      "review.assignment.updated",
+      itemType === "report" ? "tickets" : "service_applications",
+      itemId,
+      { itemType, assigneeChanged: true },
+    );
   }
 
   revalidatePath("/review");
@@ -265,6 +301,13 @@ export async function saveInternalReviewNote(
     actorId: session.userId,
     createdAt: new Date(),
   });
+  await recordReviewAudit(
+    session,
+    "review.note.saved",
+    itemType === "report" ? "tickets" : "service_applications",
+    itemId,
+    { itemType },
+  );
 
   revalidatePath("/review");
   return { error: null, success: "Catatan internal tersimpan." };
@@ -428,6 +471,14 @@ export async function publishReviewUpdate(
   });
 
   if (saved !== "saved") {
+    await recordReviewAudit(
+      session,
+      "review.status.anomaly",
+      itemType === "report" ? "tickets" : "service_applications",
+      itemId,
+      { itemType, reason: saved },
+      "rejected",
+    );
     let error: string;
     switch (saved) {
       case "not_found":
@@ -453,6 +504,14 @@ export async function publishReviewUpdate(
     }
     return { error, success: null };
   }
+
+  await recordReviewAudit(
+    session,
+    "review.status.updated",
+    itemType === "report" ? "tickets" : "service_applications",
+    itemId,
+    { itemType, status: targetStatus },
+  );
 
   revalidatePath("/review");
   if (itemType === "service_application") {

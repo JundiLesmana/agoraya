@@ -388,6 +388,7 @@ export async function registerAsn(command: RegisterAsnCommand) {
         fileName: attachment.fileName,
         mimeType: attachment.mimeType,
         category: "asn",
+        module: "registration",
       });
       await tx.insert(asnRegistrationAttachments).values({
         id: randomUUID(),

@@ -14,6 +14,10 @@ vi.mock("@/lib/db", () => ({
   db: dbMock,
 }));
 
+vi.mock("@/lib/tenancy/reporting", () => ({
+  resolveReportingTenantId: vi.fn(async () => null),
+}));
+
 vi.mock("@/lib/logger", () => ({
   logger: {
     error: loggerErrorMock,

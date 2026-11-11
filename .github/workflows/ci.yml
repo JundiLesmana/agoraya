@@ -35,6 +35,9 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit and integration tests
+        env:
+          DATABASE_URL: postgresql://agoraya_test:agoraya_test@localhost:5432/agoraya_test
+          AUTH_SECRET: test-only-auth-secret-that-is-at-least-32-characters
         run: pnpm test:all
 
       - name: Security tests
@@ -42,3 +45,4 @@ jobs:
 
       - name: Build
         run: pnpm build
+        

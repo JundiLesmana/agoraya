@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { ProjectDetail } from "@/modules/project-progress/types";
-import { FormField, FormSelect } from "@/components/forms";
+import { Select } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ProjectSelectorProps {
   readonly projects: readonly ProjectDetail[];
@@ -47,12 +48,16 @@ export function ProjectSelector({
 
   return (
     <section className="bg-card rounded-xl border p-4">
-      <FormField
-        name="project-search"
-        label="Pemilihan Proyek"
-        required
-        hint="Cari berdasarkan nama paket, instansi, lokasi, atau tahun anggaran."
-      >
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium leading-none">
+          Pemilihan Proyek
+          <span aria-hidden="true" className="ml-0.5 text-destructive">
+            *
+          </span>
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Cari berdasarkan nama paket, instansi, lokasi, atau tahun anggaran.
+        </p>
         <div className="grid items-end gap-4 sm:grid-cols-12">
           <div className="relative col-span-12 sm:col-span-5">
             <Search
@@ -68,7 +73,7 @@ export function ProjectSelector({
             />
           </div>
           <div className="col-span-12 sm:col-span-3">
-            <FormSelect
+            <Select
               placeholder="Tahun Anggaran"
               value={tahun || undefined}
               onChange={(event) => setTahun(event.target.value)}
@@ -96,11 +101,11 @@ export function ProjectSelector({
             </select>
           </div>
         </div>
-      </FormField>
+      </div>
 
       {selectedProject && (
         <p className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-          <span className="bg-secondary text-secondary-foreground rounded-md px-2 py-0.5 text-xs">
+          <span className={cn("bg-secondary text-secondary-foreground rounded-md px-2 py-0.5 text-xs")}>
             {selectedProject.instansi}
           </span>
           {selectedProject.namaPaket} · {selectedProject.lokasi}

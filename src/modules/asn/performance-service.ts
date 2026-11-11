@@ -1,8 +1,31 @@
-import { and, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { cmsContents, cmsRiskReviews, kycApprovals, tickets } from "@/lib/db/schema";
+import {
+  applicationRoles,
+  auditEvents,
+  cmsContents,
+  cmsRiskReviews,
+  kycApprovals,
+  roles,
+  tickets,
+  userApplicationRoles,
+  userRoles,
+} from "@/lib/db/schema";
 import { asnProfiles, jobPositions, users } from "@/modules/identity/db";
+import { hasNonCitizenAccountRole } from "./account-scope";
 import {
   ASN_PERFORMANCE_TASK_TYPES,
   type AsnPerformanceFilters,
@@ -19,6 +42,9 @@ function createEmptyTaskBreakdown(): Record<AsnPerformanceTaskType, number> {
     submit_cms: 0,
     review_cms: 0,
     review_kyc: 0,
+    review_workflow: 0,
+    access_management: 0,
+    decision_engine: 0,
   };
 }
 
@@ -27,6 +53,7 @@ interface PerformanceEventRow {
   readonly tenantId: string;
   readonly taskType: AsnPerformanceTaskType;
   readonly completedAt: Date;
+  readonly targetId?: string | null;
 }
 
 interface AsnIdentityRow {
@@ -37,12 +64,14 @@ interface AsnIdentityRow {
   readonly opd: string | null;
   readonly unit: string | null;
   readonly position: string | null;
+  readonly roles: readonly string[];
 }
 
 interface ParticipantMetrics {
   readonly userId: string;
   readonly name: string;
   readonly email: string;
+  readonly roles: readonly string[];
   readonly nip: string | null;
   readonly opd: string | null;
   readonly unit: string | null;
@@ -65,10 +94,12 @@ export async function getAsnPerformanceSummary(
   return {
     range: serializeRange(filters),
     totals: {
-      asnCount: active.length,
+      asnCount: metrics.length,
       assignedTasks: totalAssigned,
       completedTasks: totalCompleted,
-      completionRate: totalAssigned > 0 ? ratio(totalCompleted, totalAssigned) : null,
+      completionRate: null,
+      withActivityCount: active.length,
+      noActivityCount: metrics.length - active.length,
     },
     byTaskType: summarizeByTaskType(active),
   };
@@ -107,7 +138,6 @@ export async function getLowestActivityAsn(
   return {
     range: serializeRange(filters),
     items: metrics
-      .filter((item) => item.assignedTasks > 0)
       .sort((left, right) => {
         const rateDelta = (left.completionRate ?? 1) - (right.completionRate ?? 1);
         if (rateDelta !== 0) return rateDelta;
@@ -128,7 +158,7 @@ export async function getAsnPerformanceDetails(
   const items = metrics.slice(filters.offset, filters.offset + filters.limit).map((item) => ({
     ...item,
     statusLabel:
-      item.assignedTasks === 0 ? "Tidak ada penugasan" : completionLabel(item.completionRate),
+      item.assignedTasks === 0 ? "Belum ada aktivitas" : "Aktivitas tercatat",
   }));
 
   return {
@@ -176,18 +206,10 @@ export async function exportAsnPerformance(
       "opd",
       "unit",
       "position",
-      "assignedTasks",
-      "completedTasks",
-      "completionRate",
+      "roles",
+      "activityCount",
       "statusLabel",
-      "layananKesehatan",
-      "layananPendidikan",
-      "layananSosial",
-      "laporanWarga",
-      "perizinan",
-      "submitCms",
-      "reviewCms",
-      "reviewKyc",
+      ...ASN_PERFORMANCE_TASK_TYPES,
     ];
     const rows = details.items.map((item) =>
       [
@@ -198,18 +220,10 @@ export async function exportAsnPerformance(
         item.opd ?? "",
         item.unit ?? "",
         item.position ?? "",
+        item.roles.join(", "),
         item.assignedTasks,
-        item.completedTasks,
-        item.completionRate ?? "",
         item.statusLabel,
-        item.taskBreakdown.layanan_kesehatan,
-        item.taskBreakdown.layanan_pendidikan,
-        item.taskBreakdown.layanan_sosial,
-        item.taskBreakdown.laporan_warga,
-        item.taskBreakdown.perizinan,
-        item.taskBreakdown.submit_cms,
-        item.taskBreakdown.review_cms,
-        item.taskBreakdown.review_kyc,
+        ...ASN_PERFORMANCE_TASK_TYPES.map((taskType) => item.taskBreakdown[taskType]),
       ]
         .map((value) => JSON.stringify(String(value)))
         .join(","),
@@ -253,7 +267,7 @@ async function buildPerformanceMetrics(
         ...identity,
         assignedTasks,
         completedTasks: assignedTasks,
-        completionRate: assignedTasks > 0 ? 1 : null,
+        completionRate: null,
         taskBreakdown,
       };
     })
@@ -264,7 +278,11 @@ async function listAsnParticipants(
   tenantId: string,
   filters: AsnPerformanceFilters,
 ): Promise<AsnIdentityRow[]> {
-  const conditions = [eq(users.tenantId, tenantId), eq(asnProfiles.tenantId, tenantId)];
+  const database = db();
+  const conditions = [
+    eq(users.tenantId, tenantId),
+    hasNonCitizenAccountRole(database, tenantId),
+  ];
   if (filters.opd) conditions.push(ilike(asnProfiles.opdName, contains(filters.opd)));
   if (filters.unit) conditions.push(ilike(asnProfiles.unitName, contains(filters.unit)));
   if (filters.position) conditions.push(ilike(jobPositions.name, contains(filters.position)));
@@ -274,7 +292,7 @@ async function listAsnParticipants(
     if (searchCondition) conditions.push(searchCondition);
   }
 
-  return db()
+  const people = await database
     .select({
       userId: users.id,
       name: users.name,
@@ -285,9 +303,66 @@ async function listAsnParticipants(
       position: jobPositions.name,
     })
     .from(users)
-    .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+    .leftJoin(
+      asnProfiles,
+      and(
+        eq(asnProfiles.userId, users.id),
+        eq(asnProfiles.tenantId, tenantId),
+      ),
+    )
     .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
     .where(and(...conditions));
+  if (people.length === 0) return [];
+
+  const userIds = people.map((person) => person.userId);
+  const [applicationRoleRows, legacyRoleRows] = await Promise.all([
+    database
+      .select({
+        userId: userApplicationRoles.userId,
+        key: applicationRoles.key,
+        name: applicationRoles.name,
+      })
+      .from(userApplicationRoles)
+      .innerJoin(
+        applicationRoles,
+        eq(applicationRoles.id, userApplicationRoles.applicationRoleId),
+      )
+      .where(
+        and(
+          inArray(userApplicationRoles.userId, userIds),
+          eq(userApplicationRoles.tenantId, tenantId),
+          isNull(userApplicationRoles.revokedAt),
+        ),
+      ),
+    database
+      .select({
+        userId: userRoles.userId,
+        key: roles.key,
+        name: roles.name,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(
+        and(
+          inArray(userRoles.userId, userIds),
+          eq(roles.tenantId, tenantId),
+          isNull(userRoles.revokedAt),
+          or(isNull(userRoles.expiresAt), gt(userRoles.expiresAt, new Date())),
+        ),
+      ),
+  ]);
+  const roleNames = new Map<string, Map<string, string>>();
+  for (const role of [...applicationRoleRows, ...legacyRoleRows]) {
+    const userRoles = roleNames.get(role.userId) ?? new Map<string, string>();
+    userRoles.set(role.key, role.name);
+    roleNames.set(role.userId, userRoles);
+  }
+  return people.map((person) => ({
+    ...person,
+    roles: [...(roleNames.get(person.userId)?.values() ?? [])].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+  }));
 }
 
 async function listPerformanceEvents(
@@ -296,6 +371,47 @@ async function listPerformanceEvents(
 ): Promise<PerformanceEventRow[]> {
   const database = db();
   const events: PerformanceEventRow[] = [];
+
+  const auditRows = await database
+    .select({
+      actorId: auditEvents.actorId,
+      action: auditEvents.action,
+      targetTable: auditEvents.targetTable,
+      targetId: auditEvents.targetId,
+      metadata: auditEvents.metadata,
+      completedAt: auditEvents.createdAt,
+    })
+    .from(auditEvents)
+    .where(
+      and(
+        isNotNull(auditEvents.actorId),
+        sql`${auditEvents.metadata} ->> 'tenantId' = ${tenantId}`,
+        gte(auditEvents.createdAt, filters.startDate),
+        lte(auditEvents.createdAt, filters.endDate),
+      ),
+    );
+  const auditedReviewItemIds = new Set<string>();
+  for (const row of auditRows) {
+    const metadata = isRecord(row.metadata) ? row.metadata : {};
+    const taskType = auditTaskType(row.action, metadata);
+    if (!taskType || !filters.taskTypes.includes(taskType) || !row.actorId) {
+      continue;
+    }
+    if (
+      taskType === "review_workflow" &&
+      row.targetId &&
+      ["tickets", "service_applications"].includes(row.targetTable)
+    ) {
+      auditedReviewItemIds.add(row.targetId);
+    }
+    events.push({
+      userId: row.actorId,
+      tenantId,
+      taskType,
+      completedAt: row.completedAt,
+      targetId: row.targetId,
+    });
+  }
 
   if (filters.taskTypes.includes("submit_cms")) {
     const submitRows = await database
@@ -395,11 +511,11 @@ async function listPerformanceEvents(
     try {
       const ticketRows = await database
         .select({
+          id: tickets.id,
           assigneeId: tickets.assigneeId,
           tenantId: tickets.tenantId,
           category: tickets.category,
           status: tickets.status,
-          updatedAt: tickets.updatedAt,
           resolvedAt: tickets.resolvedAt,
           closedAt: tickets.closedAt,
         })
@@ -407,17 +523,18 @@ async function listPerformanceEvents(
         .where(
           and(
             eq(tickets.tenantId, tenantId),
+            inArray(tickets.status, ["resolved", "closed"]),
             sql`${tickets.assigneeId} is not null`,
           ),
         );
 
       for (const row of ticketRows) {
-        if (!row.assigneeId) continue;
+        if (!row.assigneeId || auditedReviewItemIds.has(row.id)) continue;
         const taskType =
           ticketCategoryMap[row.category.toLowerCase()] ?? "laporan_warga";
         if (!filters.taskTypes.includes(taskType)) continue;
 
-        const completedDate = row.resolvedAt ?? row.closedAt ?? row.updatedAt;
+        const completedDate = row.resolvedAt ?? row.closedAt;
         if (!completedDate) continue;
 
         const date = new Date(completedDate);
@@ -436,6 +553,39 @@ async function listPerformanceEvents(
   }
 
   return events;
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function auditTaskType(
+  action: string,
+  metadata: Readonly<Record<string, unknown>>,
+): AsnPerformanceTaskType | null {
+  if (metadata.result === "rejected" || metadata.result === "failure") {
+    return null;
+  }
+  switch (action) {
+    case "asn.dataset.submitted":
+      return "submit_cms";
+    case "asn.project_progress.saved":
+      return metadata.status === "submitted" ? "submit_cms" : null;
+    case "asn.statistics.saved":
+    case "asn.apbd.saved":
+      return metadata.status === "published" ? "submit_cms" : null;
+    case "review.assignment.updated":
+    case "review.note.saved":
+    case "review.status.updated":
+    case "asn.dataset.bps_published":
+      return "review_workflow";
+    case "asn.access.updated":
+      return "access_management";
+    case "decision_engine.run.create":
+      return "decision_engine";
+    default:
+      return null;
+  }
 }
 
 function summarizeByTaskType(items: readonly ParticipantMetrics[]) {
@@ -460,7 +610,7 @@ function summarizeTaskType(
   return {
     assignedTasks,
     completedTasks: assignedTasks,
-    completionRate: assignedTasks > 0 ? 1 : null,
+    completionRate: null,
   };
 }
 
@@ -476,16 +626,6 @@ function serializeRange(filters: AsnPerformanceFilters) {
   };
 }
 
-function ratio(completed: number, assigned: number): number {
-  return Number((completed / assigned).toFixed(4));
-}
-
-function completionLabel(rate: number | null): string {
-  if (rate === null) return "Tidak ada penugasan";
-  if (rate >= 0.9) return "Sangat baik";
-  if (rate >= 0.75) return "Perlu perhatian";
-  return "Butuh tindakan";
-}
 
 function bucketKey(date: Date, granularity: "day" | "week"): string {
   const value = new Date(date);

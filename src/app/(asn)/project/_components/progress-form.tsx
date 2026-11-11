@@ -109,7 +109,7 @@ export function ProgressForm({
 
   const defaultValues: ProgressFormValues = {
     periodeBulan: now.getMonth() + 1,
-    periodeTahun: now.getFullYear(),
+    periodeTahun: project.tahunAnggaran,
     progresFisik: lastPhysicalProgress ?? 0,
     progresKeuangan: lastKeuanganProgress ?? 0,
     catatan: "",
@@ -260,6 +260,7 @@ export function ProgressForm({
                 min="2020"
                 max="2100"
                 defaultValue={String(defaultValues.periodeTahun)}
+                readOnly
                 placeholder="2025"
               />
             </FormField>

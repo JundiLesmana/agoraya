@@ -21,6 +21,7 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
+import { tenantCloudinaryFolder } from "@/lib/cloudinary/folders";
 import { logger } from "@/lib/logger";
 
 describe("uploadToCloudinary", () => {
@@ -66,6 +67,44 @@ describe("uploadToCloudinary", () => {
         requestId: "request-123",
         cloudName: "test-cloud",
       },
+    );
+  });
+
+  it("places tenant assets under the Agoraya root and module folder", async () => {
+    cloudinaryMock.uploadStream.mockImplementation(
+      (options, callback: (error: unknown, result?: unknown) => void) => ({
+        end: vi.fn(() =>
+          callback(null, {
+            public_id: "agoraya/tenants/tenant-1/citizen/ktp",
+            secure_url: "https://res.cloudinary.com/test/image/upload/ktp",
+            resource_type: "image",
+            bytes: 5,
+          }),
+        ),
+      }),
+    );
+
+    await uploadToCloudinary({
+      buffer: Buffer.from("image"),
+      tenantId: "tenant-1",
+      fileName: "ktp.jpg",
+      mimeType: "image/jpeg",
+      category: "citizen",
+    });
+
+    expect(cloudinaryMock.uploadStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        folder: "agoraya/tenants/tenant-1/citizen",
+      }),
+      expect.any(Function),
+    );
+    expect(tenantCloudinaryFolder("tenant-1", "project-progress", "project-1"))
+      .toBe("agoraya/tenants/tenant-1/project-progress/project-1");
+  });
+
+  it("rejects folder segments containing path separators", () => {
+    expect(() => tenantCloudinaryFolder("tenant-1", "../outside")).toThrow(
+      "Segmen folder Cloudinary tidak valid.",
     );
   });
 });

@@ -13,8 +13,8 @@ import {
 } from "@/lib/public-data-format";
 
 export interface SummaryKpiData {
-  totalAnggaran: number;
-  realisasi: number;
+  totalAnggaran: number | null;
+  realisasi: number | null;
   proyekSelesai: number;
   totalProyek: number;
   cakupanWilayah: number;
@@ -91,7 +91,9 @@ export function SummaryKpiCards({
   }
 
   const realisasiPercentage =
-    data.totalAnggaran > 0
+    data.totalAnggaran !== null &&
+    data.totalAnggaran > 0 &&
+    data.realisasi !== null
       ? formatPersentase(data.realisasi / data.totalAnggaran)
       : "—";
   const projectPercentage =
@@ -102,20 +104,32 @@ export function SummaryKpiCards({
   const kpis = [
     {
       label: "Total anggaran",
-      value: formatRupiah(data.totalAnggaran),
-      description: "Pagu APBD sesuai filter aktif",
-      ariaLabel: `Total anggaran ${formatRupiahForScreenReader(data.totalAnggaran)}`,
+      value:
+        data.totalAnggaran === null ? "—" : formatRupiah(data.totalAnggaran),
+      description:
+        data.totalAnggaran === null
+          ? "Belum ada data APBD terpublikasi untuk filter aktif"
+          : "Pagu APBD sesuai filter aktif",
+      ariaLabel:
+        data.totalAnggaran === null
+          ? "Total anggaran belum tersedia"
+          : `Total anggaran ${formatRupiahForScreenReader(data.totalAnggaran)}`,
       Icon: Database,
       iconClass: "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300",
     },
     {
       label: "Realisasi anggaran",
-      value: formatRupiah(data.realisasi),
+      value: data.realisasi === null ? "—" : formatRupiah(data.realisasi),
       description:
-        realisasiPercentage === "—"
-          ? "Persentase dari total anggaran tidak tersedia"
-          : `${realisasiPercentage} dari total anggaran`,
-      ariaLabel: `Realisasi anggaran ${formatRupiahForScreenReader(data.realisasi)}, ${realisasiPercentage} dari total anggaran`,
+        data.realisasi === null
+          ? "Belum ada data realisasi terpublikasi"
+          : realisasiPercentage === "—"
+            ? "Persentase dari total anggaran tidak tersedia"
+            : `${realisasiPercentage} dari total anggaran`,
+      ariaLabel:
+        data.realisasi === null
+          ? "Realisasi anggaran belum tersedia"
+          : `Realisasi anggaran ${formatRupiahForScreenReader(data.realisasi)}, ${realisasiPercentage} dari total anggaran`,
       Icon: BarChart3,
       iconClass:
         "bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300",

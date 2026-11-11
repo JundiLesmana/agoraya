@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,14 @@ export async function GET(): Promise<Response> {
   }
 
   try {
+    const reportingTenantId = await resolveReportingTenantId();
+    const tenantIds = [
+      ...new Set(
+        [session.tenantId, reportingTenantId].filter(
+          (tenantId): tenantId is string => tenantId !== null,
+        ),
+      ),
+    ];
     const applications = await db()
       .select({
         id: serviceApplications.id,
@@ -37,7 +46,7 @@ export async function GET(): Promise<Response> {
       .from(serviceApplications)
       .where(
         and(
-          eq(serviceApplications.tenantId, session.tenantId),
+          inArray(serviceApplications.tenantId, tenantIds),
           eq(serviceApplications.applicantUserId, session.userId),
         ),
       )
