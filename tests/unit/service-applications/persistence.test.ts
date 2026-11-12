@@ -4,6 +4,7 @@ const testState = vi.hoisted(() => ({
   getCurrentSession: vi.fn(),
   resolveReportingTenantId: vi.fn(),
   insertValues: vi.fn(),
+  appendAuditEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -14,10 +15,20 @@ vi.mock("@/lib/tenancy/reporting", () => ({
   resolveReportingTenantId: testState.resolveReportingTenantId,
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: () => ({
+vi.mock("@/lib/db", () => {
+  const transaction = {
     insert: () => ({ values: testState.insertValues }),
-  }),
+  };
+  return {
+    db: () => ({
+      transaction: (callback: (tx: typeof transaction) => Promise<void>) =>
+        callback(transaction),
+    }),
+  };
+});
+
+vi.mock("@/modules/audit", () => ({
+  appendAuditEvent: testState.appendAuditEvent,
 }));
 
 vi.mock("@/lib/db/schema", () => ({
@@ -53,6 +64,17 @@ describe("persistServiceApplication", () => {
       expect.objectContaining({
         tenantId: "asn-tenant",
         applicantUserId: "citizen-1",
+      }),
+    );
+    expect(testState.appendAuditEvent).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        action: "service_application.submitted",
+        metadata: expect.objectContaining({
+          tenantId: "asn-tenant",
+          category: "education",
+          serviceId: "bantuan-biaya",
+        }),
       }),
     );
   });

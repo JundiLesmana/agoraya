@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { categorizeBpsIndicator } from "@/modules/integrations/bps/category";
 import { selectPublicBpsStatistics } from "@/modules/integrations/bps/repository";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,8 @@ export type StatisticsResponse = {
     readonly unit: string;
     readonly regionCode: string;
     readonly indicatorCode: string;
+    readonly indicatorName: string;
+    readonly category: string;
   }[];
 };
 
@@ -61,7 +64,7 @@ export type StatisticsResponse = {
  * - `latest=true`: hanya baris tahun terbaru untuk setiap wilayah
  *
  * Respons berisi `data` dalam bentuk `[{ year, value }]` siap dipakai Recharts,
- * serta `source` untuk men label provenance data di sisi klien.
+ * dilengkapi nama dan kategori indikator serta `source` untuk provenance.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
@@ -131,6 +134,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       unit: row.unit,
       regionCode: row.regionCode,
       indicatorCode: row.indicatorCode,
+      indicatorName: row.indicatorName || row.indicatorCode,
+      category: categorizeBpsIndicator(row.indicatorName || row.indicatorCode),
     })),
   };
 

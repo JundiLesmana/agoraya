@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
-import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ticketSubmissionDetails, tickets, tenants } from "@/lib/db/schema";
@@ -11,12 +22,18 @@ export const dynamic = "force-dynamic";
 const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(100),
   offset: z.coerce.number().int().min(0).max(100_000).default(0),
-  category: z.enum(["Infrastruktur", "Dugaan korupsi", "Lingkungan"]).optional(),
+  category: z
+    .enum(["Infrastruktur", "Dugaan korupsi", "Lingkungan"])
+    .optional(),
   status: z.enum(reportStatuses).optional(),
+  followUp: z.enum(["unhandled", "all"]).default("unhandled"),
   search: z.string().trim().max(100).optional(),
 });
 
-const publicFilters = [eq(ticketSubmissionDetails.isPublic, true), eq(tenants.status, "active")];
+const publicFilters = [
+  eq(ticketSubmissionDetails.isPublic, true),
+  eq(tenants.status, "active"),
+];
 const categoryValues: Record<string, readonly string[]> = {
   Infrastruktur: ["Infrastruktur", "infrastruktur", "ilumniasi"],
   "Dugaan korupsi": ["Dugaan korupsi", "dugaan korupsi"],
@@ -42,10 +59,14 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 
-  const { limit, offset, category, status, search } = parsed.data;
+  const { limit, offset, category, status, followUp, search } = parsed.data;
   const filters = [...publicFilters];
-  if (category) filters.push(inArray(tickets.category, categoryValues[category]));
+  if (category)
+    filters.push(inArray(tickets.category, categoryValues[category]));
   if (status) filters.push(eq(tickets.status, status));
+  if (followUp === "unhandled") {
+    filters.push(isNull(tickets.firstRespondedAt));
+  }
   if (search) {
     const pattern = `%${search}%`;
     const searchFilter = or(
@@ -82,15 +103,34 @@ export async function GET(request: Request): Promise<Response> {
       .innerJoin(tickets, eq(ticketSubmissionDetails.ticketId, tickets.id))
       .innerJoin(tenants, eq(tickets.tenantId, tenants.id))
       .where(and(...filters))
-      .orderBy(desc(tickets.submittedAt), desc(tickets.createdAt))
+      .orderBy(
+        ...(followUp === "unhandled"
+          ? [
+              sql`${tickets.responseDueAt} ASC NULLS LAST`,
+              asc(tickets.submittedAt),
+              asc(tickets.createdAt),
+            ]
+          : [desc(tickets.submittedAt), desc(tickets.createdAt)]),
+      )
       .limit(limit + 1)
       .offset(offset);
     const hasMore = rows.length > limit;
     return NextResponse.json(
       {
         reports: rows.slice(0, limit).map((report) => {
-          const latitude = report.latitude != null ? Number(report.latitude) : null;
-          const longitude = report.longitude != null ? Number(report.longitude) : null;
+          const latitude =
+            report.latitude != null ? Number(report.latitude) : null;
+          const longitude =
+            report.longitude != null ? Number(report.longitude) : null;
+          const hasValidCoordinates =
+            latitude != null &&
+            Number.isFinite(latitude) &&
+            latitude >= -90 &&
+            latitude <= 90 &&
+            longitude != null &&
+            Number.isFinite(longitude) &&
+            longitude >= -180 &&
+            longitude <= 180;
           return {
             reportNumber: report.reportNumber,
             title: report.title,
@@ -100,10 +140,8 @@ export async function GET(request: Request): Promise<Response> {
             city: report.city,
             province: report.province,
             source: report.source,
-            latitude:
-              latitude != null && Number.isFinite(latitude) ? latitude : undefined,
-            longitude:
-              longitude != null && Number.isFinite(longitude) ? longitude : undefined,
+            latitude: hasValidCoordinates ? latitude : undefined,
+            longitude: hasValidCoordinates ? longitude : undefined,
           };
         }),
         total: totalResult?.total ?? 0,

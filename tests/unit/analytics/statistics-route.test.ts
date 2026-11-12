@@ -86,6 +86,7 @@ describe("public statistics analytics route", () => {
           year: 2026,
           value: 8.11,
           unit: "Persen",
+          indicatorName: "Persentase penduduk miskin",
           sourceLabel: "BPS_API",
           lastSyncedAt: new Date("2026-11-06T00:00:00.000Z"),
         },
@@ -115,6 +116,8 @@ describe("public statistics analytics route", () => {
         {
           regionCode: "31",
           indicatorCode: "bps:0000:192:434:61",
+          indicatorName: "Persentase penduduk miskin",
+          category: "Kesejahteraan",
           year: 2026,
           value: 8.11,
           unit: "Persen",

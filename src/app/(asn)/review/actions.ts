@@ -7,15 +7,20 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { appendAuditEvent } from "@/modules/audit";
+import { listAssignableReviewStaff } from "@/modules/asn/assignable-review-staff";
 import { uuidOrNull } from "@/modules/rbac/audit";
 import {
-  asnProfiles,
+  canManageServiceApplication,
+  hasServiceApplicationCategoryAccess,
+  isServiceApplicationCategory,
+} from "@/modules/service-applications/access";
+import type { ServiceApplicationCategory } from "@/modules/service-applications/catalog";
+import {
   reviewActivities,
   serviceApplications,
   ticketEvidence,
   ticketSubmissionDetails,
   tickets,
-  users,
 } from "@/lib/db/schema";
 import {
   canChangeReviewStatus,
@@ -95,27 +100,57 @@ export async function saveReviewAssignment(
   const { itemType, itemId } = parsed.data;
   const database = db();
   const requestedAssigneeId = parsed.data.assigneeId;
-  const assigneeId = requestedAssigneeId === "self" ? session.userId : requestedAssigneeId;
+  const assigneeId =
+    requestedAssigneeId === "self" ? session.userId : requestedAssigneeId;
+  let serviceCategory: ServiceApplicationCategory | null = null;
   let assignedName: string | null = null;
   let assignmentChanged = false;
 
-  if (assigneeId) {
-    const [staff] = await database
-      .select({ id: users.id, name: users.name })
-      .from(users)
-      .innerJoin(asnProfiles, eq(asnProfiles.userId, users.id))
+  if (itemType === "service_application") {
+    const [application] = await database
+      .select({ category: serviceApplications.category })
+      .from(serviceApplications)
       .where(
         and(
-          eq(users.id, assigneeId),
-          eq(users.tenantId, session.tenantId),
-          eq(users.status, "active"),
-          eq(asnProfiles.tenantId, session.tenantId),
+          eq(serviceApplications.id, itemId),
+          eq(serviceApplications.tenantId, session.tenantId),
         ),
       )
       .limit(1);
+    if (!application) {
+      return { error: "Pengajuan layanan tidak ditemukan.", success: null };
+    }
+    if (
+      !isServiceApplicationCategory(application.category) ||
+      !(await hasServiceApplicationCategoryAccess(
+        session,
+        application.category,
+      ))
+    ) {
+      return {
+        error: "Anda tidak memiliki role untuk mengelola kategori layanan ini.",
+        success: null,
+      };
+    }
+    serviceCategory = application.category;
+  }
+
+  if (assigneeId) {
+    const categoryForStaff =
+      itemType === "service_application"
+        ? (serviceCategory ?? undefined)
+        : undefined;
+    const assignableStaff = await listAssignableReviewStaff(
+      session.tenantId,
+      categoryForStaff,
+    );
+    const staff = assignableStaff.find((member) => member.id === assigneeId);
     if (!staff) {
       return {
-        error: "Petugas harus merupakan ASN aktif pada instansi ini.",
+        error:
+          itemType === "service_application"
+            ? "Petugas harus ASN aktif dengan role layanan kategori yang sama."
+            : "Petugas harus merupakan ASN aktif pada instansi ini.",
         success: null,
       };
     }
@@ -266,27 +301,46 @@ export async function saveInternalReviewNote(
 
   const { itemType, itemId, message } = parsed.data;
   const database = db();
-  const [item] =
-    itemType === "report"
-      ? await database
-          .select({ id: tickets.id })
-          .from(tickets)
-          .where(
-            and(eq(tickets.id, itemId), eq(tickets.tenantId, session.tenantId)),
-          )
-          .limit(1)
-      : await database
-          .select({ id: serviceApplications.id })
-          .from(serviceApplications)
-          .where(
-            and(
-              eq(serviceApplications.id, itemId),
-              eq(serviceApplications.tenantId, session.tenantId),
-            ),
-          )
-          .limit(1);
+  let itemExists: boolean;
+  if (itemType === "report") {
+    const [item] = await database
+      .select({ id: tickets.id })
+      .from(tickets)
+      .where(
+        and(eq(tickets.id, itemId), eq(tickets.tenantId, session.tenantId)),
+      )
+      .limit(1);
+    itemExists = Boolean(item);
+  } else {
+    const [item] = await database
+      .select({
+        id: serviceApplications.id,
+        tenantId: serviceApplications.tenantId,
+        category: serviceApplications.category,
+        assigneeId: serviceApplications.assigneeId,
+      })
+      .from(serviceApplications)
+      .where(
+        and(
+          eq(serviceApplications.id, itemId),
+          eq(serviceApplications.tenantId, session.tenantId),
+        ),
+      )
+      .limit(1);
+    itemExists = Boolean(item);
+    if (
+      item &&
+      (!isServiceApplicationCategory(item.category) ||
+        !(await canManageServiceApplication(session, item)))
+    ) {
+      return {
+        error: "Anda tidak memiliki role untuk mengelola kategori layanan ini.",
+        success: null,
+      };
+    }
+  }
 
-  if (!item) {
+  if (!itemExists) {
     return { error: "Item review tidak ditemukan.", success: null };
   }
 
@@ -346,9 +400,15 @@ export async function publishReviewUpdate(
   const targetStatus: ReviewStatus = parsed.data.status;
   const database = db();
   const now = new Date();
+  let serviceCategory: string | null = null;
+  let serviceAssigneeId: string | null = null;
+  let serviceStatusChanged = false;
 
   const saved = await database.transaction(async (transaction) => {
     if (itemType === "report") {
+      if (targetStatus === "waiting_for_citizen") {
+        return "invalid_transition" as const;
+      }
       const [report] = await transaction
         .select({
           status: tickets.status,
@@ -420,6 +480,7 @@ export async function publishReviewUpdate(
         .select({
           status: serviceApplications.status,
           assigneeId: serviceApplications.assigneeId,
+          category: serviceApplications.category,
         })
         .from(serviceApplications)
         .where(
@@ -430,6 +491,18 @@ export async function publishReviewUpdate(
         )
         .limit(1);
       if (!application) return "not_found" as const;
+      if (
+        !isServiceApplicationCategory(application.category) ||
+        !(await canManageServiceApplication(session, {
+          tenantId: session.tenantId,
+          category: application.category,
+          assigneeId: application.assigneeId,
+        }))
+      ) {
+        return "forbidden" as const;
+      }
+      serviceCategory = application.category;
+      serviceAssigneeId = application.assigneeId;
       if (!canChangeReviewStatus(itemType, application.status, targetStatus)) {
         return "invalid_transition" as const;
       }
@@ -453,6 +526,7 @@ export async function publishReviewUpdate(
           )
           .returning({ id: serviceApplications.id });
         if (!updated) return "conflict" as const;
+        serviceStatusChanged = true;
       }
     }
 
@@ -484,6 +558,10 @@ export async function publishReviewUpdate(
       case "not_found":
         error = "Item review tidak ditemukan.";
         break;
+      case "forbidden":
+        error =
+          "Anda tidak memiliki role untuk mengelola kategori layanan ini.";
+        break;
       case "private_report":
         error =
           "Laporan privat tidak dapat dipublikasikan melalui pelacakan umum.";
@@ -507,10 +585,23 @@ export async function publishReviewUpdate(
 
   await recordReviewAudit(
     session,
-    "review.status.updated",
+    itemType === "service_application" &&
+      targetStatus === "resolved" &&
+      serviceStatusChanged
+      ? "service_application.completed"
+      : "review.status.updated",
     itemType === "report" ? "tickets" : "service_applications",
     itemId,
-    { itemType, status: targetStatus },
+    {
+      itemType,
+      status: targetStatus,
+      ...(itemType === "service_application"
+        ? {
+            category: serviceCategory,
+            operatorId: serviceAssigneeId ?? session.userId,
+          }
+        : {}),
+    },
   );
 
   revalidatePath("/review");

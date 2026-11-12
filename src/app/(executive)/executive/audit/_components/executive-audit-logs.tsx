@@ -186,9 +186,11 @@ function mapApiItem(item: ApiAuditItem, index: number): AuditItem {
     actorName,
     actorRole,
     actorId: item.actorId,
-    moduleKey: item.module,
+    moduleKey: item.action.startsWith("asn.apbd.") ? "asn.apbd" : item.module,
     moduleName: item.module.includes("executive")
       ? "Executive - hak akses"
+      : item.action.startsWith("asn.apbd.")
+        ? "Anggaran APBD"
       : item.action.startsWith("asn.access.")
         ? "Kontrol akses ASN"
       : item.module.includes("kyc")
@@ -198,6 +200,8 @@ function mapApiItem(item: ApiAuditItem, index: number): AuditItem {
         : `CMS - ${item.module}`,
     moduleCategory: item.module.includes("executive")
       ? "Executive"
+      : item.action.startsWith("asn.apbd.")
+        ? "Anggaran"
       : item.action.startsWith("asn.access.")
         ? "Kontrol akses"
       : item.module.includes("kyc")
@@ -797,7 +801,7 @@ useEffect(() => {
                     <option value="cms">CMS (Seluruh ruang)</option>
                     <option value="cms.insight">Editor & publikasi Insight</option>
                     <option value="cms.dataset">Katalog dataset & metadata</option>
-                    <option value="cms.apbd">Anggaran APBD</option>
+                    <option value="asn.apbd">Anggaran APBD</option>
                     <option value="cms.civic">Verifikasi & moderasi</option>
                     <option value="cms.services">Standar & formulir layanan</option>
                   </select>

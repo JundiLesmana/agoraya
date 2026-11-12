@@ -688,8 +688,8 @@ export function DatasetCatalog({
                 </Button>
               </div>
               <p className="text-muted-foreground text-right text-xs">
-                Impor BPS menunggu tinjauan sebelum metadata tampil di halaman
-                publik Statistik.
+                Impor BPS memperbarui CSV terolah dan grafik Statistik publik.
+                Snapshot penugasan ASN tetap melalui proses tinjauan.
               </p>
             </>
           ) : null}

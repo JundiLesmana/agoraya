@@ -71,6 +71,10 @@ const APPLICATION_ROLE_DEFINITIONS = [
   { key: "verifikator", name: "Verifikator" },
   { key: "kyc_verifikator", name: "Verifikator KYC" },
   { key: "cms_operator", name: "Operator CMS" },
+  { key: "service_permit", name: "Petugas Layanan Perizinan" },
+  { key: "service_education", name: "Petugas Layanan Pendidikan" },
+  { key: "service_social", name: "Petugas Layanan Sosial" },
+  { key: "service_health", name: "Petugas Layanan Kesehatan" },
 ] as const;
 
 const MODULE_ACCESS_DEFINITIONS = [
@@ -512,4 +516,3 @@ main().catch((error: unknown) => {
   console.error("Bootstrap production gagal:", describeError(error));
   process.exitCode = 1;
 });
-

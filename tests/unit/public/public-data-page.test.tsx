@@ -171,6 +171,25 @@ describe("PublicDataPage", () => {
       if (url === "/api/v1/projects/published") {
         return Response.json(publishedProjects);
       }
+      if (url === "/api/analytics/statistics") {
+        return Response.json({
+          source: "BPS_API",
+          indicator: undefined,
+          region: undefined,
+          count: 1,
+          data: [
+            {
+              year: 2024,
+              value: 74.03,
+              unit: "Indeks",
+              regionCode: "31",
+              indicatorCode: "bps:0000:413:0:0",
+              indicatorName: "Indeks Pembangunan Manusia",
+              category: "Kesejahteraan",
+            },
+          ],
+        });
+      }
       return Response.json(emptyDatasetResponse);
     });
   });
@@ -182,6 +201,10 @@ describe("PublicDataPage", () => {
   it("renders the public dashboard, charts, catalog, and disclaimer", async () => {
     render(<PublicDataPage />);
     expect(await screen.findByText("Rp80T")).toBeTruthy();
+    expect(await screen.findByText("Analitik statistik BPS")).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Kategori data" }),
+    ).toBeTruthy();
 
     const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(

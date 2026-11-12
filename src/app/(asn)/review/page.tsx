@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   ArrowLeft,
   Check,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/guards";
+import type { Session } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
   serviceApplications,
@@ -23,7 +24,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { asnProfiles } from "@/modules/identity/db";
+import { listAssignableReviewStaff } from "@/modules/asn/assignable-review-staff";
 import {
   maskApplicantName,
   maskEmail,
@@ -46,6 +47,10 @@ import {
   getNextReviewStatuses,
   getReviewStatusLabel,
 } from "@/modules/review-workflow/status";
+import {
+  canManageServiceApplication,
+  isServiceApplicationCategory,
+} from "@/modules/service-applications/access";
 import { ReviewWorkflowForms } from "./review-workflow-forms";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +89,7 @@ type ReviewDetail = {
   address: string;
   agency: string | null;
   routeKey: string | null;
+  serviceCategory?: string;
   isPublic: boolean;
   showIdentity: boolean;
   documents: { name: string; uploadedAt: string | null }[];
@@ -265,11 +271,12 @@ async function getReportDetail(
 
 async function getServiceApplicationDetail(
   id: string,
-  tenantId: string,
+  session: Session,
 ): Promise<ReviewDetail | null> {
   const [row] = await db()
     .select({
       id: serviceApplications.id,
+      tenantId: serviceApplications.tenantId,
       trackingNumber: serviceApplications.trackingNumber,
       serviceName: serviceApplications.serviceName,
       category: serviceApplications.category,
@@ -289,12 +296,18 @@ async function getServiceApplicationDetail(
     .where(
       and(
         eq(serviceApplications.id, id),
-        eq(serviceApplications.tenantId, tenantId),
+        eq(serviceApplications.tenantId, session.tenantId),
       ),
     )
     .limit(1);
 
   if (!row) return null;
+  if (
+    !isServiceApplicationCategory(row.category) ||
+    !(await canManageServiceApplication(session, row))
+  ) {
+    return null;
+  }
 
   const payload = row.payload as Record<string, unknown>;
   const statusInfo = getReviewStatus(row.status);
@@ -320,6 +333,7 @@ async function getServiceApplicationDetail(
     address: extractServiceAddress(payload),
     agency: row.agency,
     routeKey: row.routeKey,
+    serviceCategory: row.category,
     isPublic: false,
     showIdentity: true,
     documents: [],
@@ -330,12 +344,12 @@ async function getServiceApplicationDetail(
 async function getReviewDetail(
   kind: ReviewKind,
   id: string,
-  tenantId: string,
+  session: Session,
 ): Promise<ReviewDetail | null> {
   if (kind === "report") {
-    return getReportDetail(id, tenantId);
+    return getReportDetail(id, session.tenantId);
   }
-  return getServiceApplicationDetail(id, tenantId);
+  return getServiceApplicationDetail(id, session);
 }
 
 async function recordReviewOpen(
@@ -428,7 +442,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
     notFound();
   }
 
-  const detail = await getReviewDetail(kind, id, session.tenantId);
+  const detail = await getReviewDetail(kind, id, session);
   if (!detail) {
     notFound();
   }
@@ -442,17 +456,13 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   const maskedEmailAddress = maskEmail(detail.email);
   const [activities, staff] = await Promise.all([
     getReviewActivities(detail.kind, detail.id, session.tenantId),
-    db()
-      .select({ id: users.id, name: users.name })
-      .from(asnProfiles)
-      .innerJoin(users, eq(asnProfiles.userId, users.id))
-      .where(
-        and(
-          eq(asnProfiles.tenantId, session.tenantId),
-          eq(users.status, "active"),
-        ),
-      )
-      .orderBy(asc(users.name)),
+    listAssignableReviewStaff(
+      session.tenantId,
+      detail.serviceCategory &&
+        isServiceApplicationCategory(detail.serviceCategory)
+        ? detail.serviceCategory
+        : undefined,
+    ),
   ]);
   const publicUpdates = activities
     .filter((activity) => activity.activityType === "public_update")
@@ -682,18 +692,18 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
             </Card>
           </div>
 
-        
           <aside className="space-y-4">
-                  <div className="flex justify-start">
-          <Button
-            asChild
-            variant="outline"
-            className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
-            
-          >
-            <Link href="/asn/dashboard"><h2 className="text-xl font-semibold">Kembali</h2></Link>
-          </Button>
-        </div>
+            <div className="flex justify-start">
+              <Button
+                asChild
+                variant="outline"
+                className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
+              >
+                <Link href="/asn/dashboard">
+                  <h2 className="text-xl font-semibold">Kembali</h2>
+                </Link>
+              </Button>
+            </div>
 
             <div>
               <h2 className="text-base font-semibold">Tindak lanjut petugas</h2>
@@ -806,8 +816,6 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
             </div>
           </aside>
         </section>
-
-        
       </div>
     </main>
   );

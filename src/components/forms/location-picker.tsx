@@ -1,13 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Map as MapLibreMap, Marker as MapLibreMarker, Popup as MapLibrePopup } from "maplibre-gl";
+import type {
+  Map as MapLibreMap,
+  Marker as MapLibreMarker,
+  Popup as MapLibrePopup,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapPin, Search, X, RefreshCw, Target, CheckCircle2, MapPin as MapPinIcon } from "lucide-react";
+import {
+  MapPin,
+  Search,
+  X,
+  RefreshCw,
+  Target,
+  CheckCircle2,
+  MapPin as MapPinIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { configureMapLibreWorker } from "@/lib/maplibre-worker";
 
 export interface LocationData {
   province: string;
@@ -67,16 +80,25 @@ function escapeHtml(value: string): string {
 function extractLocationData(data: NominatimResponse): LocationData {
   const address = data.address ?? {};
   const province = address.province ?? address.state ?? "";
-  const city = address.city ?? address.town ?? address.village ?? address.district ?? address.county ?? "";
+  const city =
+    address.city ??
+    address.town ??
+    address.village ??
+    address.district ??
+    address.county ??
+    "";
   const kecamatan = address.district ?? address.suburb ?? address.county ?? "";
-  const kelurahan = address.village ?? address.hamlet ?? address.neighbourhood ?? "";
+  const kelurahan =
+    address.village ?? address.hamlet ?? address.neighbourhood ?? "";
   const road = address.road ?? "";
   const neighbourhood = address.neighbourhood ?? "";
   const suburb = address.suburb ?? "";
   const village = address.village ?? "";
   const hamlet = address.hamlet ?? "";
 
-  const addressParts = [road, neighbourhood, suburb, village, hamlet].filter(Boolean);
+  const addressParts = [road, neighbourhood, suburb, village, hamlet].filter(
+    Boolean,
+  );
   const formattedAddress = addressParts.join(", ") || data.display_name;
 
   return {
@@ -90,7 +112,10 @@ function extractLocationData(data: NominatimResponse): LocationData {
   };
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<LocationData | null> {
+async function reverseGeocode(
+  lat: number,
+  lon: number,
+): Promise<LocationData | null> {
   try {
     const response = await fetch(
       `${NOMINATIM_URL}/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=id`,
@@ -98,7 +123,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<LocationData | 
         headers: {
           "User-Agent": "Agoraya/1.0 (https://agoraya.id)",
         },
-      }
+      },
     );
     if (!response.ok) return null;
     const data = (await response.json()) as NominatimResponse;
@@ -116,7 +141,7 @@ async function searchLocation(query: string): Promise<LocationData | null> {
         headers: {
           "User-Agent": "Agoraya/1.0 (https://agoraya.id)",
         },
-      }
+      },
     );
     if (!response.ok) return null;
     const data = (await response.json()) as NominatimResponse[];
@@ -142,7 +167,10 @@ export function LocationPicker({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const maplibreRef = useRef<{ Marker: typeof MapLibreMarker; Popup: typeof MapLibrePopup } | null>(null);
+  const maplibreRef = useRef<{
+    Marker: typeof MapLibreMarker;
+    Popup: typeof MapLibrePopup;
+  } | null>(null);
   const markerRef = useRef<MapLibreMarker | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -158,6 +186,7 @@ export function LocationPicker({
     void (async () => {
       const maplibregl = await import("maplibre-gl");
       if (disposed || !containerRef.current) return;
+      configureMapLibreWorker(maplibregl);
       maplibreRef.current = maplibregl;
 
       map = new maplibregl.Map({
@@ -165,7 +194,7 @@ export function LocationPicker({
         style: {
           version: 8,
           sources: {
-            "openstreetmap": {
+            openstreetmap: {
               type: "raster",
               tiles: [
                 "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -223,31 +252,48 @@ export function LocationPicker({
     };
   }, [disabled, onChange, value]);
 
-  const updateMarker = useCallback(
-    (location: LocationData) => {
-      const map = mapRef.current;
-      const maplibregl = maplibreRef.current;
-      if (!map || !maplibregl) return;
+  const updateMarker = useCallback((location: LocationData) => {
+    const map = mapRef.current;
+    const maplibregl = maplibreRef.current;
+    if (!map || !maplibregl) return;
 
-      if (markerRef.current) {
-        markerRef.current.remove();
-      }
+    if (markerRef.current) {
+      markerRef.current.remove();
+    }
 
-      const marker = new maplibregl.Marker({ color: "#2563eb" }).setLngLat([location.longitude, location.latitude]);
-      const title = location.province || location.city ? `<strong>${escapeHtml(location.province || location.city)}</strong>` : "";
-      const kecamatanHtml = location.kecamatan ? `<p>Kecamatan: ${escapeHtml(location.kecamatan)}</p>` : "";
-      const kelurahanHtml = location.kelurahan ? `<p>Kelurahan/Desa: ${escapeHtml(location.kelurahan)}</p>` : "";
-      const description = location.address ? `<p>${escapeHtml(location.address)}</p>` : "";
-      if (title || kecamatanHtml || kelurahanHtml || description) {
-        marker.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`${title}${kecamatanHtml}${kelurahanHtml}${description}`));
-      }
-      marker.addTo(map);
-      markerRef.current = marker;
+    const marker = new maplibregl.Marker({ color: "#2563eb" }).setLngLat([
+      location.longitude,
+      location.latitude,
+    ]);
+    const title =
+      location.province || location.city
+        ? `<strong>${escapeHtml(location.province || location.city)}</strong>`
+        : "";
+    const kecamatanHtml = location.kecamatan
+      ? `<p>Kecamatan: ${escapeHtml(location.kecamatan)}</p>`
+      : "";
+    const kelurahanHtml = location.kelurahan
+      ? `<p>Kelurahan/Desa: ${escapeHtml(location.kelurahan)}</p>`
+      : "";
+    const description = location.address
+      ? `<p>${escapeHtml(location.address)}</p>`
+      : "";
+    if (title || kecamatanHtml || kelurahanHtml || description) {
+      marker.setPopup(
+        new maplibregl.Popup({ offset: 25 }).setHTML(
+          `${title}${kecamatanHtml}${kelurahanHtml}${description}`,
+        ),
+      );
+    }
+    marker.addTo(map);
+    markerRef.current = marker;
 
-      map.flyTo({ center: [location.longitude, location.latitude], zoom: 15, essential: true });
-    },
-    []
-  );
+    map.flyTo({
+      center: [location.longitude, location.latitude],
+      zoom: 15,
+      essential: true,
+    });
+  }, []);
 
   useEffect(() => {
     if (loaded && value) {
@@ -279,7 +325,7 @@ export function LocationPicker({
       setShowSearchResults(false);
       setSearchResults([]);
     },
-    [onChange, updateMarker]
+    [onChange, updateMarker],
   );
 
   const handleCurrentLocation = useCallback(async () => {
@@ -302,7 +348,7 @@ export function LocationPicker({
       (error) => {
         alert("Gagal mendapatkan lokasi saat ini: " + error.message);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   }, [onChange, updateMarker]);
 
@@ -325,7 +371,10 @@ export function LocationPicker({
           Cari lokasi
         </Label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" aria-hidden="true" />
+          <Search
+            className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2"
+            aria-hidden="true"
+          />
           <Input
             id="location-search"
             type="text"
@@ -341,12 +390,17 @@ export function LocationPicker({
             onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
             placeholder="Cari alamat, kelurahan, atau patokan..."
             disabled={disabled}
-            className="pl-10 pr-10"
+            className="pr-10 pl-10"
             aria-autocomplete="list"
             aria-controls="location-search-results"
             aria-expanded={showSearchResults && searchResults.length > 0}
           />
-          {searching && <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4 animate-spin" aria-hidden="true" />}
+          {searching && (
+            <RefreshCw
+              className="text-muted-foreground absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin"
+              aria-hidden="true"
+            />
+          )}
         </div>
 
         {showSearchResults && searchResults.length > 0 && (
@@ -354,7 +408,7 @@ export function LocationPicker({
             ref={searchResultsRef}
             id="location-search-results"
             role="listbox"
-            className="absolute z-50 w-full mt-1 rounded-md border bg-popover p-1 shadow-lg max-h-60 overflow-auto"
+            className="bg-popover absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border p-1 shadow-lg"
           >
             {searchResults.map((result, index) => (
               <button
@@ -362,12 +416,24 @@ export function LocationPicker({
                 role="option"
                 type="button"
                 onClick={() => handleSearchSelect(result)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded"
+                className="hover:bg-accent w-full rounded px-3 py-2 text-left text-sm"
               >
-                <div className="font-medium">{result.province || result.city || "Lokasi"}</div>
-                {result.kecamatan && <div className="text-muted-foreground text-xs">Kec: {result.kecamatan}</div>}
-                {result.kelurahan && <div className="text-muted-foreground text-xs">Kel/Desa: {result.kelurahan}</div>}
-                <div className="text-muted-foreground truncate">{result.address}</div>
+                <div className="font-medium">
+                  {result.province || result.city || "Lokasi"}
+                </div>
+                {result.kecamatan && (
+                  <div className="text-muted-foreground text-xs">
+                    Kec: {result.kecamatan}
+                  </div>
+                )}
+                {result.kelurahan && (
+                  <div className="text-muted-foreground text-xs">
+                    Kel/Desa: {result.kelurahan}
+                  </div>
+                )}
+                <div className="text-muted-foreground truncate">
+                  {result.address}
+                </div>
               </button>
             ))}
           </div>
@@ -376,16 +442,19 @@ export function LocationPicker({
 
       <div
         ref={containerRef}
-        className={cn("relative w-full rounded-lg border overflow-hidden", !loaded && "bg-muted")}
+        className={cn(
+          "relative w-full overflow-hidden rounded-lg border",
+          !loaded && "bg-muted",
+        )}
         style={{ height: 300 }}
         role="region"
         aria-label={ariaLabel}
       >
         <div data-testid="map-container" className="absolute inset-0" />
         {!loaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-            <div className="text-center text-muted-foreground">
-              <div className="animate-pulse mb-2">Memuat peta...</div>
+          <div className="bg-muted/50 absolute inset-0 flex items-center justify-center">
+            <div className="text-muted-foreground text-center">
+              <div className="mb-2 animate-pulse">Memuat peta...</div>
             </div>
           </div>
         )}
@@ -418,12 +487,17 @@ export function LocationPicker({
         )}
       </div>
 
-      <div className="space-y-2 text-sm text-muted-foreground">
-        <p>Klik pada peta untuk memilih lokasi, atau gunakan pencarian di atas.</p>
+      <div className="text-muted-foreground space-y-2 text-sm">
+        <p>
+          Klik pada peta untuk memilih lokasi, atau gunakan pencarian di atas.
+        </p>
         {value && (
           <div className="bg-muted/50 rounded p-3 text-xs">
-            <p className="font-medium text-foreground flex items-center gap-1">
-              <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />
+            <p className="text-foreground flex items-center gap-1 font-medium">
+              <CheckCircle2
+                className="size-4 text-emerald-600"
+                aria-hidden="true"
+              />
               Lokasi terpilih:
             </p>
             <p>
@@ -442,13 +516,18 @@ export function LocationPicker({
               <strong>Alamat/Patokan:</strong> {value.address}
             </p>
             <p>
-              <strong>Koordinat:</strong> {value.latitude.toFixed(6)}, {value.longitude.toFixed(6)}
+              <strong>Koordinat:</strong> {value.latitude.toFixed(6)},{" "}
+              {value.longitude.toFixed(6)}
             </p>
-            <p className="text-emerald-600 mt-1">Lokasi valid - Anda bisa melanjutkan pengisian form</p>
+            <p className="mt-1 text-emerald-600">
+              Lokasi valid - Anda bisa melanjutkan pengisian form
+            </p>
           </div>
         )}
         {searchQuery.trim() && !value && (
-          <p className="text-amber-600">Tekan Enter atau pilih hasil pencarian untuk menetapkan lokasi</p>
+          <p className="text-amber-600">
+            Tekan Enter atau pilih hasil pencarian untuk menetapkan lokasi
+          </p>
         )}
       </div>
     </div>

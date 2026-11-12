@@ -12,6 +12,7 @@ const REVIEW_PAGES = [
 ] as const;
 
 const ADMIN_PAGES = [
+  { href: "/admin/apbd/review", label: "Tinjauan APBD" },
   { href: "/admin/kyc/citizen", label: "Verifikasi Warga" },
   { href: "/admin/users", label: "Pengguna" },
   { href: "/admin/system", label: "Sistem" },

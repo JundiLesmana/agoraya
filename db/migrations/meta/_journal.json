@@ -190,6 +190,27 @@
       "when": 1794333420000,
       "tag": "0027_optional_reporter_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794333420001,
+      "tag": "0028_bps_indicator_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794333420002,
+      "tag": "0029_apbd_review_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794333420003,
+      "tag": "0030_service_application_category_roles",
+      "breakpoints": true
     }
   ]
 }

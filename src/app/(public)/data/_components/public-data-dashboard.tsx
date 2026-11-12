@@ -52,6 +52,7 @@ import {
 import { SummaryKpiCards } from "./summary-kpi-cards";
 import { BudgetActualsTrend } from "./budget-actuals-trend";
 import { PublicCategoryDatasets } from "./public-category-datasets";
+import { BpsAnalyticsPanel } from "./bps-analytics-panel";
 import { publishedApbdResponseSchema } from "@/modules/apbd-budget/contract";
 import { publishedStatisticInputsSchema } from "@/modules/statistics-input";
 
@@ -1951,12 +1952,10 @@ export function PublicDataDashboard({
                   <p className="text-muted-foreground mt-1 text-xs">{note}</p>
                 </div>
               ))}
-              <div className="sm:col-span-2 lg:col-span-4">
-                <PublicCategoryDatasets category="Statistik" />
-              </div>
             </CardContent>
           </Card>
         ) : null}
+        {showStatistics ? <BpsAnalyticsPanel /> : null}
 
         {view === "budget" ? (
           <section

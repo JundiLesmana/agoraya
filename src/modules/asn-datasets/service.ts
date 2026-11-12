@@ -18,6 +18,7 @@ import type {
 } from "./contract";
 import { parseDatasetCsv } from "./domain";
 import { bpsRegionCodesForAssignment } from "./region-code";
+import { serializeBpsStatisticsCsv } from "@/modules/integrations/bps/catalog";
 
 type AssignmentRow = Row & {
   assignmentType: "statistics" | "apbd" | "project";
@@ -936,6 +937,7 @@ export async function importAssignedBpsDataset(
   const bpsRows = await db()
     .select({
       indicatorCode: bpsStatistics.indicatorCode,
+      indicatorName: bpsStatistics.indicatorName,
       regionCode: bpsStatistics.regionCode,
       year: bpsStatistics.year,
       value: bpsStatistics.value,
@@ -958,26 +960,23 @@ export async function importAssignedBpsDataset(
   }
   const latestYear = bpsRows[0].year;
   const regionRows = bpsRows.filter((row) => row.year === latestYear);
-  const serializedCsv = [
-    ["indicator_code", "region_code", "year", "value", "unit"],
-    ...regionRows.map((row) => [
-      row.indicatorCode,
-      row.regionCode,
-      String(row.year),
-      String(row.value),
-      row.unit,
-    ]),
-  ]
-    .map((row) =>
-      row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","),
-    )
-    .join("\r\n");
+  const serializedCsv = serializeBpsStatisticsCsv(regionRows);
   const now = new Date();
   const title = `Statistik BPS — ${saved.regionName.slice(0, 220)} — ${latestYear}`;
   const summary = `Agregat indikator BPS untuk ${saved.regionName} tahun ${latestYear}.`;
   const description =
     "Snapshot statistik BPS yang diimpor sesuai penugasan wilayah operator.";
   const dataDictionary = JSON.stringify([
+    {
+      name: "indicator_name",
+      type: "text",
+      description: "Nama indikator dari metadata BPS.",
+    },
+    {
+      name: "category",
+      type: "text",
+      description: "Kategori indikator yang diturunkan dari nama indikator BPS.",
+    },
     {
       name: "indicator_code",
       type: "text",

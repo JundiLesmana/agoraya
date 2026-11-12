@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ProgressForm } from "@/app/(asn)/project/_components/progress-form";
+import { ProgressForm } from "@/app/(asn)/asn/project/_components/progress-form";
 import type { ProjectDetail } from "@/modules/project-progress/types";
 
 const PROJECT: ProjectDetail = {

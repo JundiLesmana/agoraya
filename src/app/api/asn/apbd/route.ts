@@ -171,10 +171,15 @@ export async function POST(request: Request): Promise<Response> {
   }
   try {
     const saved = await saveApbdWorkspace(authorization.session, payload);
+    const payloadRecord =
+      payload && typeof payload === "object"
+        ? (payload as Record<string, unknown>)
+        : null;
+    const isSubmitted = saved.status === "in_review";
     try {
       await appendAuditEvent(db(), {
         actorId: uuidOrNull(authorization.session.userId),
-        action: "asn.apbd.saved",
+        action: isSubmitted ? "asn.apbd.submitted" : "asn.apbd.saved",
         targetTable: "apbd_entries",
         targetId: uuidOrNull(saved.id),
         metadata: {
@@ -182,11 +187,14 @@ export async function POST(request: Request): Promise<Response> {
           actorRole: authorization.session.roles.join(","),
           result: "success",
           referenceYear:
-            payload && typeof payload === "object" && "referenceYear" in payload
-              ? payload.referenceYear
+            payloadRecord && "referenceYear" in payloadRecord
+              ? payloadRecord.referenceYear
               : null,
           status: saved.status,
           itemCount: saved.items.length,
+          ...(payloadRecord?.agencyId ? { agencyId: payloadRecord.agencyId } : {}),
+          ...(payloadRecord?.regionId ? { regionId: payloadRecord.regionId } : {}),
+          ...(payloadRecord?.sectorId ? { sectorId: payloadRecord.sectorId } : {}),
         },
         occurredAt: new Date(),
       });

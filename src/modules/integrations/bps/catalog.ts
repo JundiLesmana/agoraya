@@ -1,11 +1,23 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bpsStatistics, datasetResources, datasets } from "@/lib/db/schema";
+import { categorizeBpsIndicator } from "./category";
 
 const BPS_DATASET_SLUG = "statistik-bps";
 const BPS_STATISTICS_RESOURCE_URL = "/api/analytics/statistics";
+const BPS_CSV_RESOURCE_URL = `/api/asn/datasets/${BPS_DATASET_SLUG}/download`;
 
 const BPS_DATA_DICTIONARY = [
+  {
+    name: "indicator_name",
+    type: "string",
+    description: "Nama indikator dari metadata BPS.",
+  },
+  {
+    name: "category",
+    type: "string",
+    description: "Kategori indikator yang diturunkan dari nama indikator BPS.",
+  },
   {
     name: "indicator_code",
     type: "string",
@@ -33,14 +45,75 @@ const BPS_DATA_DICTIONARY = [
   },
 ] as const;
 
+function csvCell(value: string | number): string {
+  const safeValue =
+    typeof value === "string" && /^\s*[=+\-@]/.test(value)
+      ? `'${value}`
+      : String(value);
+  return `"${safeValue.replaceAll('"', '""')}"`;
+}
+
+export function serializeBpsStatisticsCsv(
+  rows: readonly {
+    readonly indicatorCode: string;
+    readonly indicatorName: string;
+    readonly regionCode: string;
+    readonly year: number;
+    readonly value: number;
+    readonly unit: string;
+  }[],
+): string {
+  const records = [
+    [
+      "indicator_name",
+      "category",
+      "indicator_code",
+      "region_code",
+      "year",
+      "value",
+      "unit",
+    ],
+    ...rows.map((row) => [
+      row.indicatorName || row.indicatorCode,
+      categorizeBpsIndicator(row.indicatorName),
+      row.indicatorCode,
+      row.regionCode,
+      row.year,
+      row.value,
+      row.unit,
+    ]),
+  ];
+  return records.map((record) => record.map(csvCell).join(",")).join("\r\n");
+}
+
 /**
- * Registers dataset metadata for ASN review. Statistical values remain in the
- * normalized bps_statistics table and are served through its cache-backed API.
+ * Registers the normalized BPS snapshot and its generated CSV for public use.
  */
 export async function upsertBpsDatasetCatalog(
   database = db(),
   lastUpdatedAt = new Date(),
 ): Promise<void> {
+  const statistics = await database
+    .select({
+      indicatorCode: bpsStatistics.indicatorCode,
+      indicatorName: bpsStatistics.indicatorName,
+      regionCode: bpsStatistics.regionCode,
+      year: bpsStatistics.year,
+      value: bpsStatistics.value,
+      unit: bpsStatistics.unit,
+    })
+    .from(bpsStatistics)
+    .where(eq(bpsStatistics.sourceLabel, "BPS_API"))
+    .orderBy(
+      bpsStatistics.indicatorName,
+      bpsStatistics.year,
+      bpsStatistics.regionCode,
+    );
+  if (statistics.length === 0) {
+    throw new Error("Tidak ada agregat BPS untuk membentuk dataset CSV.");
+  }
+  const csvData = serializeBpsStatisticsCsv(statistics);
+
   const [dataset] = await database
     .insert(datasets)
     .values({
@@ -59,7 +132,8 @@ export async function upsertBpsDatasetCatalog(
       tags: ["statistik", "BPS", "indikator", "wilayah"],
       dataDictionary: [...BPS_DATA_DICTIONARY],
       lastUpdatedAt,
-      isPublished: false,
+      isPublished: true,
+      csvData,
     })
     .onConflictDoUpdate({
       target: datasets.slug,
@@ -78,6 +152,8 @@ export async function upsertBpsDatasetCatalog(
         tags: ["statistik", "BPS", "indikator", "wilayah"],
         dataDictionary: [...BPS_DATA_DICTIONARY],
         lastUpdatedAt,
+        isPublished: true,
+        csvData,
       },
     })
     .returning({ id: datasets.id });
@@ -101,6 +177,22 @@ export async function upsertBpsDatasetCatalog(
         datasetResources.url,
       ],
       set: { title: "Statistik BPS melalui API cache" },
+    });
+  await database
+    .insert(datasetResources)
+    .values({
+      datasetId: dataset.id,
+      title: "Statistik BPS terolah (CSV)",
+      format: "CSV",
+      url: BPS_CSV_RESOURCE_URL,
+    })
+    .onConflictDoUpdate({
+      target: [
+        datasetResources.datasetId,
+        datasetResources.format,
+        datasetResources.url,
+      ],
+      set: { title: "Statistik BPS terolah (CSV)" },
     });
 }
 

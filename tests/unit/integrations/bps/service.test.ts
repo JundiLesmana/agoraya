@@ -103,6 +103,7 @@ describe("upsertBpsStatistics", () => {
     expect(call.targetNames).toEqual(["indicator_code", "region_code", "year"]);
     expect(call.setKeys).toEqual([
       "value",
+      "indicatorName",
       "unit",
       "sourceLabel",
       "lastSyncedAt",
@@ -115,6 +116,7 @@ describe("upsertBpsStatistics", () => {
       expect(row).toMatchObject({
         sourceLabel: "BPS_API",
         indicatorCode: expect.any(String),
+        indicatorName: expect.any(String),
         regionCode: expect.any(String),
         year: expect.any(Number),
         unit: expect.any(String),

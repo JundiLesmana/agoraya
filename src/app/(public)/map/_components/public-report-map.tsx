@@ -55,6 +55,7 @@ interface ProvenanceResponse {
 }
 
 const PAGE_SIZE = 100;
+const JAVA_MAP_CENTER: [number, number] = [110, -7.3];
 const categories = ["Infrastruktur", "Dugaan korupsi", "Lingkungan"] as const;
 const statuses: readonly ReportStatus[] = [
   "submitted",
@@ -64,6 +65,21 @@ const statuses: readonly ReportStatus[] = [
   "rejected",
   "closed",
 ];
+
+function hasValidCoordinates(
+  report: PublicMapReport,
+): report is PublicMapReport & { latitude: number; longitude: number } {
+  return (
+    typeof report.latitude === "number" &&
+    Number.isFinite(report.latitude) &&
+    report.latitude >= -90 &&
+    report.latitude <= 90 &&
+    typeof report.longitude === "number" &&
+    Number.isFinite(report.longitude) &&
+    report.longitude >= -180 &&
+    report.longitude <= 180
+  );
+}
 
 const sourcePresentation: Record<
   ProvenanceSource,
@@ -89,8 +105,7 @@ const sourcePresentation: Record<
   },
   AGGREGATE: {
     label: "AGREGAT",
-    className:
-      "border-border bg-muted text-muted-foreground",
+    className: "border-border bg-muted text-muted-foreground",
     description: "Gabungan dari beberapa sumber data.",
   },
 };
@@ -117,6 +132,82 @@ function ProvenanceBadge({ source }: { source: ProvenanceSource }) {
   );
 }
 
+function PublicTicketCard({
+  report,
+  onClose,
+  onViewDetails,
+}: {
+  report: PublicMapReport;
+  onClose: () => void;
+  onViewDetails: () => void;
+}) {
+  const status = getPublicReportStatusPresentation(report.status);
+
+  return (
+    <aside
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="selected-map-report-title"
+      data-testid="map-ticket-card"
+      className="border-border bg-card absolute inset-x-3 top-3 z-30 max-h-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border p-4 shadow-xl sm:right-4 sm:left-auto sm:w-[min(22rem,calc(100%-2rem))]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-muted-foreground min-w-0 truncate text-xs font-semibold">
+          {report.reportNumber}
+        </p>
+        <button
+          type="button"
+          aria-label="Tutup kartu tiket laporan"
+          onClick={onClose}
+          className="text-muted-foreground hover:bg-muted -mt-1 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full"
+        >
+          <X aria-hidden="true" className="size-4" />
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}
+        >
+          {status.label}
+        </span>
+      </div>
+      <h2
+        id="selected-map-report-title"
+        className="text-foreground mt-3 text-lg leading-snug font-bold"
+      >
+        {report.title}
+      </h2>
+      <p className="text-muted-foreground mt-2 text-sm">{report.category}</p>
+      <div className="text-muted-foreground mt-3 space-y-2 text-xs">
+        <p className="flex items-start gap-2">
+          <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Wilayah laporan
+            <span className="text-foreground mt-0.5 block font-medium">
+              {report.city}, {report.province}
+            </span>
+          </span>
+        </p>
+        <p className="flex items-start gap-2">
+          <CalendarDays aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>Dikirim {formatDate(report.submittedAt)}</span>
+        </p>
+      </div>
+      <p className="text-muted-foreground mt-3 border-t pt-3 text-xs leading-5">
+        Identitas pelapor dan lokasi rinci dirahasiakan.
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-3 w-full"
+        onClick={onViewDetails}
+      >
+        Lihat riwayat &amp; detail tiket
+      </Button>
+    </aside>
+  );
+}
+
 export function PublicReportMap() {
   const [reports, setReports] = useState<PublicMapReport[]>([]);
   const [total, setTotal] = useState(0);
@@ -130,6 +221,9 @@ export function PublicReportMap() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
+  const [followUpFilter, setFollowUpFilter] = useState<"unhandled" | "all">(
+    "unhandled",
+  );
   const [city, setCity] = useState("");
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
   const reportButtonsRef = useRef(new Map<string, HTMLButtonElement>());
@@ -153,6 +247,7 @@ export function PublicReportMap() {
           limit: String(PAGE_SIZE),
           offset: String(offset),
         });
+        params.set("followUp", followUpFilter);
         if (search.trim()) params.set("search", search.trim());
         if (category) params.set("category", category);
         if (status) params.set("status", status);
@@ -169,7 +264,10 @@ export function PublicReportMap() {
         setTotal(result.total ?? 0);
         setHasMore(Boolean(result.hasMore));
       } catch (loadError) {
-        if (loadError instanceof DOMException && loadError.name === "AbortError") {
+        if (
+          loadError instanceof DOMException &&
+          loadError.name === "AbortError"
+        ) {
           return;
         }
         setError(
@@ -184,7 +282,7 @@ export function PublicReportMap() {
         }
       }
     },
-    [category, search, status],
+    [category, followUpFilter, search, status],
   );
 
   useEffect(() => {
@@ -234,7 +332,10 @@ export function PublicReportMap() {
         setProvenance(result);
       })
       .catch((loadError: unknown) => {
-        if (loadError instanceof DOMException && loadError.name === "AbortError") {
+        if (
+          loadError instanceof DOMException &&
+          loadError.name === "AbortError"
+        ) {
           return;
         }
         setDetailError(
@@ -261,34 +362,21 @@ export function PublicReportMap() {
     : reports;
 
   const mapMarkers = useMemo((): MapPoint[] => {
-    return reports
-      .filter(
-        (r): r is PublicMapReport & { latitude: number; longitude: number } =>
-          typeof r.latitude === "number" &&
-          Number.isFinite(r.latitude) &&
-          typeof r.longitude === "number" &&
-          Number.isFinite(r.longitude),
-      )
-      .map((r) => ({
-        id: r.reportNumber,
-        longitude: r.longitude,
-        latitude: r.latitude,
-        title: `${r.reportNumber} · ${r.title}`,
-        description: `${r.category} · ${getPublicReportStatusPresentation(r.status).label} · ${r.city}, ${r.province}`,
-      }));
+    return reports.filter(hasValidCoordinates).map((r) => ({
+      id: r.reportNumber,
+      longitude: r.longitude,
+      latitude: r.latitude,
+      title: `${r.reportNumber} · ${r.title}`,
+      description: `${r.category} · ${getPublicReportStatusPresentation(r.status).label} · ${r.city}, ${r.province}`,
+    }));
   }, [reports]);
 
   const selectedMapCenter = useMemo<[number, number]>(() => {
-    if (
-      selected &&
-      typeof selected.latitude === "number" &&
-      typeof selected.longitude === "number"
-    ) {
+    if (selected && hasValidCoordinates(selected)) {
       return [selected.longitude, selected.latitude];
     }
-    if (mapMarkers[0]) return [mapMarkers[0].longitude, mapMarkers[0].latitude];
-    return [106.8456, -6.2088];
-  }, [mapMarkers, selected]);
+    return JAVA_MAP_CENTER;
+  }, [selected]);
 
   function chooseReport(
     report: PublicMapReport,
@@ -302,17 +390,20 @@ export function PublicReportMap() {
     const report = reports.find((item) => item.reportNumber === reportNumber);
     if (!report) return;
     chooseReport(report, reportButtonsRef.current.get(reportNumber));
-    window.requestAnimationFrame(() => {
-      detailPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
   }
 
   return (
     <main className="bg-background text-foreground min-h-[calc(100vh-8rem)]">
       <header className="bg-sky-50 px-4 py-8 sm:px-6 lg:px-8 dark:bg-slate-950/70">
         <div className="mx-auto max-w-7xl">
-          <nav aria-label="Breadcrumb" className="text-muted-foreground text-xs">
-            <Link href="/" className="hover:text-primary focus-visible:underline">
+          <nav
+            aria-label="Breadcrumb"
+            className="text-muted-foreground text-xs"
+          >
+            <Link
+              href="/"
+              className="hover:text-primary focus-visible:underline"
+            >
               Beranda
             </Link>
             <span className="mx-2">›</span>
@@ -331,8 +422,8 @@ export function PublicReportMap() {
                 Peta Laporan Publik
               </h1>
               <p className="text-muted-foreground mt-2 max-w-3xl text-sm leading-6">
-                Jelajahi laporan warga yang dibagikan untuk publik. Laporan dengan
-                koordinat ditampilkan sebagai penanda di peta.
+                Jelajahi laporan warga yang dibagikan untuk publik. Laporan
+                dengan koordinat ditampilkan sebagai penanda di peta.
               </p>
             </div>
             <Button asChild variant="outline">
@@ -349,32 +440,50 @@ export function PublicReportMap() {
         aria-label="Peta laporan publik"
         className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8"
       >
-        {mapMarkers.length > 0 ? (
-          <div className="mb-6" role="region" aria-label="Peta sebaran laporan">
-            <MapComponent
-              markers={mapMarkers}
-              center={selectedMapCenter}
-              zoom={selected ? 12 : 5}
-              height={420}
-              ariaLabel="Peta sebaran laporan warga"
-              selectedMarkerId={selected?.reportNumber ?? null}
-              onMarkerClick={openReport}
+        <div
+          className="relative mb-6"
+          role="region"
+          aria-label="Peta sebaran laporan"
+        >
+          <MapComponent
+            renderer="raster"
+            markers={mapMarkers}
+            center={selectedMapCenter}
+            zoom={selected ? 12 : 7}
+            height={420}
+            ariaLabel="Peta sebaran laporan warga"
+            selectedMarkerId={selected?.reportNumber ?? null}
+            onMarkerClick={openReport}
+          />
+          {selected ? (
+            <PublicTicketCard
+              report={selected}
+              onClose={() => {
+                setSelected(null);
+                setProvenance(null);
+                selectedButtonRef.current?.focus();
+              }}
+              onViewDetails={() =>
+                detailPanelRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "nearest",
+                })
+              }
             />
-            <p className="text-muted-foreground mt-2 text-sm text-center">
-              {mapMarkers.length} laporan dengan koordinat ditampilkan di peta.
-              Klik penanda untuk membuka kartu tiket laporan.
-            </p>
-          </div>
-        ) : (
-          <div className="border-border bg-card mb-6 rounded-2xl border p-8 text-center shadow-sm">
-            <p className="text-foreground font-medium">
-              Belum ada laporan dengan koordinat untuk ditampilkan di peta.
-            </p>
-            <p className="text-muted-foreground mt-2 text-sm">
-              Laporan tanpa koordinat tetap dapat dibuka dari daftar di bawah.
-            </p>
-          </div>
-        )}
+          ) : null}
+          <p className="text-muted-foreground mt-2 text-center text-sm">
+            {mapMarkers.length > 0 ? (
+              <>
+                {mapMarkers.length} laporan dengan koordinat ditampilkan di
+                peta. Klik penanda untuk membuka kartu tiket laporan.
+              </>
+            ) : loading ? (
+              "Memuat laporan untuk ditampilkan di peta…"
+            ) : (
+              "Belum ada laporan dengan koordinat. Peta berpusat di Pulau Jawa; laporan tetap tersedia di daftar."
+            )}
+          </p>
+        </div>
       </section>
 
       <section
@@ -383,7 +492,10 @@ export function PublicReportMap() {
       >
         <div className="grid gap-3 md:grid-cols-[minmax(16rem,1fr)_repeat(2,minmax(10rem,0.35fr))]">
           <label className="border-input bg-background flex h-11 items-center gap-2 rounded-lg border px-3">
-            <Search aria-hidden="true" className="text-muted-foreground size-4" />
+            <Search
+              aria-hidden="true"
+              className="text-muted-foreground size-4"
+            />
             <span className="sr-only">Cari nomor, judul, atau kota</span>
             <input
               value={search}
@@ -412,6 +524,20 @@ export function PublicReportMap() {
             Filter status
           </label>
           <select
+            id="map-follow-up-filter"
+            value={followUpFilter}
+            onChange={(event) =>
+              setFollowUpFilter(event.target.value as "unhandled" | "all")
+            }
+            aria-label="Filter tindak lanjut"
+            className="border-input bg-background text-foreground h-11 rounded-lg border px-3 text-sm"
+          >
+            <option value="unhandled">
+              Belum ditanggapi
+            </option>
+            <option value="all">Semua laporan</option>
+          </select>
+          <select
             id="map-status-filter"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
@@ -426,7 +552,9 @@ export function PublicReportMap() {
           </select>
         </div>
         <p className="text-muted-foreground mt-3 text-sm" aria-live="polite">
-          {loading ? "Memuat laporan…" : `${total} laporan tersedia untuk publik`}
+          {loading
+            ? "Memuat laporan…"
+            : `${total} laporan tersedia untuk publik`}
           {city ? ` · Wilayah: ${city}` : ""}
         </p>
 
@@ -453,8 +581,9 @@ export function PublicReportMap() {
                 Sebaran berdasarkan kota
               </h2>
               <p className="text-muted-foreground mt-1 text-xs">
-                Kelompok ini menunjukkan jumlah laporan per wilayah. Laporan dengan
-                koordinat ditampilkan sebagai penanda di peta di atas.
+                Kelompok ini menunjukkan jumlah laporan per wilayah, bukan
+                koordinat atau batas geografis. Laporan dengan koordinat tetap
+                ditampilkan sebagai penanda di peta.
               </p>
             </div>
             {city ? (
@@ -474,10 +603,7 @@ export function PublicReportMap() {
               className="mt-5 grid animate-pulse gap-3 sm:grid-cols-2 lg:grid-cols-3"
             >
               {Array.from({ length: 3 }, (_, index) => (
-                <div
-                  key={index}
-                  className="bg-muted h-24 rounded-xl"
-                />
+                <div key={index} className="bg-muted h-24 rounded-xl" />
               ))}
             </div>
           ) : cityGroups.length ? (
@@ -493,7 +619,9 @@ export function PublicReportMap() {
                     )
                   }
                   className={`border-border bg-background focus-visible:ring-ring flex min-h-24 items-center justify-between gap-4 rounded-xl border p-4 text-left transition hover:border-blue-300 hover:shadow-sm focus-visible:ring-2 focus-visible:outline-none ${
-                    city === groupName ? "border-primary ring-primary ring-1" : ""
+                    city === groupName
+                      ? "border-primary ring-primary ring-1"
+                      : ""
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-3">
@@ -516,7 +644,7 @@ export function PublicReportMap() {
               ))}
             </div>
           ) : !loading && !error ? (
-            <p className="text-muted-foreground mt-5 rounded-lg bg-muted/50 p-5 text-sm">
+            <p className="text-muted-foreground bg-muted/50 mt-5 rounded-lg p-5 text-sm">
               Belum ada laporan publik yang sesuai filter.
             </p>
           ) : null}
@@ -537,16 +665,21 @@ export function PublicReportMap() {
             </div>
             <ul className="mt-3 space-y-3">
               {visibleReports.map((report) => {
-                const statusPresentation =
-                  getPublicReportStatusPresentation(report.status);
-                const isSelected = selected?.reportNumber === report.reportNumber;
+                const statusPresentation = getPublicReportStatusPresentation(
+                  report.status,
+                );
+                const isSelected =
+                  selected?.reportNumber === report.reportNumber;
                 return (
                   <li key={report.reportNumber}>
                     <button
                       type="button"
                       ref={(node) => {
                         if (node) {
-                          reportButtonsRef.current.set(report.reportNumber, node);
+                          reportButtonsRef.current.set(
+                            report.reportNumber,
+                            node,
+                          );
                         } else {
                           reportButtonsRef.current.delete(report.reportNumber);
                         }
@@ -580,12 +713,17 @@ export function PublicReportMap() {
                           {report.city}, {report.province}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <CalendarDays aria-hidden="true" className="size-3.5" />
+                          <CalendarDays
+                            aria-hidden="true"
+                            className="size-3.5"
+                          />
                           {formatDate(report.submittedAt)}
                         </span>
                         {typeof report.latitude === "number" &&
                         typeof report.longitude === "number" ? (
-                          <span className="text-primary font-medium">Ada titik peta</span>
+                          <span className="text-primary font-medium">
+                            Ada titik peta
+                          </span>
                         ) : null}
                       </div>
                     </button>
@@ -626,7 +764,7 @@ export function PublicReportMap() {
                   </p>
                   <h2
                     id="report-detail-title"
-                    className="text-foreground mt-2 text-lg font-bold leading-snug"
+                    className="text-foreground mt-2 text-lg leading-snug font-bold"
                   >
                     {selected.title}
                   </h2>
@@ -646,7 +784,9 @@ export function PublicReportMap() {
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <ProvenanceBadge source={selected.source} />
+                {selected.source !== "ACTUAL" ? (
+                  <ProvenanceBadge source={selected.source} />
+                ) : null}
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getPublicReportStatusPresentation(selected.status).className}`}
                 >
@@ -659,10 +799,11 @@ export function PublicReportMap() {
               <p className="text-muted-foreground mt-3 text-sm">
                 {selected.category} · {selected.city}, {selected.province}
               </p>
-              {(typeof selected.latitude === "number" && typeof selected.longitude === "number") && (
+              {hasValidCoordinates(selected) && (
                 <p className="text-muted-foreground mt-2 flex items-center gap-2 text-xs">
                   <MapPin aria-hidden="true" className="size-3.5" />
-                  Koordinat: {selected.latitude.toFixed(6)}, {selected.longitude.toFixed(6)}
+                  Koordinat: {selected.latitude.toFixed(6)},{" "}
+                  {selected.longitude.toFixed(6)}
                 </p>
               )}
               <p className="text-muted-foreground mt-2 flex items-center gap-2 text-xs">
@@ -684,7 +825,10 @@ export function PublicReportMap() {
                     {detailError}
                   </p>
                 ) : !provenance ? (
-                  <p role="status" className="text-muted-foreground mt-3 text-sm">
+                  <p
+                    role="status"
+                    className="text-muted-foreground mt-3 text-sm"
+                  >
                     Memuat riwayat validasi…
                   </p>
                 ) : (
@@ -699,7 +843,7 @@ export function PublicReportMap() {
                           key={`${event.status}-${event.timestamp}-${index}`}
                           className="relative flex gap-3"
                         >
-                          <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex size-7 shrink-0 items-center justify-center rounded-full">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
                             <CheckCircle2
                               aria-hidden="true"
                               className="size-4"
@@ -739,7 +883,9 @@ export function PublicReportMap() {
                         aria-label="Confidence klasifikasi AI"
                         aria-valuemin={0}
                         aria-valuemax={100}
-                        aria-valuenow={Math.round(provenance.aiConfidence * 100)}
+                        aria-valuenow={Math.round(
+                          provenance.aiConfidence * 100,
+                        )}
                         className="bg-muted mt-2 h-2 overflow-hidden rounded-full"
                       >
                         <span
@@ -753,9 +899,10 @@ export function PublicReportMap() {
                   </>
                 )}
               </div>
-              <p className="text-muted-foreground mt-5 border-t border-border pt-4 text-xs leading-5">
-                Laporan dengan koordinat ditampilkan sebagai penanda di peta. Nama
-                pelapor, kontak, dan lokasi rinci tidak dipublikasikan di peta.
+              <p className="text-muted-foreground border-border mt-5 border-t pt-4 text-xs leading-5">
+                Laporan dengan koordinat ditampilkan sebagai penanda di peta.
+                Nama pelapor, kontak, dan lokasi rinci tidak dipublikasikan di
+                peta.
               </p>
             </aside>
           ) : (

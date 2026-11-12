@@ -4,6 +4,8 @@ import { getAiProvider, GeminiProvider } from "@/modules/ai/providers";
 import type { AiProviderName } from "@/modules/ai/types";
 
 beforeEach(() => {
+  vi.stubEnv("DATABASE_URL", "postgres://127.0.0.1:5432/agoraya_local");
+  vi.stubEnv("AUTH_SECRET", "test-secret-for-unit-tests-at-least-32-chars!");
   for (const key of [
     "AI_API_KEY",
     "GEMINI_API_KEY",
@@ -14,8 +16,6 @@ beforeEach(() => {
     delete process.env[key];
   }
   resetEnv();
-  process.env.DATABASE_URL = "******127.0.0.1:5432/agoraya_local";
-  process.env.AUTH_SECRET = "test-secret-for-unit-tests-at-least-32-chars!";
   process.env.AI_PROVIDER = "gemini";
   process.env.GEMINI_API_KEY = "test-api-key";
 });
@@ -31,6 +31,7 @@ afterEach(() => {
   ]) {
     delete process.env[key];
   }
+  vi.unstubAllEnvs();
   resetEnv();
   vi.restoreAllMocks();
 });
@@ -77,9 +78,11 @@ describe("modules/ai/providers", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(429, {}))
-      .mockResolvedValue(jsonResponse(200, {
-        candidates: [{ content: { parts: [{ text: "oke" }] } }],
-      }));
+      .mockResolvedValue(
+        jsonResponse(200, {
+          candidates: [{ content: { parts: [{ text: "oke" }] } }],
+        }),
+      );
     vi.stubGlobal("fetch", fetchMock as unknown);
     await expect(
       new GeminiProvider().complete({ prompt: "hai", context: {} }),
@@ -109,9 +112,17 @@ describe("modules/ai/providers", () => {
   });
 
   it.each([
-    ["cerebras", "CEREBRAS_API_KEY", "https://api.cerebras.ai/v1/chat/completions"],
+    [
+      "cerebras",
+      "CEREBRAS_API_KEY",
+      "https://api.cerebras.ai/v1/chat/completions",
+    ],
     ["groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1/chat/completions"],
-    ["openrouter", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1/chat/completions"],
+    [
+      "openrouter",
+      "OPENROUTER_API_KEY",
+      "https://openrouter.ai/api/v1/chat/completions",
+    ],
   ] as const)(
     "%s mengirim permintaan JSON ringkas ke endpoint yang sesuai",
     async (name, keyName, endpoint) => {
@@ -128,7 +139,10 @@ describe("modules/ai/providers", () => {
         prompt: "Jelaskan secara singkat.",
         context: {},
       });
-      expect(result).toMatchObject({ provider: name, content: '{"summary":"ok"}' });
+      expect(result).toMatchObject({
+        provider: name,
+        content: '{"summary":"ok"}',
+      });
       expect(String(fetchMock.mock.calls[0][0])).toBe(endpoint);
       const options = fetchMock.mock.calls[0][1] as RequestInit;
       expect(options.headers).toMatchObject({

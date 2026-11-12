@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export interface BpsParsedRecord {
   readonly indicatorCode: string;
+  readonly indicatorName: string;
   readonly regionCode: string;
   readonly value: number;
   readonly year: number;
@@ -214,6 +215,7 @@ export function parseBpsResponse(
     }
     records.push({
       indicatorCode,
+      indicatorName: variable.label.trim().slice(0, 255),
       regionCode: expectedId(region.val),
       value,
       year,
