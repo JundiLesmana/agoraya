@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -67,8 +68,16 @@ export const apbdEntries = pgTable(
     revisionOfId: uuid("revision_of_id"),
     sourceDatasetSubmissionId: uuid("source_dataset_submission_id"),
     revisionReason: text("revision_reason").notNull().default(""),
+    recordMetadata: jsonb("record_metadata")
+      .$type<Record<string, string | null>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdBy: uuid("created_by").notNull(),
     updatedBy: uuid("updated_by").notNull(),
+    submittedBy: uuid("submitted_by"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -116,6 +125,16 @@ export const apbdEntries = pgTable(
       foreignColumns: [users.id, users.tenantId],
       name: "apbd_entries_updated_by_tenant_fk",
     }).onDelete("restrict"),
+    submittedByTenantFk: foreignKey({
+      columns: [table.submittedBy, table.tenantId],
+      foreignColumns: [users.id, users.tenantId],
+      name: "apbd_entries_submitted_by_tenant_fk",
+    }).onDelete("restrict"),
+    reviewedByTenantFk: foreignKey({
+      columns: [table.reviewedBy, table.tenantId],
+      foreignColumns: [users.id, users.tenantId],
+      name: "apbd_entries_reviewed_by_tenant_fk",
+    }).onDelete("restrict"),
     draftContextUnique: uniqueIndex("apbd_entries_draft_context_idx")
       .on(
         table.tenantId,
@@ -124,7 +143,7 @@ export const apbdEntries = pgTable(
         table.sectorId,
         table.referenceYear,
       )
-      .where(sql`${table.status} = 'draft'`),
+      .where(sql`${table.status} IN ('draft', 'in_review')`),
     publicationIdx: index("apbd_entries_publication_idx").on(
       table.status,
       table.publishedAt,
@@ -132,7 +151,7 @@ export const apbdEntries = pgTable(
     ),
     statusCheck: check(
       "apbd_entries_status_check",
-      sql`${table.status} IN ('draft', 'published')`,
+      sql`${table.status} IN ('draft', 'in_review', 'published')`,
     ),
     yearCheck: check(
       "apbd_entries_reference_year_check",
@@ -145,6 +164,10 @@ export const apbdEntries = pgTable(
     publishedAtCheck: check(
       "apbd_entries_published_at_check",
       sql`${table.status} <> 'published' OR ${table.publishedAt} IS NOT NULL`,
+    ),
+    reviewStateCheck: check(
+      "apbd_entries_review_state_check",
+      sql`${table.status} <> 'in_review' OR (${table.submittedBy} IS NOT NULL AND ${table.submittedAt} IS NOT NULL)`,
     ),
   }),
 );
@@ -160,6 +183,12 @@ export const apbdBudgetItems = pgTable(
     code: varchar("code", { length: 64 }).notNull(),
     programName: varchar("program_name", { length: 160 }).notNull(),
     subactivityName: varchar("subactivity_name", { length: 240 }).notNull(),
+    affairCode: varchar("affair_code", { length: 64 }).notNull().default(""),
+    programCode: varchar("program_code", { length: 64 }).notNull().default(""),
+    activityCode: varchar("activity_code", { length: 64 }).notNull().default(""),
+    activityName: varchar("activity_name", { length: 240 }).notNull().default(""),
+    fundingSource: varchar("funding_source", { length: 160 }).notNull().default(""),
+    supportingDocument: text("supporting_document").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -206,6 +235,13 @@ export const apbdBudgetPeriodValues = pgTable(
       scale: 0,
       mode: "string",
     }),
+    targetValue: numeric("target_value", {
+      precision: 20,
+      scale: 0,
+      mode: "string",
+    }),
+    targetDate: timestamp("target_date", { withTimezone: true, mode: "string" }),
+    documentReference: text("document_reference").notNull().default(""),
     updatedBy: uuid("updated_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -248,6 +284,10 @@ export const apbdBudgetPeriodValues = pgTable(
       "apbd_budget_period_value_check",
       sql`(${table.periodType} = 'monthly' AND ${table.periodValue} ~ '^(0[1-9]|1[0-2])$') OR (${table.periodType} = 'quarterly' AND ${table.periodValue} ~ '^Q[1-4]$')`,
     ),
+    targetValueCheck: check(
+      "apbd_budget_period_target_value_check",
+      sql`${table.targetValue} IS NULL OR ${table.targetValue} >= 0`,
+    ),
     paguCheck: check(
       "apbd_budget_period_pagu_check",
       sql`${table.pagu} IS NULL OR ${table.pagu} >= 0`,
@@ -255,6 +295,49 @@ export const apbdBudgetPeriodValues = pgTable(
     realisasiCheck: check(
       "apbd_budget_period_realisasi_check",
       sql`${table.realisasi} IS NULL OR ${table.realisasi} >= 0`,
+    ),
+  }),
+);
+
+export const apbdEntryDocuments = pgTable(
+  "apbd_entry_documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .references(() => tenants.id, { onDelete: "restrict" })
+      .notNull(),
+    entryId: uuid("entry_id").notNull(),
+    cloudinaryPublicId: varchar("cloudinary_public_id", { length: 512 }).notNull(),
+    cloudinaryAssetId: varchar("cloudinary_asset_id", { length: 255 }).notNull(),
+    originalName: varchar("original_name", { length: 255 }).notNull(),
+    mediaType: varchar("media_type", { length: 100 }).notNull(),
+    fileSize: integer("file_size").notNull(),
+    uploadedBy: uuid("uploaded_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    entryTenantFk: foreignKey({
+      columns: [table.entryId, table.tenantId],
+      foreignColumns: [apbdEntries.id, apbdEntries.tenantId],
+      name: "apbd_entry_documents_entry_tenant_fk",
+    }).onDelete("cascade"),
+    uploadedByTenantFk: foreignKey({
+      columns: [table.uploadedBy, table.tenantId],
+      foreignColumns: [users.id, users.tenantId],
+      name: "apbd_entry_documents_uploaded_by_tenant_fk",
+    }).onDelete("restrict"),
+    publicIdUnique: uniqueIndex("apbd_entry_documents_public_id_idx").on(
+      table.cloudinaryPublicId,
+    ),
+    entryIdx: index("apbd_entry_documents_entry_idx").on(
+      table.tenantId,
+      table.entryId,
+    ),
+    fileSizeCheck: check(
+      "apbd_entry_documents_file_size_check",
+      sql`${table.fileSize} BETWEEN 1 AND 10485760`,
     ),
   }),
 );

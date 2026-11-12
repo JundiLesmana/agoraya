@@ -66,6 +66,7 @@ describe("syncBpsStatistics", () => {
     expect(mockUpsert).toHaveBeenCalledWith([
       {
         indicatorCode: "bps:0000:413:0:0",
+        indicatorName: "IPM",
         regionCode: "1100",
         year: 2024,
         value: 74.03,

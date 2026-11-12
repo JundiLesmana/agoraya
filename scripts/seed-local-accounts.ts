@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   applicationRoles,
+  apbdOperatorAssignments,
   moduleAccess,
   permissions,
   rolePermissions,
@@ -55,6 +56,10 @@ const APPLICATION_ROLE_DEFINITIONS = [
   { key: "verifikator", name: "Verifikator" },
   { key: "kyc_verifikator", name: "Verifikator KYC" },
   { key: "cms_operator", name: "Operator CMS" },
+  { key: "service_permit", name: "Petugas Layanan Perizinan" },
+  { key: "service_education", name: "Petugas Layanan Pendidikan" },
+  { key: "service_social", name: "Petugas Layanan Sosial" },
+  { key: "service_health", name: "Petugas Layanan Kesehatan" },
 ] as const;
 
 const MODULE_ACCESS_DEFINITIONS = [
@@ -405,6 +410,28 @@ async function main(): Promise<void> {
                 eq(moduleAccess.moduleKey, moduleKey),
               ),
             );
+        }
+
+        if (email === "apbd@agoraya.test") {
+          await tx
+            .insert(apbdOperatorAssignments)
+            .values({
+              tenantId: tenant.id,
+              userId,
+              agencyId: "dinas-pendidikan-kota-contoh",
+              regionId: "kota-contoh",
+              regionName: "Kota Contoh",
+              sectorId: "education",
+            })
+            .onConflictDoNothing({
+              target: [
+                apbdOperatorAssignments.userId,
+                apbdOperatorAssignments.tenantId,
+                apbdOperatorAssignments.agencyId,
+                apbdOperatorAssignments.regionId,
+                apbdOperatorAssignments.sectorId,
+              ],
+            });
         }
       }
 

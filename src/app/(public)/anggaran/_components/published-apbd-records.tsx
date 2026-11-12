@@ -103,10 +103,25 @@ export function PublishedApbdRecords() {
                   return (
                     <tr key={entry.id} className="border-b last:border-0">
                       <td className="p-3">
-                        <p className="font-medium">{entry.regionName}</p>
+                        <p className="font-medium">{entry.metadata.opdName || entry.regionName}</p>
                         <p className="text-xs text-muted-foreground">
-                          Kode instansi {entry.agencyId}
+                          {entry.regionName} · {entry.metadata.budgetType} · Kode instansi {entry.agencyId}
                         </p>
+                        {entry.metadata.publicSummary ? (
+                          <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                            {entry.metadata.publicSummary}
+                          </p>
+                        ) : null}
+                        {entry.metadata.sourceUrl ? (
+                          <a
+                            className="mt-1 inline-block text-xs text-primary underline"
+                            href={entry.metadata.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Sumber resmi
+                          </a>
+                        ) : null}
                       </td>
                       <td className="p-3">{entry.referenceYear}</td>
                       <td className="p-3">{entry.sectorId}</td>

@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { ProjectPrioritizationWorkspace } from "@/app/(asn)/project/prioritization/_components/project-prioritization-workspace";
+import { ProjectPrioritizationWorkspace } from "@/app/(asn)/asn/project/prioritization/_components/project-prioritization-workspace";
 import type { DecisionRunSummary } from "@/modules/decision-engine/repository";
 import type { ProjectDetail } from "@/modules/project-progress/types";
 
@@ -471,7 +471,7 @@ describe("ProjectPrioritizationWorkspace", () => {
   });
 
   it("halaman proyek menautkan halaman prioritas tanpa mengganggu formulir input progres", () => {
-    const source = readFileSync("src/app/(asn)/project/page.tsx", "utf-8");
+    const source = readFileSync("src/app/(asn)/asn/project/page.tsx", "utf-8");
     expect(source).toContain('href="/asn/project/prioritization"');
     expect(source).toContain("ProjectInputProgressPage");
     expect(source).toContain("Lihat Prioritasi Proyek");

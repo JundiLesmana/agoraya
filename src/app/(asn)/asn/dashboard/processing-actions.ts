@@ -20,11 +20,16 @@ function getString(formData: FormData, key: string): string {
 function collectChecklistIds(formData: FormData): string[] {
   return formData
     .getAll("checklistIds")
-    .flatMap((value) => (typeof value === "string" && value.trim() ? [value] : []));
+    .flatMap((value) =>
+      typeof value === "string" && value.trim() ? [value] : [],
+    );
 }
 
 function collectDocumentDecisions(formData: FormData) {
-  const grouped = new Map<string, { id: string; status: string; note: string }>();
+  const grouped = new Map<
+    string,
+    { id: string; status: string; note: string }
+  >();
 
   for (const [key, value] of formData.entries()) {
     const match = /^documentDecisions\.(\d+)\.(id|status|note)$/.exec(key);
@@ -32,7 +37,18 @@ function collectDocumentDecisions(formData: FormData) {
     const index = match[1];
     const field = match[2] as "id" | "status" | "note";
     const entry = grouped.get(index) ?? { id: "", status: "pending", note: "" };
-    entry[field] = typeof value === "string" ? value : "";
+    const fieldValue = typeof value === "string" ? value : "";
+    switch (field) {
+      case "id":
+        entry.id = fieldValue;
+        break;
+      case "status":
+        entry.status = fieldValue;
+        break;
+      case "note":
+        entry.note = fieldValue;
+        break;
+    }
     grouped.set(index, entry);
   }
 
@@ -42,7 +58,9 @@ function collectDocumentDecisions(formData: FormData) {
 function collectOutputFiles(formData: FormData): File[] {
   return formData
     .getAll("outputFiles")
-    .flatMap((value) => (value instanceof File && value.size > 0 ? [value] : []));
+    .flatMap((value) =>
+      value instanceof File && value.size > 0 ? [value] : [],
+    );
 }
 
 function toErrorMessage(error: unknown): string {
@@ -52,6 +70,10 @@ function toErrorMessage(error: unknown): string {
   switch (error.message) {
     case "FORBIDDEN":
       return "Anda tidak memiliki akses untuk mengelola pengajuan ini.";
+    case "ALREADY_COMPLETED":
+      return "Pengajuan ini sudah selesai dan tidak dapat diubah lagi.";
+    case "CONFLICT":
+      return "Pengajuan berubah saat disimpan. Muat ulang halaman lalu coba kembali.";
     case "CHECKLIST_INCOMPLETE":
       return "Checklist wajib belum lengkap. Selesaikan seluruh langkah sebelum menerbitkan hasil layanan.";
     case "DOCUMENTS_INCOMPLETE":
@@ -98,7 +120,8 @@ export async function saveSubmissionProcessing(
   }
   if (!parsed.success) {
     return {
-      error: "Form penanganan tidak valid. Periksa checklist, verifikasi dokumen, dan catatan.",
+      error:
+        "Form penanganan tidak valid. Periksa checklist, verifikasi dokumen, dan catatan.",
       success: null,
     };
   }

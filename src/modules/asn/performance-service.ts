@@ -40,6 +40,7 @@ function createEmptyTaskBreakdown(): Record<AsnPerformanceTaskType, number> {
     laporan_warga: 0,
     perizinan: 0,
     submit_cms: 0,
+    apbd_input: 0,
     review_cms: 0,
     review_kyc: 0,
     review_workflow: 0,
@@ -88,8 +89,14 @@ export async function getAsnPerformanceSummary(
 ) {
   const metrics = await buildPerformanceMetrics(tenantId, filters);
   const active = metrics.filter((item) => item.assignedTasks > 0);
-  const totalAssigned = active.reduce((sum, item) => sum + item.assignedTasks, 0);
-  const totalCompleted = active.reduce((sum, item) => sum + item.completedTasks, 0);
+  const totalAssigned = active.reduce(
+    (sum, item) => sum + item.assignedTasks,
+    0,
+  );
+  const totalCompleted = active.reduce(
+    (sum, item) => sum + item.completedTasks,
+    0,
+  );
 
   return {
     range: serializeRange(filters),
@@ -122,11 +129,16 @@ export async function getAsnPerformanceTrends(
   return {
     range: serializeRange(filters),
     granularity: filters.granularity,
-    items: [...buckets.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([periodStart, counts]) => ({
-      periodStart,
-      totalCompleted: Object.values(counts).reduce((sum, value) => sum + value, 0),
-      taskBreakdown: counts,
-    })),
+    items: [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([periodStart, counts]) => ({
+        periodStart,
+        totalCompleted: Object.values(counts).reduce(
+          (sum, value) => sum + value,
+          0,
+        ),
+        taskBreakdown: counts,
+      })),
   };
 }
 
@@ -139,7 +151,8 @@ export async function getLowestActivityAsn(
     range: serializeRange(filters),
     items: metrics
       .sort((left, right) => {
-        const rateDelta = (left.completionRate ?? 1) - (right.completionRate ?? 1);
+        const rateDelta =
+          (left.completionRate ?? 1) - (right.completionRate ?? 1);
         if (rateDelta !== 0) return rateDelta;
         if (left.completedTasks !== right.completedTasks) {
           return left.completedTasks - right.completedTasks;
@@ -155,11 +168,13 @@ export async function getAsnPerformanceDetails(
   filters: AsnPerformanceFilters,
 ) {
   const metrics = await buildPerformanceMetrics(tenantId, filters);
-  const items = metrics.slice(filters.offset, filters.offset + filters.limit).map((item) => ({
-    ...item,
-    statusLabel:
-      item.assignedTasks === 0 ? "Belum ada aktivitas" : "Aktivitas tercatat",
-  }));
+  const items = metrics
+    .slice(filters.offset, filters.offset + filters.limit)
+    .map((item) => ({
+      ...item,
+      statusLabel:
+        item.assignedTasks === 0 ? "Belum ada aktivitas" : "Aktivitas tercatat",
+    }));
 
   return {
     range: serializeRange(filters),
@@ -174,7 +189,9 @@ export async function getAsnPerformanceActionNeeded(
   tenantId: string,
   filters: AsnPerformanceFilters,
 ) {
-  const thresholdRate = Number(process.env.PERFORMANCE_ACTION_THRESHOLD_RATE ?? "0.75");
+  const thresholdRate = Number(
+    process.env.PERFORMANCE_ACTION_THRESHOLD_RATE ?? "0.75",
+  );
   const minimumTasks = Number(process.env.PERFORMANCE_ACTION_MIN_TASKS ?? "5");
   const metrics = await buildPerformanceMetrics(tenantId, filters);
 
@@ -223,7 +240,9 @@ export async function exportAsnPerformance(
         item.roles.join(", "),
         item.assignedTasks,
         item.statusLabel,
-        ...ASN_PERFORMANCE_TASK_TYPES.map((taskType) => item.taskBreakdown[taskType]),
+        ...ASN_PERFORMANCE_TASK_TYPES.map(
+          (taskType) => item.taskBreakdown[taskType],
+        ),
       ]
         .map((value) => JSON.stringify(String(value)))
         .join(","),
@@ -249,16 +268,21 @@ async function buildPerformanceMetrics(
     listPerformanceEvents(tenantId, filters),
   ]);
 
-  const countsByUser = new Map<string, Record<AsnPerformanceTaskType, number>>();
+  const countsByUser = new Map<
+    string,
+    Record<AsnPerformanceTaskType, number>
+  >();
   for (const event of events) {
-    const current = countsByUser.get(event.userId) ?? createEmptyTaskBreakdown();
+    const current =
+      countsByUser.get(event.userId) ?? createEmptyTaskBreakdown();
     current[event.taskType] += 1;
     countsByUser.set(event.userId, current);
   }
 
   return identities
     .map((identity) => {
-      const taskBreakdown = countsByUser.get(identity.userId) ?? createEmptyTaskBreakdown();
+      const taskBreakdown =
+        countsByUser.get(identity.userId) ?? createEmptyTaskBreakdown();
       const assignedTasks = Object.values(taskBreakdown).reduce(
         (sum, value) => sum + value,
         0,
@@ -283,12 +307,18 @@ async function listAsnParticipants(
     eq(users.tenantId, tenantId),
     hasNonCitizenAccountRole(database, tenantId),
   ];
-  if (filters.opd) conditions.push(ilike(asnProfiles.opdName, contains(filters.opd)));
-  if (filters.unit) conditions.push(ilike(asnProfiles.unitName, contains(filters.unit)));
-  if (filters.position) conditions.push(ilike(jobPositions.name, contains(filters.position)));
+  if (filters.opd)
+    conditions.push(ilike(asnProfiles.opdName, contains(filters.opd)));
+  if (filters.unit)
+    conditions.push(ilike(asnProfiles.unitName, contains(filters.unit)));
+  if (filters.position)
+    conditions.push(ilike(jobPositions.name, contains(filters.position)));
   if (filters.q) {
     const search = contains(filters.q);
-    const searchCondition = or(ilike(users.name, search), ilike(asnProfiles.nip, search));
+    const searchCondition = or(
+      ilike(users.name, search),
+      ilike(asnProfiles.nip, search),
+    );
     if (searchCondition) conditions.push(searchCondition);
   }
 
@@ -305,10 +335,7 @@ async function listAsnParticipants(
     .from(users)
     .leftJoin(
       asnProfiles,
-      and(
-        eq(asnProfiles.userId, users.id),
-        eq(asnProfiles.tenantId, tenantId),
-      ),
+      and(eq(asnProfiles.userId, users.id), eq(asnProfiles.tenantId, tenantId)),
     )
     .leftJoin(jobPositions, eq(jobPositions.id, asnProfiles.positionId))
     .where(and(...conditions));
@@ -394,7 +421,19 @@ async function listPerformanceEvents(
   for (const row of auditRows) {
     const metadata = isRecord(row.metadata) ? row.metadata : {};
     const taskType = auditTaskType(row.action, metadata);
-    if (!taskType || !filters.taskTypes.includes(taskType) || !row.actorId) {
+    const operatorId =
+      typeof metadata.operatorId === "string" ? metadata.operatorId : null;
+    const userId =
+      taskType === "apbd_input" ||
+      [
+        "layanan_kesehatan",
+        "layanan_pendidikan",
+        "layanan_sosial",
+        "perizinan",
+      ].includes(taskType ?? "")
+        ? (operatorId ?? row.actorId)
+        : row.actorId;
+    if (!taskType || !filters.taskTypes.includes(taskType) || !userId) {
       continue;
     }
     if (
@@ -405,7 +444,7 @@ async function listPerformanceEvents(
       auditedReviewItemIds.add(row.targetId);
     }
     events.push({
-      userId: row.actorId,
+      userId,
       tenantId,
       taskType,
       completedAt: row.completedAt,
@@ -470,7 +509,11 @@ async function listPerformanceEvents(
             lte(kycApprovals.createdAt, filters.endDate),
           ),
         );
-      events.push(...kycRows.filter((row) => row.userId !== null) as PerformanceEventRow[]);
+      events.push(
+        ...(kycRows.filter(
+          (row) => row.userId !== null,
+        ) as PerformanceEventRow[]),
+      );
     } catch {
       // kyc_approvals table may not be migrated in all environments
     }
@@ -567,13 +610,18 @@ function auditTaskType(
     return null;
   }
   switch (action) {
+    case "service_application.completed":
+      return serviceApplicationTaskType(metadata.category);
     case "asn.dataset.submitted":
       return "submit_cms";
     case "asn.project_progress.saved":
       return metadata.status === "submitted" ? "submit_cms" : null;
     case "asn.statistics.saved":
-    case "asn.apbd.saved":
       return metadata.status === "published" ? "submit_cms" : null;
+    case "asn.apbd.saved":
+      return metadata.status === "published" ? "apbd_input" : null;
+    case "asn.apbd.review.approved":
+      return metadata.status === "published" ? "apbd_input" : null;
     case "review.assignment.updated":
     case "review.note.saved":
     case "review.status.updated":
@@ -588,10 +636,31 @@ function auditTaskType(
   }
 }
 
+function serviceApplicationTaskType(
+  category: unknown,
+): AsnPerformanceTaskType | null {
+  switch (category) {
+    case "health":
+      return "layanan_kesehatan";
+    case "education":
+      return "layanan_pendidikan";
+    case "social":
+      return "layanan_sosial";
+    case "permit":
+      return "perizinan";
+    default:
+      return null;
+  }
+}
+
 function summarizeByTaskType(items: readonly ParticipantMetrics[]) {
   const result = {} as Record<
     AsnPerformanceTaskType,
-    { assignedTasks: number; completedTasks: number; completionRate: number | null }
+    {
+      assignedTasks: number;
+      completedTasks: number;
+      completionRate: number | null;
+    }
   >;
   for (const taskType of ASN_PERFORMANCE_TASK_TYPES) {
     result[taskType] = summarizeTaskType(items, taskType);
@@ -625,7 +694,6 @@ function serializeRange(filters: AsnPerformanceFilters) {
     taskTypes: filters.taskTypes,
   };
 }
-
 
 function bucketKey(date: Date, granularity: "day" | "week"): string {
   const value = new Date(date);

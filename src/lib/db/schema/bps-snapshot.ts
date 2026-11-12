@@ -16,6 +16,9 @@ export const bpsStatistics = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     indicatorCode: varchar("indicator_code", { length: 100 }).notNull(),
+    indicatorName: varchar("indicator_name", { length: 255 })
+      .notNull()
+      .default(""),
     regionCode: varchar("region_code", { length: 100 }).notNull(),
     year: integer("year").notNull(),
     value: numeric("value", { precision: 20, scale: 6, mode: "number" }).notNull(),

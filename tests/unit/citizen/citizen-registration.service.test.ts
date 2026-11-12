@@ -15,6 +15,7 @@ const dbMock = vi.hoisted(() => ({
 const cloudinaryMock = vi.hoisted(() => ({
   result: {
     publicId: "agoraya/citizen/tenant-id/ktp_abc123",
+    assetId: "asset-abc123",
     secureUrl: "https://res.cloudinary.com/demo/image/upload/v1/ktp.jpg",
     resourceType: "image",
     fileName: "ktp.jpg",
@@ -118,6 +119,7 @@ describe("registerCitizen service", () => {
 
     cloudinaryMock.result = {
       publicId: "agoraya/citizen/tenant-id/ktp_abc123",
+      assetId: "asset-abc123",
       secureUrl: "https://res.cloudinary.com/demo/image/upload/v1/ktp.jpg",
       resourceType: "image",
       fileName: "ktp.jpg",

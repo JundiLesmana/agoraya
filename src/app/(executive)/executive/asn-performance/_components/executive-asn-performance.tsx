@@ -25,6 +25,7 @@ type AsnPerformanceTaskType =
   | "laporan_warga"
   | "perizinan"
   | "submit_cms"
+  | "apbd_input"
   | "review_cms"
   | "review_kyc"
   | "review_workflow"
@@ -38,6 +39,7 @@ const ALL_TASK_TYPES: readonly AsnPerformanceTaskType[] = [
   "laporan_warga",
   "perizinan",
   "submit_cms",
+  "apbd_input",
   "review_cms",
   "review_kyc",
   "review_workflow",
@@ -52,6 +54,7 @@ const TASK_TYPE_LABELS: Readonly<Record<AsnPerformanceTaskType, string>> = {
   laporan_warga: "Laporan Warga",
   perizinan: "Perizinan",
   submit_cms: "Submit Data",
+  apbd_input: "Publikasi APBD",
   review_cms: "Review CMS",
   review_kyc: "Review KYC",
   review_workflow: "Review Layanan & Laporan",
@@ -66,6 +69,7 @@ const TASK_TYPE_COLORS: Readonly<Record<AsnPerformanceTaskType, string>> = {
   laporan_warga: "#7c3aed",
   perizinan: "#b91c1c",
   submit_cms: "#2563eb",
+  apbd_input: "#15803d",
   review_cms: "#0d9488",
   review_kyc: "#38bdf8",
   review_workflow: "#7c3aed",
@@ -80,6 +84,7 @@ interface TaskBreakdown extends Record<AsnPerformanceTaskType, number> {
   laporan_warga: number;
   perizinan: number;
   submit_cms: number;
+  apbd_input: number;
   review_cms: number;
   review_kyc: number;
   review_workflow: number;
@@ -187,6 +192,7 @@ function emptyTaskBreakdown(): TaskBreakdown {
     laporan_warga: 0,
     perizinan: 0,
     submit_cms: 0,
+    apbd_input: 0,
     review_cms: 0,
     review_kyc: 0,
     review_workflow: 0,
@@ -649,6 +655,7 @@ export function ExecutiveAsnPerformance() {
   const activeStaffCount = summaryData?.withAssignmentCount ?? 0;
   const submissionAndReviewCount =
     totalsByTaskType.submit_cms +
+    totalsByTaskType.apbd_input +
     totalsByTaskType.review_cms +
     totalsByTaskType.review_kyc +
     totalsByTaskType.review_workflow;
@@ -1006,6 +1013,7 @@ export function ExecutiveAsnPerformance() {
                     <option value="laporan_warga">Laporan Warga</option>
                     <option value="perizinan">Perizinan</option>
                     <option value="submit_cms">Submit CMS</option>
+                    <option value="apbd_input">Publikasi APBD</option>
                     <option value="review_cms">Review CMS</option>
                     <option value="review_kyc">Review KYC</option>
                   </select>
@@ -1182,13 +1190,13 @@ export function ExecutiveAsnPerformance() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            opacity={t === "submit_cms" || t === "review_cms" || t === "review_kyc" ? 1 : 0.6}
+                            opacity={t === "submit_cms" || t === "apbd_input" || t === "review_cms" || t === "review_kyc" ? 1 : 0.6}
                           />
                         ))}
 
                         {/* Dots for primary task types */}
                         {trendsData.flatMap((item, idx) =>
-                          (["submit_cms", "review_cms", "review_kyc"] as const).map((t) => {
+                          (["submit_cms", "apbd_input", "review_cms", "review_kyc"] as const).map((t) => {
                             const val = item.taskBreakdown[t as AsnPerformanceTaskType];
                             return val > 0 ? (
                               <circle

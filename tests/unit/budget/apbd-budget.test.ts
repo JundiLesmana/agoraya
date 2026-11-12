@@ -8,6 +8,8 @@ import {
 } from "@/modules/apbd-budget/domain";
 import {
   APBD_PERIODS,
+  apbdRecordMetadataSchema,
+  apbdSavePayloadSchema,
   publishedApbdResponseSchema,
 } from "@/modules/apbd-budget/contract";
 
@@ -77,6 +79,29 @@ describe("published APBD response contract", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("APBD operator review contract", () => {
+  it("applies the persisted metadata defaults and only accepts draft or review statuses", () => {
+    const metadata = apbdRecordMetadataSchema.parse({});
+    expect(metadata.currency).toBe("IDR");
+    expect(metadata.basis).toBe("kumulatif");
+    expect(metadata.publicationAccess).toBe("public");
+
+    const basePayload = {
+      referenceYear: 2026,
+      agencyId: "agency-1",
+      regionId: "region-1",
+      sectorId: "education",
+      items: [],
+    };
+    expect(
+      apbdSavePayloadSchema.safeParse({ ...basePayload, status: "draft" }).success,
+    ).toBe(true);
+    expect(
+      apbdSavePayloadSchema.safeParse({ ...basePayload, status: "published" }).success,
+    ).toBe(false);
   });
 });
 

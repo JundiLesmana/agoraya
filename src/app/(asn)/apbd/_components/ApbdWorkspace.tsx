@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,9 +25,11 @@ import {
 import { DatasetSourcePicker } from "../../_components/dataset-source-picker";
 import {
   APBD_PERIODS,
+  apbdRecordMetadataSchema,
   apbdWorkspaceResponseSchema,
   type ApbdAssignment,
   type ApbdPeriodValue,
+  type ApbdRecordMetadata,
   type ApbdWorkspaceResponse,
 } from "@/modules/apbd-budget/contract";
 import {
@@ -40,21 +43,33 @@ import {
 } from "@/modules/apbd-budget/domain";
 
 type PeriodKey = (typeof APBD_PERIODS)[number]["value"];
-type EditablePeriod = { pagu: string; realisasi: string };
+type EditablePeriod = {
+  pagu: string;
+  realisasi: string;
+  targetValue: string;
+  targetDate: string;
+  documentReference: string;
+};
 type EditableItem = {
   id: string | null;
   code: string;
   programName: string;
   subactivityName: string;
+  affairCode: string;
+  programCode: string;
+  activityCode: string;
+  activityName: string;
+  fundingSource: string;
+  supportingDocument: string;
   periods: Record<PeriodKey, EditablePeriod>;
 };
 
 function emptyPeriods(): Record<PeriodKey, EditablePeriod> {
   return {
-    Q1: { pagu: "", realisasi: "" },
-    Q2: { pagu: "", realisasi: "" },
-    Q3: { pagu: "", realisasi: "" },
-    Q4: { pagu: "", realisasi: "" },
+    Q1: { pagu: "", realisasi: "", targetValue: "", targetDate: "", documentReference: "" },
+    Q2: { pagu: "", realisasi: "", targetValue: "", targetDate: "", documentReference: "" },
+    Q3: { pagu: "", realisasi: "", targetValue: "", targetDate: "", documentReference: "" },
+    Q4: { pagu: "", realisasi: "", targetValue: "", targetDate: "", documentReference: "" },
   };
 }
 
@@ -80,6 +95,9 @@ function toEditableItems(
       periods[value] = {
         pagu: saved?.pagu ?? "",
         realisasi: saved?.realisasi ?? "",
+        targetValue: saved?.targetValue ?? "",
+        targetDate: saved?.targetDate ?? "",
+        documentReference: saved?.documentReference ?? "",
       };
     }
     return {
@@ -87,6 +105,12 @@ function toEditableItems(
       code: item.code,
       programName: item.programName,
       subactivityName: item.subactivityName,
+      affairCode: item.affairCode,
+      programCode: item.programCode,
+      activityCode: item.activityCode,
+      activityName: item.activityName,
+      fundingSource: item.fundingSource,
+      supportingDocument: item.supportingDocument,
       periods,
     };
   }) ?? [];
@@ -100,6 +124,9 @@ function toPeriodValues(
     periodValue: value,
     pagu: parseRupiahInteger(periods[value].pagu),
     realisasi: parseRupiahInteger(periods[value].realisasi),
+    targetValue: parseRupiahInteger(periods[value].targetValue),
+    targetDate: periods[value].targetDate || null,
+    documentReference: periods[value].documentReference.trim(),
   }));
 }
 
@@ -168,8 +195,15 @@ export function ApbdWorkspace() {
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const importInput = useRef<HTMLInputElement>(null);
+  const evidenceInput = useRef<HTMLInputElement>(null);
   const loadedContextRef = useRef<string | null>(null);
-  const locked = entry?.status === "published" && revisionOfId === null;
+  const locked =
+    (entry?.status === "published" || entry?.status === "in_review") &&
+    revisionOfId === null;
+  const [recordMetadata, setRecordMetadata] = useState<ApbdRecordMetadata>(
+    () => apbdRecordMetadataSchema.parse({}),
+  );
+  const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
   const agencies = useMemo(() => {
     const values = new Map<string, string>();
@@ -282,6 +316,7 @@ export function ApbdWorkspace() {
       setLoadedContext(null);
       loadedContextRef.current = null;
       setEntry(null);
+      setRecordMetadata(apbdRecordMetadataSchema.parse({}));
       setSourceDatasetSubmissionId(null);
       setItems([]);
       try {
@@ -302,6 +337,9 @@ export function ApbdWorkspace() {
         }
         setAssignments(parsed.data.assignments);
         setEntry(parsed.data.entry);
+        setRecordMetadata(
+          parsed.data.entry?.recordMetadata ?? apbdRecordMetadataSchema.parse({}),
+        );
         setSourceDatasetSubmissionId(
           parsed.data.entry?.sourceDatasetSubmissionId ?? null,
         );
@@ -363,7 +401,7 @@ export function ApbdWorkspace() {
 
   const updateText = (
     itemIndex: number,
-    field: "code" | "programName" | "subactivityName",
+    field: Exclude<keyof EditableItem, "id" | "periods">,
     value: string,
   ) => {
     setItems((current) =>
@@ -376,7 +414,7 @@ export function ApbdWorkspace() {
   const updateAmount = (
     itemIndex: number,
     period: PeriodKey,
-    field: "pagu" | "realisasi",
+    field: "pagu" | "realisasi" | "targetValue",
     value: string,
   ) => {
     setItems((current) =>
@@ -397,7 +435,7 @@ export function ApbdWorkspace() {
   const normalizeAmount = (
     itemIndex: number,
     period: PeriodKey,
-    field: "pagu" | "realisasi",
+    field: "pagu" | "realisasi" | "targetValue",
     value: string,
   ) => {
     try {
@@ -412,6 +450,13 @@ export function ApbdWorkspace() {
     }
   };
 
+  const setMetadataField = <K extends keyof ApbdRecordMetadata>(
+    key: K,
+    value: ApbdRecordMetadata[K],
+  ) => {
+    setRecordMetadata((current) => ({ ...current, [key]: value }));
+  };
+
   const addItem = () => {
     setItems((current) => [
       ...current,
@@ -420,17 +465,23 @@ export function ApbdWorkspace() {
         id: null,
         programName: "",
         subactivityName: "",
+        affairCode: "",
+        programCode: "",
+        activityCode: "",
+        activityName: "",
+        fundingSource: "",
+        supportingDocument: "",
         periods: emptyPeriods(),
       },
     ]);
   };
 
-  const save = async (status: "draft" | "published") => {
+  const save = async (status: "draft" | "in_review") => {
     if (!selectedAssignment || !contextReady) {
       setError("Pilih konteks yang termasuk dalam penugasan akun Anda.");
       return;
     }
-    if (status === "published" && importErrors.length > 0) {
+    if (status === "in_review" && importErrors.length > 0) {
       setError("Perbaiki atau impor ulang CSV; baris yang tidak valid belum masuk ke tabel.");
       return;
     }
@@ -445,6 +496,7 @@ export function ApbdWorkspace() {
         regionId,
         sectorId,
         status,
+        recordMetadata,
         ...(revisionOfId
           ? { revisionOfId, revisionReason: revisionReason.trim() }
           : {}),
@@ -454,11 +506,18 @@ export function ApbdWorkspace() {
           code: item.code.trim(),
           programName: item.programName.trim(),
           subactivityName: item.subactivityName.trim(),
+          affairCode: item.affairCode.trim(),
+          programCode: item.programCode.trim(),
+          activityCode: item.activityCode.trim(),
+          activityName: item.activityName.trim(),
+          fundingSource: item.fundingSource.trim(),
+          supportingDocument: item.supportingDocument.trim(),
           periods: toPeriodValues(item.periods),
         })),
       };
-      if (status === "published" && !window.confirm(
-        "Publikasikan data ini ke portal warga? Data terbit tidak dapat diedit langsung; koreksi harus dibuat sebagai revisi.",
+
+      if (status === "in_review" && !window.confirm(
+        "Kirim data ke administrator untuk ditinjau sebelum publikasi?",
       )) {
         return;
       }
@@ -488,8 +547,8 @@ export function ApbdWorkspace() {
         setError(auditWarning);
       } else {
         setNotice(
-          status === "published"
-            ? "Data berhasil dipublikasikan ke portal warga."
+          status === "in_review"
+            ? "Data berhasil dikirim dan menunggu tinjauan administrator."
             : "Draf APBD berhasil disimpan.",
         );
       }
@@ -501,6 +560,35 @@ export function ApbdWorkspace() {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadEvidence = async (file: File | undefined) => {
+    if (!file || !entry || entry.status !== "draft") return;
+    setUploadingEvidence(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const body = new FormData();
+      body.set("entryId", entry.id);
+      body.set("file", file);
+      const response = await fetch("/api/asn/apbd/documents", {
+        method: "POST",
+        body,
+      });
+      const result: unknown = await response.json();
+      if (!response.ok) throw new Error(apiError(result));
+      await loadContext({ year, agencyId, regionId, sectorId });
+      setNotice("Dokumen verifikasi berhasil disimpan secara privat.");
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Dokumen verifikasi gagal diunggah.",
+      );
+    } finally {
+      setUploadingEvidence(false);
+      if (evidenceInput.current) evidenceInput.current.value = "";
     }
   };
 
@@ -531,6 +619,14 @@ export function ApbdWorkspace() {
               pagu: typeof period.pagu === "string" ? period.pagu : "",
               realisasi:
                 typeof period.realisasi === "string" ? period.realisasi : "",
+              targetValue:
+                typeof period.targetValue === "string" ? period.targetValue : "",
+              targetDate:
+                typeof period.targetDate === "string" ? period.targetDate : "",
+              documentReference:
+                typeof period.documentReference === "string"
+                  ? period.documentReference
+                  : "",
             };
           }
         }
@@ -545,6 +641,20 @@ export function ApbdWorkspace() {
           subactivityName:
             typeof rawItem.subactivityName === "string"
               ? rawItem.subactivityName
+              : "",
+          affairCode:
+            typeof rawItem.affairCode === "string" ? rawItem.affairCode : "",
+          programCode:
+            typeof rawItem.programCode === "string" ? rawItem.programCode : "",
+          activityCode:
+            typeof rawItem.activityCode === "string" ? rawItem.activityCode : "",
+          activityName:
+            typeof rawItem.activityName === "string" ? rawItem.activityName : "",
+          fundingSource:
+            typeof rawItem.fundingSource === "string" ? rawItem.fundingSource : "",
+          supportingDocument:
+            typeof rawItem.supportingDocument === "string"
+              ? rawItem.supportingDocument
               : "",
           periods: mappedPeriods,
         });
@@ -643,10 +753,176 @@ export function ApbdWorkspace() {
         </div>
         {entry && contextReady ? (
           <Badge variant={entry.status === "published" ? "default" : "outline"}>
-            {entry.status === "published" ? "Terpublikasi" : "Draf"}
+            {entry.status === "published"
+              ? "Terpublikasi"
+              : entry.status === "in_review"
+                ? "Menunggu tinjauan"
+                : "Draf"}
           </Badge>
         ) : null}
       </header>
+
+      <fieldset disabled={locked || loadingEntry || !contextReady} className="contents">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Identitas &amp; organisasi</CardTitle>
+          <CardDescription>Metadata administrasi yang ikut tersimpan bersama APBD.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["budgetId", "ID anggaran"],
+            ["datasetId", "ID dataset"],
+            ["opdName", "Nama OPD"],
+            ["unitName", "Unit kerja"],
+            ["province", "Provinsi"],
+            ["provinceCode", "Kode provinsi"],
+            ["city", "Kabupaten / kota"],
+            ["cityCode", "Kode kabupaten / kota"],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="space-y-1.5 text-sm font-medium">
+              {label}
+              <input
+                value={recordMetadata[key]}
+                onChange={(event) => setMetadataField(key, event.target.value)}
+                disabled={locked || loadingEntry}
+                maxLength={key === "budgetId" || key === "datasetId" ? 120 : 200}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted"
+              />
+            </label>
+          ))}
+          <label className="space-y-1.5 text-sm font-medium">
+            Jenis APBD
+            <select
+              value={recordMetadata.budgetType}
+              onChange={(event) => setMetadataField("budgetType", event.target.value as ApbdRecordMetadata["budgetType"])}
+              disabled={locked || loadingEntry}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted"
+            >
+              {["APBD", "APBD-P", "Perubahan", "Lainnya"].map((value) => <option key={value}>{value}</option>)}
+            </select>
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Pagu &amp; basis pencatatan</CardTitle>
+          <CardDescription>Masukkan pagu awal dan pagu setelah revisi; mata uang dan basis angka dicatat permanen.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["initialBudget", "Pagu awal"],
+            ["revisedBudget", "Pagu revisi"],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="space-y-1.5 text-sm font-medium">
+              {label} (Rp)
+              <input
+                value={recordMetadata[key] ?? ""}
+                inputMode="numeric"
+                onChange={(event) => setMetadataField(key, event.target.value || null)}
+                onBlur={(event) => {
+                  try {
+                    setMetadataField(key, parseRupiahInteger(event.target.value));
+                    setError(null);
+                  } catch (amountError) {
+                    setError(amountError instanceof Error ? amountError.message : "Format Pagu tidak valid.");
+                  }
+                }}
+                disabled={locked || loadingEntry}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-right font-normal tabular-nums disabled:bg-muted"
+              />
+            </label>
+          ))}
+          <label className="space-y-1.5 text-sm font-medium">Mata uang<input readOnly value="IDR" className="h-10 w-full rounded-md border border-input bg-muted px-3 font-normal" /></label>
+          <label className="space-y-1.5 text-sm font-medium">Satuan<input readOnly value="Rupiah penuh" className="h-10 w-full rounded-md border border-input bg-muted px-3 font-normal" /></label>
+          <label className="space-y-1.5 text-sm font-medium">Basis pencatatan<input readOnly value="Kumulatif per triwulan" className="h-10 w-full rounded-md border border-input bg-muted px-3 font-normal" /></label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ringkasan publik</CardTitle>
+          <CardDescription>Ringkasan ini disimpan bersama data dan dapat ditampilkan setelah disetujui.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            value={recordMetadata.publicSummary}
+            onChange={(event) => setMetadataField("publicSummary", event.target.value)}
+            disabled={locked || loadingEntry}
+            maxLength={2000}
+            rows={3}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm disabled:bg-muted"
+            placeholder="Tuliskan ringkasan program dan manfaatnya untuk publik."
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Revisi, selisih &amp; penanggung jawab</CardTitle>
+          <CardDescription>Catat alasan selisih, tindakan koreksi, dan PIC yang bertanggung jawab.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-1.5 text-sm font-medium">Alasan selisih
+            <textarea value={recordMetadata.varianceReason} onChange={(event) => setMetadataField("varianceReason", event.target.value)} disabled={locked || loadingEntry} maxLength={1000} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Tindakan koreksi
+            <textarea value={recordMetadata.correctiveAction} onChange={(event) => setMetadataField("correctiveAction", event.target.value)} disabled={locked || loadingEntry} maxLength={1000} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Penanggung jawab
+            <input value={recordMetadata.responsiblePerson} onChange={(event) => setMetadataField("responsiblePerson", event.target.value)} disabled={locked || loadingEntry} maxLength={160} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sumber, verifikasi &amp; akses</CardTitle>
+          <CardDescription>Dokumen bukti bersifat privat dan hanya dapat dibuka pengguna berwenang.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="space-y-1.5 text-sm font-medium">URL sumber resmi
+            <input type="url" value={recordMetadata.sourceUrl} onChange={(event) => setMetadataField("sourceUrl", event.target.value)} disabled={locked || loadingEntry} maxLength={1000} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">PIC verifikasi
+            <input value={recordMetadata.verificationPic} onChange={(event) => setMetadataField("verificationPic", event.target.value)} disabled={locked || loadingEntry} maxLength={160} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Approver anggaran
+            <input value={recordMetadata.financialApprover} onChange={(event) => setMetadataField("financialApprover", event.target.value)} disabled={locked || loadingEntry} maxLength={160} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Versi dataset
+            <input value={recordMetadata.datasetVersion} onChange={(event) => setMetadataField("datasetVersion", event.target.value)} disabled={locked || loadingEntry} maxLength={80} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Akses publikasi
+            <select value={recordMetadata.publicationAccess} onChange={(event) => setMetadataField("publicationAccess", event.target.value as ApbdRecordMetadata["publicationAccess"])} disabled={locked || loadingEntry} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted">
+              <option value="public">Publik</option><option value="internal">Internal</option>
+            </select>
+          </label>
+          <label className="space-y-1.5 text-sm font-medium">Tanggal validasi
+            <input type="datetime-local" value={recordMetadata.validatedAt ? new Date(recordMetadata.validatedAt).toISOString().slice(0, 16) : ""} onChange={(event) => setMetadataField("validatedAt", event.target.value ? new Date(event.target.value).toISOString() : null)} disabled={locked || loadingEntry} className="h-10 w-full rounded-md border border-input bg-background px-3 font-normal disabled:bg-muted" />
+          </label>
+          <label className="space-y-1.5 text-sm font-medium sm:col-span-2 lg:col-span-3">Catatan validasi
+            <textarea value={recordMetadata.validationNotes} onChange={(event) => setMetadataField("validationNotes", event.target.value)} disabled={locked || loadingEntry} maxLength={1000} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 font-normal disabled:bg-muted" />
+          </label>
+          <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+            <p className="text-sm font-medium">Dokumen verifikasi (PDF, maks. 10 MB)</p>
+            <p className="text-xs text-muted-foreground">Minimal satu dokumen verifikasi wajib tersedia sebelum data diajukan ke administrator.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" onClick={() => evidenceInput.current?.click()} disabled={!entry || entry.status !== "draft" || uploadingEvidence}>
+                {uploadingEvidence ? "Mengunggah…" : "Unggah dokumen"}
+              </Button>
+              <input ref={evidenceInput} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Pilih dokumen bukti APBD" onChange={(event) => void uploadEvidence(event.currentTarget.files?.[0])} />
+              {!entry ? <span className="text-xs text-muted-foreground">Simpan draf terlebih dahulu untuk melampirkan bukti.</span> : null}
+            </div>
+            {entry?.documents.length ? (
+              <ul className="space-y-1 text-sm">
+                {entry.documents.map((document) => <li key={document.id}><a className="text-primary underline" href={`/api/asn/apbd/documents/${document.id}`} target="_blank" rel="noreferrer">{document.originalName}</a></li>)}
+              </ul>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+      </fieldset>
 
       <Card>
         <CardHeader>
@@ -926,20 +1202,28 @@ export function ApbdWorkspace() {
             <CardContent>
               {locked ? (
                 <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-                  <p className="text-muted-foreground">
-                    Data terpublikasi dikunci agar riwayat warga tetap utuh.
-                    Koreksi dilakukan sebagai revisi baru.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setRevisionOfId(entry.id);
-                      setRevisionReason("");
-                    }}
-                  >
-                    Buat revisi
-                  </Button>
+                  {entry.status === "in_review" ? (
+                    <p className="text-muted-foreground">
+                      Data sedang ditinjau administrator. Perubahan dikunci sampai keputusan review diberikan.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-muted-foreground">
+                        Data terpublikasi dikunci agar riwayat warga tetap utuh.
+                        Koreksi dilakukan sebagai revisi baru.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setRevisionOfId(entry.id);
+                          setRevisionReason("");
+                        }}
+                      >
+                        Buat revisi
+                      </Button>
+                    </>
+                  )}
                 </div>
               ) : null}
               {revisionOfId ? (
@@ -985,7 +1269,7 @@ export function ApbdWorkspace() {
                 />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-[1240px] w-full border-collapse text-left text-sm">
+                  <table className="min-w-[1680px] w-full border-collapse text-left text-sm">
                     <caption className="sr-only">
                       Input Pagu dan Realisasi per sub-kegiatan dan triwulan
                     </caption>
@@ -998,7 +1282,7 @@ export function ApbdWorkspace() {
                           <th
                             key={period.value}
                             scope="colgroup"
-                            colSpan={2}
+                            colSpan={4}
                             className="border-l p-3 text-center"
                           >
                             {period.label}
@@ -1012,6 +1296,8 @@ export function ApbdWorkspace() {
                         {APBD_PERIODS.flatMap((period) => [
                           <th key={`${period.value}-pagu`} scope="col" className="border-l p-2">Pagu</th>,
                           <th key={`${period.value}-realisasi`} scope="col" className="p-2">Realisasi</th>,
+                          <th key={`${period.value}-target`} scope="col" className="p-2">Target</th>,
+                          <th key={`${period.value}-date`} scope="col" className="p-2">Batas</th>,
                         ])}
                       </tr>
                     </thead>
@@ -1019,7 +1305,7 @@ export function ApbdWorkspace() {
                       {items.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={14}
+                            colSpan={22}
                             className="p-10 text-center text-muted-foreground"
                           >
                             Belum ada sub-kegiatan pada konteks ini. Tambahkan
@@ -1051,7 +1337,8 @@ export function ApbdWorkspace() {
                           const percent =
                             formatApbdPercent(itemRealisasi, itemPagu);
                           return (
-                            <tr key={`${item.code}-${index}`} className="border-b align-top">
+                            <Fragment key={`${item.code}-${index}`}>
+                            <tr className="border-b align-top">
                               <td className="p-2">
                                 <input
                                   aria-label={`Kode sub-kegiatan baris ${index + 1}`}
@@ -1089,35 +1376,32 @@ export function ApbdWorkspace() {
                                 />
                               </td>
                               {APBD_PERIODS.flatMap((period) =>
-                                (["pagu", "realisasi"] as const).map((field) => (
+                                (["pagu", "realisasi", "targetValue", "targetDate"] as const).map((field) => (
                                   <td
                                     key={`${period.value}-${field}`}
                                     className={`p-2 ${field === "pagu" ? "border-l" : ""}`}
                                   >
-                                    <input
-                                      aria-label={`${field === "pagu" ? "Pagu" : "Realisasi"} ${period.label} ${item.code || `baris ${index + 1}`}`}
-                                      value={item.periods[period.value][field]}
-                                      disabled={locked}
-                                      inputMode="numeric"
-                                      onChange={(event) =>
-                                        updateAmount(
-                                          index,
-                                          period.value,
-                                          field,
-                                          event.target.value,
-                                        )
-                                      }
-                                      onBlur={(event) =>
-                                        normalizeAmount(
-                                          index,
-                                          period.value,
-                                          field,
-                                          event.target.value,
-                                        )
-                                      }
-                                      className="h-9 w-36 rounded border border-input bg-background px-2 text-right tabular-nums disabled:bg-muted"
-                                      placeholder="—"
-                                    />
+                                    {field === "targetDate" ? (
+                                      <input
+                                        aria-label={`Tanggal target ${period.label} ${item.code || `baris ${index + 1}`}`}
+                                        type="date"
+                                        value={item.periods[period.value].targetDate}
+                                        disabled={locked}
+                                        onChange={(event) => setItems((current) => current.map((row, rowIndex) => rowIndex === index ? { ...row, periods: { ...row.periods, [period.value]: { ...row.periods[period.value], targetDate: event.target.value } } } : row))}
+                                        className="h-9 w-36 rounded border border-input bg-background px-2 disabled:bg-muted"
+                                      />
+                                    ) : (
+                                      <input
+                                        aria-label={`${field === "pagu" ? "Pagu" : field === "realisasi" ? "Realisasi" : "Target"} ${period.label} ${item.code || `baris ${index + 1}`}`}
+                                        value={item.periods[period.value][field]}
+                                        disabled={locked}
+                                        inputMode="numeric"
+                                        onChange={(event) => updateAmount(index, period.value, field, event.target.value)}
+                                        onBlur={(event) => normalizeAmount(index, period.value, field, event.target.value)}
+                                        className="h-9 w-36 rounded border border-input bg-background px-2 text-right tabular-nums disabled:bg-muted"
+                                        placeholder="—"
+                                      />
+                                    )}
                                   </td>
                                 )),
                               )}
@@ -1131,6 +1415,37 @@ export function ApbdWorkspace() {
                                 {percent}
                               </td>
                             </tr>
+                            <tr className="border-b">
+                              <td colSpan={22} className="px-3 py-2">
+                                <details>
+                                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                                    Kode urusan, program, kegiatan, sumber dana &amp; dokumen
+                                  </summary>
+                                  <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {([
+                                      ["affairCode", "Kode urusan", 64],
+                                      ["programCode", "Kode program", 64],
+                                      ["activityCode", "Kode kegiatan", 64],
+                                      ["activityName", "Nama kegiatan", 240],
+                                      ["fundingSource", "Sumber dana", 160],
+                                      ["supportingDocument", "Referensi dokumen anggaran", 500],
+                                    ] as const).map(([field, label, maxLength]) => (
+                                      <label key={field} className="space-y-1 text-xs font-medium">
+                                        {label}
+                                        <input
+                                          value={item[field]}
+                                          onChange={(event) => updateText(index, field, event.target.value)}
+                                          disabled={locked}
+                                          maxLength={maxLength}
+                                          className="h-9 w-full rounded border border-input bg-background px-2 font-normal disabled:bg-muted"
+                                        />
+                                      </label>
+                                    ))}
+                                  </div>
+                                </details>
+                              </td>
+                            </tr>
+                            </Fragment>
                           );
                         })
                       )}
@@ -1158,10 +1473,9 @@ export function ApbdWorkspace() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Simpan &amp; Publikasi</CardTitle>
+              <CardTitle className="text-base">Simpan &amp; Ajukan Tinjauan</CardTitle>
               <CardDescription>
-                Draf dapat diperbarui. Data terpublikasi dikunci dan koreksinya
-                membuat revisi baru tanpa menghapus riwayat.
+                Draf dapat diperbarui. Pengajuan harus disetujui administrator sebelum dipublikasikan.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1187,11 +1501,11 @@ export function ApbdWorkspace() {
                   {saving ? "Menyimpan…" : "Simpan Draf"}
                 </Button>
                 <Button
-                  onClick={() => void save("published")}
+                  onClick={() => void save("in_review")}
                   disabled={locked || saving || loadingEntry || !selectedAssignment || !contextReady}
                 >
                   <Send className="size-4" aria-hidden="true" />
-                  Publikasikan ke Portal
+                  Kirim untuk Tinjauan
                 </Button>
                 {entry?.status === "published" && locked ? (
                   <span className="flex items-center gap-2 text-sm text-muted-foreground">

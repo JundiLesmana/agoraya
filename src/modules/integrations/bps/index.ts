@@ -1,4 +1,5 @@
 export * from "./adapter";
+export * from "./category";
 export * from "./parser";
 export * from "./service";
 export * from "./sync";

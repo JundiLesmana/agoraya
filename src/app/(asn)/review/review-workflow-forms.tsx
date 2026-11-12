@@ -80,6 +80,16 @@ export function ReviewWorkflowForms({
         <p className="text-muted-foreground mt-2 text-xs">
           Pilih petugas ASN aktif dari instansi ini.
         </p>
+        {staff.length === 0 && (
+          <p
+            className="mt-2 text-xs text-amber-700 dark:text-amber-300"
+            role="status"
+          >
+            Belum ada akun ASN aktif yang dapat ditugaskan. Pastikan akun
+            berstatus aktif dan memiliki profil ASN atau peran ASN pada instansi
+            ini.
+          </p>
+        )}
         <form action={assignmentAction} className="mt-3 space-y-3">
           <input type="hidden" name="itemType" value={itemType} />
           <input type="hidden" name="itemId" value={itemId} />

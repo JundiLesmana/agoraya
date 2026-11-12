@@ -36,4 +36,16 @@ describe("review workflow status", () => {
       canChangeReviewStatus("service_application", "legacy", "verified"),
     ).toBe(false);
   });
+
+  it("requires service processing to complete an application", () => {
+    expect(
+      canChangeReviewStatus("service_application", "in_progress", "resolved"),
+    ).toBe(false);
+    expect(
+      canChangeReviewStatus("service_application", "resolved", "closed"),
+    ).toBe(false);
+    expect(
+      canChangeReviewStatus("report", "submitted", "waiting_for_citizen"),
+    ).toBe(false);
+  });
 });

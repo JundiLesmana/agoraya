@@ -72,6 +72,7 @@ describe("BPS parser", () => {
     expect(parseBpsResponse(bpsResponse, selector, "124", 2024)).toEqual([
       {
         indicatorCode: "bps:0000:413:0:0",
+        indicatorName: "Indeks Pembangunan Manusia",
         regionCode: "1100",
         value: 74.03,
         year: 2024,
@@ -79,6 +80,7 @@ describe("BPS parser", () => {
       },
       {
         indicatorCode: "bps:0000:413:0:0",
+        indicatorName: "Indeks Pembangunan Manusia",
         regionCode: "1101",
         value: 69.01,
         year: 2024,

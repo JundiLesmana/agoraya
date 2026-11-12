@@ -65,7 +65,7 @@ async function authorizeOperator() {
  * Impor data BPS yang tersedia saat ini. ASN hanya menyinkronkan data
  * agregat yang tersedia dari BPS API pada waktu impor; data mentah BPS
  * tidak disimpan, hanya agregat statistik yang dimasukkan ke database
- * dan catalog metadata yang ditandai menunggu tinjauan sebelum publikasi.
+ * yang langsung diperbarui pada katalog publik dan CSV terolah.
  */
 export async function POST(request: Request): Promise<Response> {
   const authorization = await authorizeOperator();
@@ -149,7 +149,7 @@ export async function POST(request: Request): Promise<Response> {
         count: result.count,
         submission,
         message:
-          "Snapshot statistik BPS berhasil dikirim ke penugasan yang dipilih.",
+          "Statistik BPS terpublikasi dan snapshot untuk penugasan yang dipilih berhasil dikirim untuk ditinjau ASN.",
       });
     }
 
@@ -158,7 +158,7 @@ export async function POST(request: Request): Promise<Response> {
       count: result.count,
       error: result.error ?? null,
       message: result.synced
-        ? "Data BPS berhasil disimpan pada kategori Statistik dan menunggu tinjauan sebelum dipublikasikan."
+        ? "Data BPS berhasil diolah, diperbarui pada CSV kategori Statistik, dan tersedia pada grafik publik."
         : "Sinkronisasi BPS gagal. Data snapshot terakhir tetap tersedia untuk publik.",
     });
   } catch (error) {
