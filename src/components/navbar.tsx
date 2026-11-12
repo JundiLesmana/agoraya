@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { href: '/data', label: 'Data Pemerintah' },
   { href: '/citizen/service', label: 'Layanan Publik' },
   { href: '/reporting', label: 'Lapor Warga' },
-  { href: '/insights', label: 'Insight' },
+  { href: '/insight', label: 'Insight' },
   { href: '/tentang', label: 'Tentang' },
 ] as const;
 

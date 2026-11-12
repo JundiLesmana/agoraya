@@ -60,7 +60,7 @@ const SERVICE_CARDS = [
     title: 'Insight',
     description:
       'Ubah data publik menjadi insight yang mudah dicerna, seperti perbandingan kualitas layanan antar daerah, tren anggaran, atau indikator kesejahteraan untuk membantu pengambilan keputusan.',
-    href: '/insights',
+    href: '/insight',
     cta: 'Jelajahi Insight',
     accent: 'violet',
     Icon: Sparkles,
