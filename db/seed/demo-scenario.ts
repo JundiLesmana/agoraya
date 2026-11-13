@@ -303,7 +303,10 @@ export async function seedDemoScenario(
     await dbx
       .insert(permissions)
       .values(p)
-      .onConflictDoUpdate({ target: permissions.key, set: p });
+      .onConflictDoUpdate({
+        target: permissions.key,
+        set: { description: p.description, updatedAt: now },
+      });
   }
 
   for (const appRole of APPLICATION_ROLE_SEEDS) {

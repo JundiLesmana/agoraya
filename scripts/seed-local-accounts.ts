@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   applicationRoles,
@@ -274,6 +274,8 @@ async function main(): Promise<void> {
         .where(eq(tenants.slug, LOCAL_TENANT_SLUG))
         .limit(1);
       if (!tenant) throw new Error("Tenant seed lokal tidak berhasil dibuat.");
+
+      await tx.execute(sql.raw(`SET LOCAL app.tenant_id = '${tenant.id}'`));
 
       const roleIds = new Map<string, string>();
       for (const role of ROLE_DEFINITIONS) {

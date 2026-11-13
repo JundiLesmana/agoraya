@@ -140,7 +140,7 @@ export function ReportQuickActions({
               <MapPin aria-hidden="true" className="size-6" />
             </span>
             <span className="bg-card text-card-foreground absolute right-4 bottom-4 rounded-lg px-3 py-2 text-xs font-semibold shadow">
-              Jalan berlubang di Jl. Melati
+              Klik untuk melihat peta sebaran laporan publik
             </span>
             <Link
               href="/map"
