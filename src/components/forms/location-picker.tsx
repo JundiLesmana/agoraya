@@ -158,12 +158,14 @@ export function LocationPicker({
   disabled = false,
   className,
   ariaLabel = "Pilih lokasi di peta",
+  id,
 }: {
   value: LocationData | null;
   onChange: (value: LocationData | null) => void;
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  id?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -365,7 +367,7 @@ export function LocationPicker({
     : "";
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div id={id} className={cn("space-y-3", className)}>
       <div className="relative">
         <Label htmlFor="location-search" className="sr-only">
           Cari lokasi

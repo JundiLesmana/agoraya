@@ -156,9 +156,8 @@ function validateStep(step: number, values: ReportFormValues): boolean {
       values.description.trim().length >= 50 &&
       values.subcategory.length > 0 &&
       values.location !== null &&
-      values.location.province.trim().length > 0 &&
-      values.location.city.trim().length > 0 &&
-      values.location.address.trim().length > 0
+      typeof values.location.latitude === "number" &&
+      typeof values.location.longitude === "number"
     );
   }
   if (step === 3) {
@@ -375,15 +374,12 @@ export function ReportForm({
   const subcategoryError = values.subcategory
     ? undefined
     : "Pilih kategori laporan yang lebih spesifik.";
-  const provinceError = values.location?.province.trim()
-    ? undefined
-    : "Provinsi wajib diisi (pilih dari peta).";
-  const cityError = values.location?.city.trim()
-    ? undefined
-    : "Kabupaten atau kota wajib diisi (pilih dari peta).";
-  const locationError = values.location?.address.trim()
-    ? undefined
-    : "Alamat atau patokan lokasi wajib diisi (pilih dari peta).";
+  const locationError =
+    values.location !== null &&
+    typeof values.location.latitude === "number" &&
+    typeof values.location.longitude === "number"
+      ? undefined
+      : "Pilih lokasi kejadian pada peta.";
   const nameError =
     values.name.trim().length === 0
       ? "Nama samaran wajib diisi."
@@ -612,6 +608,7 @@ export function ReportForm({
                 error={locationError}
               >
                 <LocationPicker
+                  id="report-location"
                   value={values.location}
                   onChange={(location) => updateValue("location", location)}
                   ariaLabel="Pilih lokasi kejadian di peta"
