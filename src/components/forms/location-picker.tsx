@@ -204,7 +204,6 @@ export function LocationPicker({
                 "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
               ],
               tileSize: 256,
-              attribution: "© OpenStreetMap contributors",
               maxzoom: 19,
             },
           },

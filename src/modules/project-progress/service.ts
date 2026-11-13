@@ -17,6 +17,7 @@ import {
   projectProgressAttachments,
   projectProgressReports,
   tenants,
+  users,
 } from "@/lib/db/schema";
 import { statisticOperatorAssignments } from "@/lib/db/schema/statistics-input";
 import type { Session } from "@/lib/auth/session";
@@ -59,7 +60,7 @@ interface SubmitResult {
   readonly deviation: ReturnType<typeof computeProgressDeviation>;
 }
 
-class ProgressServiceError extends Error {
+export class ProgressServiceError extends Error {
   constructor(
     message: string,
     readonly status: number,
@@ -934,4 +935,307 @@ export async function handleSubmit(
     );
   }
   return NextResponse.json(result, { status: 201 });
+}
+
+export type AdminProjectRow = {
+  id: string;
+  tenantId: string;
+  assignedUserId: string;
+  assignedUserEmail: string;
+  assignedUserName: string;
+  externalProjectId: string;
+  packageName: string;
+  location: string;
+  sector: string;
+  contractValue: number;
+  providerName: string;
+  startDate: string;
+  endDate: string;
+  fiscalYear: number;
+  initialPhysicalProgress: number;
+  initialFinancialProgress: number;
+  status: string;
+  reportCount: number;
+};
+
+function requireProjectAdmin(session: Session): void {
+  if (!session.roles.some((role) => ["admin", "superadmin"].includes(role))) {
+    throw new ProgressServiceError(
+      "Hanya administrator yang dapat mengelola proyek.",
+      403,
+    );
+  }
+}
+
+export async function listInfrastructureProjectsForAdmin(
+  session: Session,
+): Promise<AdminProjectRow[]> {
+  requireProjectAdmin(session);
+  return withProjectContext(session, async (transaction) => {
+    const rows = await transaction
+      .select({
+        id: infrastructureProjects.id,
+        tenantId: infrastructureProjects.tenantId,
+        assignedUserId: infrastructureProjects.assignedUserId,
+        assignedUserEmail: users.email,
+        assignedUserName: users.name,
+        externalProjectId: infrastructureProjects.externalProjectId,
+        packageName: infrastructureProjects.packageName,
+        location: infrastructureProjects.location,
+        sector: infrastructureProjects.sector,
+        contractValue: infrastructureProjects.contractValue,
+        providerName: infrastructureProjects.providerName,
+        startDate: infrastructureProjects.startDate,
+        endDate: infrastructureProjects.endDate,
+        fiscalYear: infrastructureProjects.fiscalYear,
+        initialPhysicalProgress: infrastructureProjects.initialPhysicalProgress,
+        initialFinancialProgress:
+          infrastructureProjects.initialFinancialProgress,
+        status: infrastructureProjects.status,
+        reportCount: sql<number>`(
+          SELECT COUNT(*)::int FROM project_progress_reports r
+          WHERE r.project_id = ${infrastructureProjects.id}
+            AND r.tenant_id = ${infrastructureProjects.tenantId}
+        )`,
+      })
+      .from(infrastructureProjects)
+      .innerJoin(
+        users,
+        and(
+          eq(users.id, infrastructureProjects.assignedUserId),
+          eq(users.tenantId, infrastructureProjects.tenantId),
+        ),
+      )
+      .where(eq(infrastructureProjects.tenantId, session.tenantId))
+      .orderBy(
+        desc(infrastructureProjects.fiscalYear),
+        infrastructureProjects.packageName,
+      );
+    return rows.map((row) => ({
+      ...row,
+      contractValue: Number(row.contractValue),
+      initialPhysicalProgress: Number(row.initialPhysicalProgress),
+      initialFinancialProgress: Number(row.initialFinancialProgress),
+      reportCount: Number(row.reportCount),
+    }));
+  });
+}
+
+export async function createInfrastructureProject(
+  session: Session,
+  payload: {
+    assignedUserId: string;
+    externalProjectId: string;
+    packageName: string;
+    location: string;
+    sector: string;
+    contractValue: number;
+    providerName: string;
+    startDate: string;
+    endDate: string;
+    fiscalYear: number;
+    initialPhysicalProgress: number;
+    initialFinancialProgress: number;
+    status: string;
+  },
+): Promise<{ id: string }> {
+  requireProjectAdmin(session);
+  return withProjectContext(session, async (transaction) => {
+    const [user] = await transaction
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.id, payload.assignedUserId),
+          eq(users.tenantId, session.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!user) {
+      throw new ProgressServiceError(
+        "Pengguna penanggung jawab tidak ditemukan dalam tenant Anda.",
+        404,
+      );
+    }
+    try {
+      const [inserted] = await transaction
+        .insert(infrastructureProjects)
+        .values({
+          tenantId: session.tenantId,
+          assignedUserId: payload.assignedUserId,
+          externalProjectId: payload.externalProjectId,
+          packageName: payload.packageName,
+          location: payload.location,
+          sector: payload.sector,
+          contractValue: payload.contractValue,
+          providerName: payload.providerName,
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+          fiscalYear: payload.fiscalYear,
+          initialPhysicalProgress: payload.initialPhysicalProgress,
+          initialFinancialProgress: payload.initialFinancialProgress,
+          status: payload.status,
+        })
+        .returning({ id: infrastructureProjects.id });
+      if (!inserted) throw new Error("Proyek gagal dibuat.");
+      return { id: inserted.id };
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "23505"
+      ) {
+        throw new ProgressServiceError(
+          "ID proyek eksternal sudah digunakan dalam tenant ini.",
+          409,
+        );
+      }
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "23503"
+      ) {
+        throw new ProgressServiceError(
+          "Pengguna penanggung jawab tidak valid untuk tenant ini.",
+          400,
+        );
+      }
+      throw error;
+    }
+  });
+}
+
+export async function updateInfrastructureProject(
+  session: Session,
+  projectId: string,
+  payload: {
+    assignedUserId: string;
+    externalProjectId: string;
+    packageName: string;
+    location: string;
+    sector: string;
+    contractValue: number;
+    providerName: string;
+    startDate: string;
+    endDate: string;
+    fiscalYear: number;
+    initialPhysicalProgress: number;
+    initialFinancialProgress: number;
+    status: string;
+  },
+): Promise<void> {
+  requireProjectAdmin(session);
+  return withProjectContext(session, async (transaction) => {
+    const [existing] = await transaction
+      .select({ id: infrastructureProjects.id })
+      .from(infrastructureProjects)
+      .where(
+        and(
+          eq(infrastructureProjects.id, projectId),
+          eq(infrastructureProjects.tenantId, session.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!existing) {
+      throw new ProgressServiceError("Proyek tidak ditemukan.", 404);
+    }
+    try {
+      await transaction
+        .update(infrastructureProjects)
+        .set({
+          assignedUserId: payload.assignedUserId,
+          externalProjectId: payload.externalProjectId,
+          packageName: payload.packageName,
+          location: payload.location,
+          sector: payload.sector,
+          contractValue: payload.contractValue,
+          providerName: payload.providerName,
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+          fiscalYear: payload.fiscalYear,
+          initialPhysicalProgress: payload.initialPhysicalProgress,
+          initialFinancialProgress: payload.initialFinancialProgress,
+          status: payload.status,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(infrastructureProjects.id, projectId),
+            eq(infrastructureProjects.tenantId, session.tenantId),
+          ),
+        );
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "23505"
+      ) {
+        throw new ProgressServiceError(
+          "ID proyek eksternal sudah digunakan dalam tenant ini.",
+          409,
+        );
+      }
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        (error as { code: string }).code === "23503"
+      ) {
+        throw new ProgressServiceError(
+          "Pengguna penanggung jawab tidak valid untuk tenant ini.",
+          400,
+        );
+      }
+      throw error;
+    }
+  });
+}
+
+export async function deleteInfrastructureProject(
+  session: Session,
+  projectId: string,
+): Promise<void> {
+  requireProjectAdmin(session);
+  return withProjectContext(session, async (transaction) => {
+    const [existing] = await transaction
+      .select({ id: infrastructureProjects.id })
+      .from(infrastructureProjects)
+      .where(
+        and(
+          eq(infrastructureProjects.id, projectId),
+          eq(infrastructureProjects.tenantId, session.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!existing) {
+      throw new ProgressServiceError("Proyek tidak ditemukan.", 404);
+    }
+    const [report] = await transaction
+      .select({ id: projectProgressReports.id })
+      .from(projectProgressReports)
+      .where(
+        and(
+          eq(projectProgressReports.projectId, projectId),
+          eq(projectProgressReports.tenantId, session.tenantId),
+        ),
+      )
+      .limit(1);
+    if (report) {
+      throw new ProgressServiceError(
+        "Proyek tidak dapat dihapus karena sudah memiliki laporan progres. Arsipkan atau kelola data laporan terlebih dahulu.",
+        409,
+      );
+    }
+    await transaction
+      .delete(infrastructureProjects)
+      .where(
+        and(
+          eq(infrastructureProjects.id, projectId),
+          eq(infrastructureProjects.tenantId, session.tenantId),
+        ),
+      );
+  });
 }

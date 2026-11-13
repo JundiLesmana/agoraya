@@ -282,14 +282,6 @@ function RasterFallback({
           −
         </button>
       </div>
-      <a
-        href="https://www.openstreetmap.org/copyright"
-        target="_blank"
-        rel="noreferrer"
-        className="absolute right-1 bottom-1 z-20 rounded bg-white/90 px-1 text-[10px] text-slate-700"
-      >
-        © OpenStreetMap contributors
-      </a>
     </div>
   );
 }
@@ -418,7 +410,6 @@ export function Map({
                   "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 ],
                 tileSize: 256,
-                attribution: "© OpenStreetMap contributors",
                 maxzoom: 19,
               },
             },

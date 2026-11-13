@@ -870,3 +870,112 @@ export async function saveStatisticsInput(
     throw error;
   }
 }
+
+type AdminStatisticAssignmentRow = Row & {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  agencyId: string;
+  regionId: string;
+  regionName: string;
+  sectorId: string;
+};
+
+export async function listStatisticOperatorAssignments(
+  session: Session,
+  database: Database = getDefaultDatabase(),
+): Promise<AdminStatisticAssignmentRow[]> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const rows = await transaction.query<AdminStatisticAssignmentRow>(
+        `SELECT a.id::text AS id, a.user_id AS "userId",
+               u.email AS "userEmail", u.name AS "userName",
+               a.agency_id AS "agencyId", a.region_id AS "regionId",
+               a.region_name AS "regionName", a.sector_id AS "sectorId"
+        FROM statistic_operator_assignments a
+        INNER JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+        WHERE a.tenant_id = $1
+        ORDER BY u.email, a.region_name, a.sector_id, a.agency_id`,
+        [session.tenantId],
+      );
+      return rows;
+    },
+    database,
+  );
+}
+
+export async function createStatisticOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    regionName: string;
+    sectorId: StatisticAssignment["sectorId"];
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const user = await transaction.queryOne<Row & { id: string }>(
+        `SELECT id::text AS id FROM users WHERE id = $1 AND tenant_id = $2`,
+        [payload.userId, session.tenantId],
+      );
+      if (!user) {
+        throw new StatisticsInputError(
+          "Pengguna tidak ditemukan dalam tenant Anda.",
+          404,
+        );
+      }
+      await transaction.query(
+        `INSERT INTO statistic_operator_assignments (
+           tenant_id, user_id, agency_id, region_id, region_name, sector_id
+         ) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (user_id, tenant_id, agency_id, region_id, sector_id)
+         DO NOTHING`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.regionName,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
+}
+
+export async function deleteStatisticOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    sectorId: StatisticAssignment["sectorId"];
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      await transaction.query(
+        `DELETE FROM statistic_operator_assignments
+         WHERE tenant_id = $1 AND user_id = $2 AND agency_id = $3
+           AND region_id = $4 AND sector_id = $5`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
+}
