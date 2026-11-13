@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -12,6 +12,8 @@ import {
   tenants,
   users,
 } from "../src/lib/db/schema/index.js";
+
+type DbClient = PostgresJsDatabase<Record<string, never>>;
 
 const ENV_FILE = ".env";
 
@@ -412,7 +414,7 @@ function buildSeedEntries(): SeedEntryInput[] {
 }
 
 async function resolveActor(
-  tx: ReturnType<typeof drizzle>,
+  tx: DbClient,
   tenantId: string,
   preferredEmail?: string,
 ) {
@@ -440,7 +442,7 @@ async function resolveActor(
   return fallback ?? null;
 }
 
-async function resolveTenant(tx: ReturnType<typeof drizzle>, tenantSlug?: string) {
+async function resolveTenant(tx: DbClient, tenantSlug?: string) {
   const preferredSlugs = [
     tenantSlug,
     process.env.BOOTSTRAP_TENANT_SLUG,
@@ -494,7 +496,8 @@ async function main() {
     const seedEntries = buildSeedEntries();
 
     const result = await db.transaction(async (tx) => {
-      const tenant = await resolveTenant(tx, env.PROD_APBD_SEED_TENANT_SLUG);
+      const dbtx = tx as unknown as DbClient;
+      const tenant = await resolveTenant(dbtx, env.PROD_APBD_SEED_TENANT_SLUG);
       if (!tenant) {
         throw new Error(
           "Tenant tidak ditemukan. Jalankan bootstrap/migrasi akun terlebih dahulu atau set PROD_APBD_SEED_TENANT_SLUG.",
@@ -502,7 +505,7 @@ async function main() {
       }
 
       const actor = await resolveActor(
-        tx,
+        dbtx,
         tenant.id,
         env.PROD_APBD_SEED_ACTOR_EMAIL,
       );
