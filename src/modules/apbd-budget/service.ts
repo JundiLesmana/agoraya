@@ -341,6 +341,115 @@ export async function getApbdWorkspace(
   );
 }
 
+type AdminAssignmentRow = Row & {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  agencyId: string;
+  regionId: string;
+  regionName: string;
+  sectorId: string;
+};
+
+export async function listApbdOperatorAssignments(
+  session: Session,
+  database: Database = getDefaultDatabase(),
+): Promise<AdminAssignmentRow[]> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const rows = await transaction.query<AdminAssignmentRow>(
+        `SELECT a.id::text AS id, a.user_id AS "userId",
+               u.email AS "userEmail", u.name AS "userName",
+               a.agency_id AS "agencyId", a.region_id AS "regionId",
+               a.region_name AS "regionName", a.sector_id AS "sectorId"
+        FROM apbd_operator_assignments a
+        INNER JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+        WHERE a.tenant_id = $1
+        ORDER BY u.email, a.region_name, a.sector_id, a.agency_id`,
+        [session.tenantId],
+      );
+      return rows;
+    },
+    database,
+  );
+}
+
+export async function createApbdOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    regionName: string;
+    sectorId: string;
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const user = await transaction.queryOne<Row & { id: string }>(
+        `SELECT id::text AS id FROM users WHERE id = $1 AND tenant_id = $2`,
+        [payload.userId, session.tenantId],
+      );
+      if (!user) {
+        throw new ApbdBudgetError(
+          "Pengguna tidak ditemukan dalam tenant Anda.",
+          404,
+        );
+      }
+      await transaction.query(
+        `INSERT INTO apbd_operator_assignments (
+           tenant_id, user_id, agency_id, region_id, region_name, sector_id
+         ) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (user_id, tenant_id, agency_id, region_id, sector_id)
+         DO NOTHING`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.regionName,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
+}
+
+export async function deleteApbdOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    sectorId: string;
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      await transaction.query(
+        `DELETE FROM apbd_operator_assignments
+         WHERE tenant_id = $1 AND user_id = $2 AND agency_id = $3
+           AND region_id = $4 AND sector_id = $5`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
+}
+
 function hasPublishableValues(items: readonly ApbdItem[]): boolean {
   if (!items.length) return false;
   return items.every((item) =>
@@ -523,6 +632,19 @@ async function createRevision(
       ],
     );
   }
+
+  await transaction.query(
+    `INSERT INTO apbd_entry_documents (
+       tenant_id, entry_id, cloudinary_public_id, cloudinary_asset_id,
+       original_name, media_type, file_size, uploaded_by, created_at
+     )
+     SELECT tenant_id, $1, cloudinary_public_id, cloudinary_asset_id,
+       original_name, media_type, file_size, uploaded_by, created_at
+     FROM apbd_entry_documents
+     WHERE tenant_id = $2 AND entry_id = $3`,
+    [draft.id, session.tenantId, source.id],
+  );
+
   return draft.id;
 }
 
@@ -982,7 +1104,7 @@ export async function uploadApbdEvidence(
              AND assignment.region_id = entry.region_id
              AND assignment.sector_id = entry.sector_id
            WHERE entry.id = $1 AND entry.tenant_id = $2
-             AND entry.status = 'draft' AND assignment.user_id = $3
+             AND entry.status IN ('draft', 'published') AND assignment.user_id = $3
          ) AS allowed`,
         [entryId, session.tenantId, session.userId],
       ),
@@ -990,7 +1112,7 @@ export async function uploadApbdEvidence(
   );
   if (!canUpload?.allowed) {
     throw new ApbdBudgetError(
-      "Bukti hanya dapat diunggah ke draf APBD dalam penugasan Anda.",
+      "Bukti hanya dapat diunggah ke APBD dalam penugasan Anda.",
       403,
     );
   }

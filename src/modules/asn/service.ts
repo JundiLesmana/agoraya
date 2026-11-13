@@ -257,7 +257,15 @@ async function findAsnRegistration(
   return row;
 }
 
-export async function registerAsn(command: RegisterAsnCommand) {
+export async function saveAsnStep1(command: {
+  readonly nik: string;
+  readonly name: string;
+  readonly birthPlace: string;
+  readonly birthDate: string;
+  readonly email: string;
+  readonly phone: string;
+  readonly password: string;
+}) {
   const database = db();
   const tenantId = await resolveAsnTenantId(database);
 
@@ -277,10 +285,6 @@ export async function registerAsn(command: RegisterAsnCommand) {
 
   const userId = randomUUID();
   const passwordHash = await hashPassword(command.password);
-  const isPns = command.employmentStatus === "PNS";
-  const employeeNumber = (isPns ? command.nip : command.pppkNumber) ?? "";
-  const rankGrade = (isPns ? command.rankGradePns : command.rankGradePppk) ?? "";
-  const [ktpRt, ktpRw] = command.rtRw.split("/");
 
   return database.transaction(async (tx) => {
     const [user] = await tx
@@ -294,20 +298,80 @@ export async function registerAsn(command: RegisterAsnCommand) {
         passwordHash,
         status: "inactive",
       })
-      .returning({
-        id: users.id,
-        email: users.email,
-        nik: users.nik,
-        status: users.status,
-      });
+      .returning({ id: users.id });
 
     await tx.insert(asnProfiles).values({
-      userId,
+      userId: user.id,
       tenantId,
-      nip: command.nip ?? null,
-      opdName: command.agencyName,
-      unitName: command.unit ?? null,
+      nip: null,
+      opdName: null,
+      unitName: null,
     });
+
+    logger.info("asn.step1.saved", { userId: user.id, tenantId, nik: command.nik });
+
+    return { userId: user.id };
+  });
+}
+
+export async function registerAsn(command: RegisterAsnCommand) {
+  const database = db();
+  const tenantId = await resolveAsnTenantId(database);
+
+  const passwordHash = await hashPassword(command.password);
+  const isPns = command.employmentStatus === "PNS";
+  const employeeNumber = (isPns ? command.nip : command.pppkNumber) ?? "";
+  const rankGrade = (isPns ? command.rankGradePns : command.rankGradePppk) ?? "";
+  const [ktpRt, ktpRw] = command.rtRw.split("/");
+
+  return database.transaction(async (tx) => {
+    // Reuse an existing draft user (created at step 1) or create a new one.
+    let userId: string;
+    const [existingUser] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.tenantId, tenantId),
+          or(eq(users.nik, command.nik), eq(users.email, command.email)),
+        ),
+      )
+      .limit(1);
+
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      const [created] = await tx
+        .insert(users)
+        .values({
+          id: randomUUID(),
+          tenantId,
+          email: command.email,
+          name: command.name,
+          nik: command.nik,
+          passwordHash,
+          status: "inactive",
+        })
+        .returning({ id: users.id });
+      userId = created.id;
+    }
+
+    await tx
+      .insert(asnProfiles)
+      .values({
+        userId,
+        tenantId,
+        nip: command.nip ?? null,
+        opdName: command.agencyName,
+        unitName: command.unit ?? null,
+      })
+      .onConflictDoUpdate({
+        target: asnProfiles.userId,
+        set: {
+          opdName: command.agencyName,
+          unitName: command.unit ?? null,
+        },
+      });
 
     const [registration] = await tx
       .insert(asnRegistrationDetails)
@@ -347,7 +411,53 @@ export async function registerAsn(command: RegisterAsnCommand) {
         domicileDistrict: command.domicileDistrict,
         domicileVillage: command.domicileVillage,
       })
-      .returning({ id: asnRegistrationDetails.id });
+      .returning({ id: asnRegistrationDetails.id })
+      .onConflictDoUpdate({
+        target: asnRegistrationDetails.userId,
+        set: {
+          birthPlace: command.birthPlace,
+          birthDate: command.birthDate,
+          phone: command.phone,
+          employmentStatus: command.employmentStatus,
+          employeeNumber,
+          rankGrade,
+          appointmentDate: command.appointmentDate ?? null,
+          agencyType: command.agencyType,
+          provinceTask: command.provinceTask ?? null,
+          regencyTask: command.regencyTask ?? null,
+          field: command.field,
+          officeAddress: command.officeAddress,
+          officialEmail: command.officialEmail ?? null,
+          officePhone: command.officePhone ?? null,
+          ktpAddress: command.address,
+          ktpRt,
+          ktpRw,
+          ktpPostalCode: command.postalCode,
+          ktpProvince: command.province,
+          ktpRegency: command.regency,
+          ktpDistrict: command.district,
+          ktpVillage: command.village,
+          domicileSameAsKtp: command.domicileSameAsKtp,
+          domicileAddress: command.domicileAddress,
+          domicileRt: command.domicileRt,
+          domicileRw: command.domicileRw,
+          domicilePostalCode: command.domicilePostalCode,
+          domicileProvince: command.domicileProvince,
+          domicileRegency: command.domicileRegency,
+          domicileDistrict: command.domicileDistrict,
+          domicileVillage: command.domicileVillage,
+        },
+      });
+
+    // Replace attachments for this registration (idempotent on re-submit).
+    await tx
+      .delete(asnRegistrationAttachments)
+      .where(
+        and(
+          eq(asnRegistrationAttachments.registrationId, registration.id),
+          eq(asnRegistrationAttachments.tenantId, tenantId),
+        ),
+      );
 
     const attachments = [
       {
@@ -404,13 +514,63 @@ export async function registerAsn(command: RegisterAsnCommand) {
       });
     }
 
-    logger.info("asn.registered", { userId, tenantId, nik: command.nik });
+    // Hubungkan data pendaftaran ASN ke verifikasi KYC (kyc_roster).
+    const nikHash = createHash("sha256").update(command.nik).digest("hex");
+    const [existingRoster] = await tx
+      .select({ id: kycRoster.id, status: kycRoster.status })
+      .from(kycRoster)
+      .where(
+        and(eq(kycRoster.userId, userId), eq(kycRoster.tenantId, tenantId)),
+      )
+      .limit(1);
+
+    let rosterId: string;
+    let rosterStatus: string;
+    if (!existingRoster) {
+      const [roster] = await tx
+        .insert(kycRoster)
+        .values({
+          id: randomUUID(),
+          tenantId,
+          userId,
+          nikHash,
+          name: command.name,
+          status: "pending",
+          submittedBy: userId,
+        })
+        .returning({ id: kycRoster.id, status: kycRoster.status });
+      rosterId = roster.id;
+      rosterStatus = roster.status;
+    } else {
+      rosterId = existingRoster.id;
+      rosterStatus = existingRoster.status;
+    }
+
+    logger.info("asn.registered", {
+      userId,
+      tenantId,
+      nik: command.nik,
+      rosterId,
+    });
+
+    const [user] = await tx
+      .select({
+        id: users.id,
+        email: users.email,
+        nik: users.nik,
+        status: users.status,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     return {
       message: "Pendaftaran ASN berhasil. Berkas Anda sedang diverifikasi.",
-      nik: user.nik,
-      email: user.email,
-      status: user.status,
+      nik: user?.nik ?? command.nik,
+      email: user?.email ?? command.email,
+      status: user?.status ?? "inactive",
+      rosterId,
+      statusKyc: rosterStatus,
     };
   });
 }
@@ -434,37 +594,102 @@ export async function saveAsnStep2(command: {
   readonly officeAddress: string;
   readonly officialEmail?: string;
   readonly officePhone?: string;
+  readonly birthPlace: string;
+  readonly birthDate: string;
+  readonly phone: string;
 }) {
   const database = db();
   const tenantId = await resolveAsnTenantId(database);
   const userId = command.userId;
   if (!userId) throw new ValidationError("User ID wajib diisi.");
 
-  const registration = await findAsnRegistration(database, tenantId, userId);
+  const existing = await database
+    .select({ id: asnRegistrationDetails.id })
+    .from(asnRegistrationDetails)
+    .where(
+      and(
+        eq(asnRegistrationDetails.userId, userId),
+        eq(asnRegistrationDetails.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+
   const isPns = command.employmentStatus === "PNS";
   const employeeNumber = (isPns ? command.nip : command.pppkNumber) ?? "";
   const rankGrade = (isPns ? command.rankGradePns : command.rankGradePppk) ?? "";
+  const ktpRt = "";
+  const ktpRw = "";
 
-  await database
-    .update(asnRegistrationDetails)
-    .set({
-      employmentStatus: command.employmentStatus,
-      employeeNumber,
-      rankGrade,
-      agencyType: command.agencyType,
-      provinceTask: command.provinceTask ?? null,
-      regencyTask: command.regencyTask ?? null,
-      field: command.field,
-      officeAddress: command.officeAddress,
-      officialEmail: command.officialEmail ?? null,
-      officePhone: command.officePhone ?? null,
-    })
-    .where(
-      and(
-        eq(asnRegistrationDetails.id, registration.id),
-        eq(asnRegistrationDetails.tenantId, tenantId),
-      ),
-    );
+  let registrationId: string;
+  if (existing.length > 0) {
+    registrationId = existing[0].id;
+    await database
+      .update(asnRegistrationDetails)
+      .set({
+        employmentStatus: command.employmentStatus,
+        employeeNumber,
+        rankGrade,
+        agencyType: command.agencyType,
+        provinceTask: command.provinceTask ?? null,
+        regencyTask: command.regencyTask ?? null,
+        field: command.field,
+        officeAddress: command.officeAddress,
+        officialEmail: command.officialEmail ?? null,
+        officePhone: command.officePhone ?? null,
+        birthPlace: command.birthPlace ?? undefined,
+        birthDate: command.birthDate ?? undefined,
+        phone: command.phone ?? undefined,
+        ktpRt,
+        ktpRw,
+      })
+      .where(
+        and(
+          eq(asnRegistrationDetails.id, registrationId),
+          eq(asnRegistrationDetails.tenantId, tenantId),
+        ),
+      );
+  } else {
+    const [created] = await database
+      .insert(asnRegistrationDetails)
+      .values({
+        id: randomUUID(),
+        tenantId,
+        userId,
+        birthPlace: command.birthPlace,
+        birthDate: command.birthDate,
+        phone: command.phone,
+        employmentStatus: command.employmentStatus,
+        employeeNumber,
+        rankGrade,
+        appointmentDate: null,
+        agencyType: command.agencyType,
+        provinceTask: command.provinceTask ?? null,
+        regencyTask: command.regencyTask ?? null,
+        field: command.field,
+        officeAddress: command.officeAddress,
+        officialEmail: command.officialEmail ?? null,
+        officePhone: command.officePhone ?? null,
+        ktpAddress: "",
+        ktpRt,
+        ktpRw,
+        ktpPostalCode: "",
+        ktpProvince: "",
+        ktpRegency: "",
+        ktpDistrict: "",
+        ktpVillage: "",
+        domicileSameAsKtp: false,
+        domicileAddress: "",
+        domicileRt: "",
+        domicileRw: "",
+        domicilePostalCode: "",
+        domicileProvince: "",
+        domicileRegency: "",
+        domicileDistrict: "",
+        domicileVillage: "",
+      })
+      .returning({ id: asnRegistrationDetails.id });
+    registrationId = created.id;
+  }
 
   await database
     .update(asnProfiles)
@@ -473,7 +698,7 @@ export async function saveAsnStep2(command: {
       and(eq(asnProfiles.userId, userId), eq(asnProfiles.tenantId, tenantId)),
     );
 
-  return { userId, registrationId: registration.id };
+  return { userId, registrationId };
 }
 
 export async function saveAsnStep3(command: {

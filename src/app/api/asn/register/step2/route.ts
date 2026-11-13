@@ -25,6 +25,13 @@ const step2Schema = z.object({
   officeAddress: z.string().min(1),
   officialEmail: z.string().email().optional().or(z.literal("")),
   officePhone: z.string().optional(),
+  birthPlace: z.string().min(1, "Tempat lahir wajib diisi").max(255),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  phone: z
+    .string()
+    .min(8, "Nomor telepon minimal 8 digit")
+    .max(32, "Nomor telepon terlalu panjang")
+    .regex(/^[\d+\s()-]+$/, "Nomor telepon tidak valid"),
 }).refine((data) => {
   if (data.employmentStatus === "PNS") {
     return Boolean(data.nip && /^\d{18}$/.test(data.nip) && data.rankGradePns);

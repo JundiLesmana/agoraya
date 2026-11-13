@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GeoCascadingSelect } from "@/components/forms/geo-cascading-select";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -313,6 +314,7 @@ export function RegisterAsnForm({
   const [confirmationDetails, setConfirmationDetails] =
     useState<RegistrationConfirmationDetails | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [sameAsKtp, setSameAsKtp] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -360,6 +362,10 @@ export function RegisterAsnForm({
     ktpRegency: "Kota Contoh",
     ktpDistrict: "Kecamatan Harmoni",
     ktpVillage: "Kelurahan Melati",
+    ktpProvinceId: "32",
+    ktpRegencyId: "3273",
+    ktpDistrictId: "327301",
+    ktpVillageId: "32730101",
     // Step 3 - Alamat Domisili
     domAddress: "",
     domRt: "",
@@ -369,6 +375,10 @@ export function RegisterAsnForm({
     domRegency: "",
     domDistrict: "",
     domVillage: "",
+    domProvinceId: "",
+    domRegencyId: "",
+    domDistrictId: "",
+    domVillageId: "",
     agreement: false,
   });
 
@@ -397,6 +407,10 @@ export function RegisterAsnForm({
         domRegency: prev.ktpRegency,
         domDistrict: prev.ktpDistrict,
         domVillage: prev.ktpVillage,
+        domProvinceId: prev.ktpProvinceId,
+        domRegencyId: prev.ktpRegencyId,
+        domDistrictId: prev.ktpDistrictId,
+        domVillageId: prev.ktpVillageId,
       }));
     } else {
       setForm((prev) => ({
@@ -409,8 +423,58 @@ export function RegisterAsnForm({
         domRegency: "",
         domDistrict: "",
         domVillage: "",
+        domProvinceId: "",
+        domRegencyId: "",
+        domDistrictId: "",
+        domVillageId: "",
       }));
     }
+    setError("");
+  }
+
+  function handleKtpGeoChange(
+    level: "province" | "regency" | "district" | "village",
+    id: string,
+    name: string,
+  ) {
+    const fieldMap: Record<
+      "province" | "regency" | "district" | "village",
+      { id: string; name: string }
+    > = {
+      province: { id: "ktpProvinceId", name: "ktpProvince" },
+      regency: { id: "ktpRegencyId", name: "ktpRegency" },
+      district: { id: "ktpDistrictId", name: "ktpDistrict" },
+      village: { id: "ktpVillageId", name: "ktpVillage" },
+    };
+    const { id: idField, name: nameField } = fieldMap[level];
+    setForm((prev) => ({
+      ...prev,
+      [idField]: id,
+      [nameField]: name,
+    }));
+    setError("");
+  }
+
+  function handleDomGeoChange(
+    level: "province" | "regency" | "district" | "village",
+    id: string,
+    name: string,
+  ) {
+    const fieldMap: Record<
+      "province" | "regency" | "district" | "village",
+      { id: string; name: string }
+    > = {
+      province: { id: "domProvinceId", name: "domProvince" },
+      regency: { id: "domRegencyId", name: "domRegency" },
+      district: { id: "domDistrictId", name: "domDistrict" },
+      village: { id: "domVillageId", name: "domVillage" },
+    };
+    const { id: idField, name: nameField } = fieldMap[level];
+    setForm((prev) => ({
+      ...prev,
+      [idField]: id,
+      [nameField]: name,
+    }));
     setError("");
   }
 
@@ -559,11 +623,34 @@ export function RegisterAsnForm({
         setError("Konfirmasi password tidak sama");
         return;
       }
+
       const updated = completedSteps.includes(1)
         ? completedSteps
         : [...completedSteps, 1];
       setCompletedSteps(updated);
       updateStep(2, updated);
+
+      // Simpan identitas langkah 1 ke server di latar belakang, sehingga
+      // langkah 2 dan 3 dapat memperbarui pendaftaran yang sudah ada.
+      void fetch("/api/asn/register/step1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nik: form.nik.trim(),
+          name: form.name.trim(),
+          birthPlace: form.birthPlace.trim(),
+          birthDate: form.birthDate,
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim(),
+          password: form.password,
+          confirmPassword: form.confirmPassword,
+        }),
+      }).then(async (response) => {
+        const result = await response.json();
+        if (response.ok && result.data?.userId) {
+          setUserId(result.data.userId);
+        }
+      });
       return;
     }
 
@@ -615,6 +702,7 @@ export function RegisterAsnForm({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            userId,
             employmentStatus: form.employmentStatus,
             nip: form.employmentStatus === "PNS" ? form.nip : undefined,
             pppkNumber:
@@ -640,6 +728,9 @@ export function RegisterAsnForm({
             officeAddress: form.officeAddress,
             officialEmail: form.officialEmail || undefined,
             officePhone: form.officePhone || undefined,
+            birthPlace: form.birthPlace.trim(),
+            birthDate: form.birthDate,
+            phone: form.phone.trim(),
           }),
         });
         const result = await response.json();
@@ -714,9 +805,10 @@ export function RegisterAsnForm({
         const response = await fetch("/api/asn/register/step3", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ktpAddress: form.ktpAddress,
-            ktpRt: form.ktpRt,
+        body: JSON.stringify({
+          userId,
+          ktpAddress: form.ktpAddress,
+          ktpRt: form.ktpRt,
             ktpRw: form.ktpRw,
             ktpPostalCode: form.ktpPostalCode,
             ktpProvince: form.ktpProvince,
@@ -1416,70 +1508,14 @@ export function RegisterAsnForm({
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="ktpProvince">Provinsi *</Label>
-                    <select
-                      id="ktpProvince"
-                      value={form.ktpProvince}
-                      onChange={(e) =>
-                        handleChange("ktpProvince", e.target.value)
-                      }
-                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                      required
-                    >
-                      <option value="">Pilih provinsi</option>
-                      <option value="Provinsi Contoh">Provinsi Contoh</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ktpRegency">Kabupaten/Kota *</Label>
-                    <select
-                      id="ktpRegency"
-                      value={form.ktpRegency}
-                      onChange={(e) =>
-                        handleChange("ktpRegency", e.target.value)
-                      }
-                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                      required
-                    >
-                      <option value="">Pilih kabupaten/kota</option>
-                      <option value="Kota Contoh">Kota Contoh</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="ktpDistrict">Kecamatan *</Label>
-                    <select
-                      id="ktpDistrict"
-                      value={form.ktpDistrict}
-                      onChange={(e) =>
-                        handleChange("ktpDistrict", e.target.value)
-                      }
-                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                      required
-                    >
-                      <option value="">Pilih kecamatan</option>
-                      <option value="Kecamatan Harmoni">
-                        Kecamatan Harmoni
-                      </option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ktpVillage">Kelurahan/Desa *</Label>
-                    <select
-                      id="ktpVillage"
-                      value={form.ktpVillage}
-                      onChange={(e) =>
-                        handleChange("ktpVillage", e.target.value)
-                      }
-                      className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none"
-                      required
-                    >
-                      <option value="">Pilih kelurahan/desa</option>
-                      <option value="Kelurahan Melati">Kelurahan Melati</option>
-                    </select>
-                  </div>
+                  <GeoCascadingSelect
+                    name="ktp-geo"
+                    label="Alamat KTP"
+                    value={form.ktpVillageId}
+                    onChange={(level, id, name) =>
+                      handleKtpGeoChange(level, id, name)
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -1560,74 +1596,15 @@ export function RegisterAsnForm({
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="domProvince">Provinsi *</Label>
-                    <select
-                      id="domProvince"
-                      value={form.domProvince}
-                      onChange={(e) =>
-                        handleChange("domProvince", e.target.value)
-                      }
-                      disabled={sameAsKtp}
-                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
-                      required
-                    >
-                      <option value="">Pilih provinsi</option>
-                      <option value="Provinsi Contoh">Provinsi Contoh</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="domRegency">Kabupaten/Kota *</Label>
-                    <select
-                      id="domRegency"
-                      value={form.domRegency}
-                      onChange={(e) =>
-                        handleChange("domRegency", e.target.value)
-                      }
-                      disabled={sameAsKtp}
-                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
-                      required
-                    >
-                      <option value="">Pilih kabupaten/kota</option>
-                      <option value="Kota Contoh">Kota Contoh</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="domDistrict">Kecamatan *</Label>
-                    <select
-                      id="domDistrict"
-                      value={form.domDistrict}
-                      onChange={(e) =>
-                        handleChange("domDistrict", e.target.value)
-                      }
-                      disabled={sameAsKtp}
-                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
-                      required
-                    >
-                      <option value="">Pilih kecamatan</option>
-                      <option value="Kecamatan Harmoni">
-                        Kecamatan Harmoni
-                      </option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="domVillage">Kelurahan/Desa *</Label>
-                    <select
-                      id="domVillage"
-                      value={form.domVillage}
-                      onChange={(e) =>
-                        handleChange("domVillage", e.target.value)
-                      }
-                      disabled={sameAsKtp}
-                      className={`border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none ${sameAsKtp ? "bg-gray-50" : ""}`}
-                      required
-                    >
-                      <option value="">Pilih kelurahan/desa</option>
-                      <option value="Kelurahan Melati">Kelurahan Melati</option>
-                    </select>
-                  </div>
+                  <GeoCascadingSelect
+                    name="dom-geo"
+                    label="Alamat Domisili"
+                    value={form.domVillageId}
+                    disabled={sameAsKtp}
+                    onChange={(level, id, name) =>
+                      handleDomGeoChange(level, id, name)
+                    }
+                  />
                 </div>
               </div>
             </div>

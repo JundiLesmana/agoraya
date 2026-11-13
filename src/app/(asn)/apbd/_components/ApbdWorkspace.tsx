@@ -205,6 +205,13 @@ export function ApbdWorkspace() {
   );
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
 
+  useEffect(() => {
+    if (entry?.status === "published" && revisionOfId === null) {
+      setRevisionOfId(entry.id);
+      setRevisionReason("");
+    }
+  }, [entry, revisionOfId]);
+
   const agencies = useMemo(() => {
     const values = new Map<string, string>();
     for (const assignment of assignments) {
@@ -564,7 +571,7 @@ export function ApbdWorkspace() {
   };
 
   const uploadEvidence = async (file: File | undefined) => {
-    if (!file || !entry || entry.status !== "draft") return;
+    if (!file || !entry || (entry.status !== "draft" && revisionOfId === null)) return;
     setUploadingEvidence(true);
     setError(null);
     setNotice(null);
@@ -908,11 +915,11 @@ export function ApbdWorkspace() {
             <p className="text-sm font-medium">Dokumen verifikasi (PDF, maks. 10 MB)</p>
             <p className="text-xs text-muted-foreground">Minimal satu dokumen verifikasi wajib tersedia sebelum data diajukan ke administrator.</p>
             <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" variant="outline" onClick={() => evidenceInput.current?.click()} disabled={!entry || entry.status !== "draft" || uploadingEvidence}>
+              <Button type="button" variant="outline" onClick={() => evidenceInput.current?.click()} disabled={!entry || (entry.status !== "draft" && revisionOfId === null) || uploadingEvidence}>
                 {uploadingEvidence ? "Mengunggah…" : "Unggah dokumen"}
               </Button>
               <input ref={evidenceInput} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Pilih dokumen bukti APBD" onChange={(event) => void uploadEvidence(event.currentTarget.files?.[0])} />
-              {!entry ? <span className="text-xs text-muted-foreground">Simpan draf terlebih dahulu untuk melampirkan bukti.</span> : null}
+              {!entry || (entry.status !== "draft" && revisionOfId === null) ? <span className="text-xs text-muted-foreground">Simpan draf terlebih dahulu untuk melampirkan bukti.</span> : null}
             </div>
             {entry?.documents.length ? (
               <ul className="space-y-1 text-sm">

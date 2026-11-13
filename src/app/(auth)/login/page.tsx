@@ -53,7 +53,11 @@ export default function LoginPage() {
             : "Periksa email untuk kode verifikasi.",
         );
       } else {
-        router.replace("/asn/project");
+        const redirectTo =
+          result && typeof result === "object" && "redirectTo" in result
+            ? (result.redirectTo as string)
+            : "/asn/project";
+        router.replace(redirectTo);
         router.refresh();
       }
     } catch (reason) {

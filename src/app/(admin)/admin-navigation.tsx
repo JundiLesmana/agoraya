@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const REVIEW_PAGES = [
   { href: "/admin/kyc/asn", label: "Verifikasi ASN" },
@@ -13,6 +14,7 @@ const REVIEW_PAGES = [
 
 const ADMIN_PAGES = [
   { href: "/admin/apbd/review", label: "Tinjauan APBD" },
+  { href: "/admin/apbd/assignments", label: "Penugasan APBD" },
   { href: "/admin/kyc/citizen", label: "Verifikasi Warga" },
   { href: "/admin/users", label: "Pengguna" },
   { href: "/admin/system", label: "Sistem" },
@@ -24,6 +26,22 @@ export function AdminNavigation({
   isAdministrator: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth", { method: "DELETE" });
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      } catch {
+        // ignore
+      }
+    }
+    router.refresh();
+    router.replace("/");
+  }
+
   const pages = [
     { href: "/admin", label: "Ringkasan Admin" },
     ...REVIEW_PAGES,
@@ -73,7 +91,12 @@ export function AdminNavigation({
               );
             })}
           </nav>
-          <ThemeToggle compact />
+          <div className="flex items-center gap-2">
+            <ThemeToggle compact />
+            <Button onClick={handleLogout} size="sm">
+              Keluar
+            </Button>
+          </div>
         </div>
       </div>
     </header>

@@ -9,7 +9,46 @@ import {
 
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/lib/auth/session";
+import { getDefaultDatabase } from "@/lib/db/client";
 const SESSION_COOKIE = "agoraya_session";
+
+function computeRedirect(
+  roles: string[],
+  applicationRoles: string[],
+  apbdAssigned: boolean,
+): string {
+  const roleSet = new Set(roles);
+  const appRoleSet = new Set(applicationRoles);
+
+  if (roleSet.has("superadmin") || roleSet.has("admin")) {
+    return "/admin";
+  }
+
+  if (appRoleSet.has("kyc_verifikator")) {
+    if (roleSet.has("asn")) {
+      return "/admin/kyc/asn";
+    }
+    return "/admin/kyc/citizen";
+  }
+
+  if (apbdAssigned) {
+    return "/apbd";
+  }
+
+  if (roleSet.has("asn")) {
+    return "/asn/dashboard";
+  }
+
+  if (roleSet.has("staff")) {
+    return "/asn/dashboard";
+  }
+
+  if (roleSet.has("citizen")) {
+    return "/citizen/service";
+  }
+
+  return "/";
+}
 
 export async function GET() {
   const session = await getCurrentSession();
@@ -101,8 +140,35 @@ export async function POST(request: Request) {
       );
     }
 
+    const roles = validation.roles ?? [];
+    const applicationRoles = validation.applicationRoles ?? [];
+
+    let apbdAssigned = false;
+    try {
+      const database = getDefaultDatabase();
+      const assignment = await database.queryOne<{ id: string }>(
+        `SELECT id::text AS id FROM apbd_operator_assignments
+         WHERE user_id = $1 AND tenant_id = $2 LIMIT 1`,
+        [validation.userId, validation.tenantId],
+      );
+      apbdAssigned = Boolean(assignment);
+    } catch {
+      apbdAssigned = false;
+    }
+
+    const redirectTo = computeRedirect(
+      roles,
+      applicationRoles,
+      apbdAssigned,
+    );
+
     const response = NextResponse.json(
-      { ok: true, roles: validation.roles ?? [] },
+      {
+        ok: true,
+        roles,
+        applicationRoles,
+        redirectTo,
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
     response.cookies.set(SESSION_COOKIE, session.token, {
