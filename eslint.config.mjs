@@ -29,6 +29,7 @@ export default tseslint.config(
       "test-results/**",
       ".turbo/**",
       "next-env.d.ts",
+      "public/maplibre-gl-worker.mjs",
     ],
   },
   js.configs.recommended,
