@@ -2,6 +2,14 @@ import postgres from "postgres";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
+interface MigrationEntry {
+  idx: number;
+  version: string;
+  when: number;
+  tag: string;
+  breakpoints: boolean;
+}
+
 async function main() {
   const sql = postgres("postgresql://agoraya:localdev@127.0.0.1:5432/agoraya_local");
 
@@ -20,7 +28,7 @@ async function main() {
   const journal = JSON.parse(readFileSync(journalPath, "utf-8"));
 
   // Sort entries by idx
-  const sortedEntries = [...journal.entries].sort((a: any, b: any) => a.idx - b.idx);
+  const sortedEntries = [...journal.entries].sort((a: MigrationEntry, b: MigrationEntry) => a.idx - b.idx);
 
   for (const entry of sortedEntries) {
     const tag = entry.tag;
@@ -33,8 +41,9 @@ async function main() {
         await sql.unsafe(upSql);
         console.log(`Applied: ${tag}`);
       }
-    } catch (e: any) {
-      console.error(`Failed ${tag}: ${e.message?.substring(0, 100)}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(`Failed ${tag}: ${message.substring(0, 100)}`);
     }
   }
 
