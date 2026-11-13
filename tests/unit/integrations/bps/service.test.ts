@@ -74,6 +74,7 @@ const baseInput: BpsStatisticsInput = {
   year: 2023,
   value: 11.04,
   unit: "persen",
+  category: "Kesejahteraan",
 };
 
 beforeEach(() => {
@@ -103,7 +104,9 @@ describe("upsertBpsStatistics", () => {
     expect(call.targetNames).toEqual(["indicator_code", "region_code", "year"]);
     expect(call.setKeys).toEqual([
       "value",
+      "indicatorName",
       "unit",
+      "category",
       "sourceLabel",
       "lastSyncedAt",
     ]);
@@ -115,9 +118,11 @@ describe("upsertBpsStatistics", () => {
       expect(row).toMatchObject({
         sourceLabel: "BPS_API",
         indicatorCode: expect.any(String),
+        indicatorName: expect.any(String),
         regionCode: expect.any(String),
         year: expect.any(Number),
         unit: expect.any(String),
+        category: expect.any(String),
         lastSyncedAt: expect.any(Date),
       });
     }

@@ -139,12 +139,18 @@ export function ReportQuickActions({
             <span className="absolute top-1/2 left-1/2 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-blue-700 text-white shadow-lg">
               <MapPin aria-hidden="true" className="size-6" />
             </span>
-            <span className="bg-card text-card-foreground absolute top-4 left-4 rounded-full px-3 py-2 text-xs font-medium shadow">
-              Lokasi laporan warga
-            </span>
             <span className="bg-card text-card-foreground absolute right-4 bottom-4 rounded-lg px-3 py-2 text-xs font-semibold shadow">
-              Jalan berlubang di Jl. Melati
+              Klik untuk melihat peta sebaran laporan publik
             </span>
+            <Link
+              href="/map"
+              aria-label="Buka peta sebaran seluruh laporan publik"
+              className="focus-visible:ring-primary absolute inset-0 z-10 rounded-xl focus-visible:ring-4 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              <span className="bg-card text-card-foreground absolute top-4 left-4 rounded-full px-3 py-2 text-xs font-medium shadow">
+                Jelajahi peta laporan
+              </span>
+            </Link>
           </div>
         </div>
       </section>

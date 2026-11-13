@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   ClipboardList,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const PRIMARY_PAGES = [
   { href: "/asn/data", label: "Dataset & Metadata", icon: Database },
@@ -66,6 +67,21 @@ export function AsnShell({
   roleLabel: string;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/auth", { method: "DELETE" });
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.clear();
+        window.sessionStorage.clear();
+      } catch {
+        // ignore
+      }
+    }
+    router.refresh();
+    router.replace("/");
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -145,7 +161,12 @@ export function AsnShell({
           <p className="text-muted-foreground min-w-0 truncate text-[11px]">
             Pengelolaan data terbuka / <span className="text-foreground">Ruang ASN</span>
           </p>
-          <ThemeToggle compact />
+          <div className="flex items-center gap-2">
+            <ThemeToggle compact />
+            <Button onClick={handleLogout} size="sm">
+              Keluar
+            </Button>
+          </div>
         </header>
         <nav
           aria-label="Navigasi ruang ASN seluler"

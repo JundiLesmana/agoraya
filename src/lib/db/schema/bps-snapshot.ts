@@ -16,10 +16,14 @@ export const bpsStatistics = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     indicatorCode: varchar("indicator_code", { length: 100 }).notNull(),
+    indicatorName: varchar("indicator_name", { length: 255 })
+      .notNull()
+      .default(""),
     regionCode: varchar("region_code", { length: 100 }).notNull(),
     year: integer("year").notNull(),
     value: numeric("value", { precision: 20, scale: 6, mode: "number" }).notNull(),
     unit: varchar("unit", { length: 50 }).notNull(),
+    category: varchar("category", { length: 100 }).notNull().default(""),
     sourceLabel: varchar("source_label", { length: 100 }).notNull(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true })
       .notNull()

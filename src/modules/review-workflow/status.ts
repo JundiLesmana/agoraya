@@ -4,6 +4,7 @@ export const reviewStatuses = [
   "submitted",
   "verified",
   "in_progress",
+  "waiting_for_citizen",
   "resolved",
   "rejected",
   "closed",
@@ -22,16 +23,26 @@ export function canChangeReviewStatus(
 ): boolean {
   if (from === to) return true;
   if (!isReviewStatus(from)) return false;
-  if (itemType === "report") return isAllowedReportTransition(from, to);
+  if (itemType === "report") {
+    if (from === "waiting_for_citizen" || to === "waiting_for_citizen") {
+      return false;
+    }
+    return isAllowedReportTransition(from, to);
+  }
   switch (from) {
     case "submitted":
-      return to === "verified";
+      return (
+        to === "verified" ||
+        to === "in_progress" ||
+        to === "waiting_for_citizen"
+      );
     case "verified":
-      return to === "in_progress";
+      return to === "in_progress" || to === "waiting_for_citizen";
     case "in_progress":
-      return to === "resolved" || to === "rejected";
+      return to === "rejected" || to === "waiting_for_citizen";
+    case "waiting_for_citizen":
+      return to === "in_progress" || to === "rejected";
     case "resolved":
-      return to === "closed";
     case "rejected":
     case "closed":
       return false;
@@ -56,6 +67,8 @@ export function getReviewStatusLabel(status: string): string {
       return "Diverifikasi";
     case "in_progress":
       return "Diproses";
+    case "waiting_for_citizen":
+      return "Menunggu Warga";
     case "resolved":
     case "closed":
       return "Selesai";

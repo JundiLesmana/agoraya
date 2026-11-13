@@ -17,7 +17,7 @@ const baseInput: ExplainProjectPriorityInput = {
   criteriaVersion: "1.0.0",
   algorithmVersion: "weighted-sum-v1",
   fiscalYear: 2026,
-  criteria: [{ key: "physical_progress", name: "Progres Fisik" }],
+  criteria: ["physical_progress"],
   items: [
     {
       breakdown: [
@@ -67,6 +67,10 @@ describe("modules/ai/project-priority-explanation", () => {
     expect(prompt).not.toMatch(/\b[\w.-]+@[\w.-]+\.\w{2,}\b/);
     expect(prompt).not.toContain("AI_API_KEY");
     expect(prompt).not.toContain("payload");
+    expect(prompt).toContain("1/1 proyek memiliki data");
+    expect(prompt).not.toContain("80");
+    expect(prompt).not.toContain("0.4");
+    expect(prompt).not.toContain("32");
     expect(prompt).not.toMatch(/\b\d{10,15}\b/);
   });
 
@@ -75,7 +79,9 @@ describe("modules/ai/project-priority-explanation", () => {
       provider: "gemini",
       content: JSON.stringify({ summary: "ok", keyFactors: ["a"], limitations: ["b"], score: 90 }),
     });
-    await expect(explainProjectPriority(baseInput)).rejects.toThrow();
+    await expect(explainProjectPriority(baseInput)).rejects.toMatchObject({
+      statusCode: 502,
+    });
     expect(fakeComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -94,13 +100,33 @@ describe("modules/ai/project-priority-explanation", () => {
   });
 
   it("tidak mengirim prompt yang mengandung PII ke penyedia AI", async () => {
-    const piiInput: ExplainProjectPriorityInput = { ...baseInput, criteria: [{ key: "physical_progress", name: "kontak@email.com" }] };
+    const baseFactor = baseInput.items[0]?.breakdown[0];
+    if (!baseFactor) throw new Error("Expected a criterion fixture.");
+    const piiInput: ExplainProjectPriorityInput = {
+      ...baseInput,
+      items: [
+        {
+          breakdown: [
+            {
+              ...baseFactor,
+              source: {
+                ...baseFactor.source,
+                field: "kontak@email.com",
+              },
+            },
+          ],
+        },
+      ],
+    };
     fakeComplete.mockResolvedValue({
       provider: "gemini",
       content: JSON.stringify({ summary: "ok", keyFactors: ["a"], limitations: ["b"] }),
     });
-    await expect(explainProjectPriority(piiInput)).rejects.toThrow();
-    expect(fakeComplete).not.toHaveBeenCalled();
+    await explainProjectPriority(piiInput);
+    expect(fakeComplete).toHaveBeenCalledOnce();
+    expect(fakeComplete.mock.calls[0]?.[0].prompt).not.toContain(
+      "kontak@email.com",
+    );
   });
 
   it("menggunakan provider yang dikonfigurasi melalui env", async () => {
@@ -110,5 +136,27 @@ describe("modules/ai/project-priority-explanation", () => {
     });
     await explainProjectPriority(baseInput);
     expect(vi.mocked(getAiProvider)).toHaveBeenCalledWith("gemini");
+  });
+
+  it("meringkas banyak proyek tanpa menambah data per proyek ke prompt", async () => {
+    const firstItem = baseInput.items[0];
+    if (!firstItem) throw new Error("Expected a project input fixture.");
+    const largeInput: ExplainProjectPriorityInput = {
+      ...baseInput,
+      items: Array.from({ length: 101 }, () => firstItem),
+    };
+    fakeComplete.mockResolvedValue({
+      provider: "gemini",
+      content: JSON.stringify({
+        summary: "Ringkasan",
+        keyFactors: ["Ketersediaan progres fisik"],
+        limitations: ["Cakupan data perlu diperhatikan"],
+      }),
+    });
+    await explainProjectPriority(largeInput);
+    const prompt = fakeComplete.mock.calls[0][0].prompt;
+    expect(prompt).toContain("Jumlah proyek yang dirangkum: 101");
+    expect(prompt).toContain("1/101 proyek memiliki data");
+    expect(prompt).not.toContain("80");
   });
 });

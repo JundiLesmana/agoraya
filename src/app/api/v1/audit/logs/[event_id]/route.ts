@@ -18,7 +18,11 @@ export async function GET(_request: Request, context: Context): Promise<Response
     if (!authorization.authorized) return authorization.response;
 
     const { event_id: eventId } = await context.params;
-    const result = await getAuditLogByEventId(db(), eventId);
+    const result = await getAuditLogByEventId(
+      db(),
+      eventId,
+      authorization.session.tenantId,
+    );
     return NextResponse.json(result);
   } catch (error) {
     return auditApiError(error);

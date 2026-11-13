@@ -2,7 +2,58 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import React, { useState } from "react";
 import { ReportForm } from "@/app/(citizen)/citizen/reporting/_components/report-form";
+
+// Mock the LocationPicker component for testing
+vi.mock("@/components/forms/location-picker", () => ({
+  LocationPicker: function MockLocationPicker({
+    value,
+    onChange,
+  }: {
+    value: { province: string; city: string; address: string; latitude: number; longitude: number } | null;
+    onChange: (value: { province: string; city: string; address: string; latitude: number; longitude: number } | null) => void;
+  }) {
+    const [searchValue, setSearchValue] = useState("");
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && searchValue.trim()) {
+        const location = {
+          province: "Jawa Barat",
+          city: "Kota Bandung",
+          address: "Jl. Melati, Kelurahan Sukamaju",
+          latitude: -6.9175,
+          longitude: 107.6191,
+        };
+        onChange(location);
+      }
+    };
+    return (
+      <div data-testid="location-picker" className="space-y-3">
+        <label htmlFor="location-search" className="sr-only">
+          Cari lokasi
+        </label>
+        <input
+          id="location-search"
+          type="text"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Cari alamat, kelurahan, atau patokan..."
+          aria-label="Cari lokasi"
+          data-testid="location-search-input"
+        />
+        {value && (
+          <div className="bg-muted/50 rounded p-3 text-xs" data-testid="selected-location">
+            <p>Provinsi: {value.province}</p>
+            <p>Kabupaten/Kota: {value.city}</p>
+            <p>Alamat: {value.address}</p>
+            <p>Koordinat: {value.latitude}, {value.longitude}</p>
+          </div>
+        )}
+      </div>
+    );
+  },
+}));
 
 function completeDetails() {
   fireEvent.change(screen.getByLabelText(/judul laporan/i), {
@@ -17,15 +68,10 @@ function completeDetails() {
   fireEvent.change(screen.getByLabelText(/kategori laporan/i), {
     target: { value: "Jalan rusak" },
   });
-  fireEvent.change(screen.getByLabelText(/provinsi/i), {
-    target: { value: "Jawa Barat" },
-  });
-  fireEvent.change(screen.getByLabelText(/kabupaten \/ kota/i), {
-    target: { value: "Kota Bandung" },
-  });
-  fireEvent.change(screen.getByLabelText(/alamat \/ patokan lokasi/i), {
-    target: { value: "Jl. Melati, Kelurahan Sukamaju" },
-  });
+  // Use the mocked location picker search input to select a location
+  const locationSearch = screen.getByTestId("location-search-input");
+  fireEvent.change(locationSearch, { target: { value: "Jawa Barat, Bandung" } });
+  fireEvent.keyDown(locationSearch, { key: "Enter", code: "Enter" });
 }
 
 function advanceToAttachments() {
@@ -212,12 +258,11 @@ describe("ReportForm", () => {
       name: /submit laporan/i,
     });
     expect(submitButton.hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByLabelText(/email/i)).toBeNull();
+    expect(screen.queryByLabelText(/no hp/i)).toBeNull();
 
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: "warga@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/no hp/i), {
-      target: { value: "081234567890" },
+    fireEvent.change(screen.getByLabelText(/nama samaran anda/i), {
+      target: { value: "Melati Senja" },
     });
     expect(submitButton.hasAttribute("disabled")).toBe(false);
 
@@ -242,15 +287,20 @@ describe("ReportForm", () => {
       category: "Infrastruktur",
       subcategory: "Jalan rusak",
       title: "Jalan berlubang di Jalan Melati",
-      province: "Jawa Barat",
-      city: "Kota Bandung",
-      location: "Jl. Melati, Kelurahan Sukamaju",
-      email: "warga@example.com",
-      phone: "081234567890",
+      location: expect.objectContaining({
+        province: expect.any(String),
+        city: expect.any(String),
+        address: expect.any(String),
+        latitude: expect.any(Number),
+        longitude: expect.any(Number),
+      }),
+      name: "Melati Senja",
       isPublic: true,
       showIdentity: false,
       attachments: [],
     });
+    expect(requestBody).not.toHaveProperty("email");
+    expect(requestBody).not.toHaveProperty("phone");
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });

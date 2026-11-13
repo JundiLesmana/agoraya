@@ -4,10 +4,12 @@ import { bpsStatistics } from "@/lib/db/schema";
 
 export interface BpsStatisticsRow {
   readonly indicatorCode: string;
+  readonly indicatorName: string;
   readonly regionCode: string;
   readonly year: number;
   readonly value: number;
   readonly unit: string;
+  readonly category: string;
   readonly sourceLabel: string;
   readonly lastSyncedAt: Date;
 }
@@ -21,11 +23,7 @@ export interface BpsStatisticsFilters {
   readonly simulatedRegionCode?: string;
 }
 
-/**
- * Membangun query statistik BPS dengan filter indikator dan wilayah.
- * Semua filter bersifat opsional; ketika dikosongkan, query mengambil semua
- * baris untuk source_label yang ditentukan.
- */
+
 function buildStatisticsQuery(
   database: ReturnType<typeof db>,
   sourceLabel: "BPS_API" | "SIMULATED",
@@ -53,15 +51,6 @@ function buildStatisticsQuery(
     .orderBy(bpsStatistics.lastSyncedAt);
 }
 
-/**
- * Mengambil statistik BPS untuk ditampilkan publik dengan prioritas:
- * baris yang bersumber dari `BPS_API` diutamakan. Jika belum ada data
- * BPS_API sama sekali, baru fallback ke baris `SIMULATED` (hasil seed awal)
- * agar dashboard tidak kosong saat integrasi BPS belum sempurna.
- *
- * Tidak ada retry agresif di sini; keandalan dijamin oleh cron harian yang
- * menimpa baris SIMULATED dengan data BPS_API saat tersedia.
- */
 export async function selectPublicBpsStatistics(
   database = db(),
   filters: BpsStatisticsFilters = {},

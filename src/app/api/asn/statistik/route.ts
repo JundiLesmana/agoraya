@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireModuleAccess } from "@/lib/auth/require-module-access";
+import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { appendAuditEvent } from "@/modules/audit";
+import { uuidOrNull } from "@/modules/rbac/audit";
 import { statisticEntryQuerySchema } from "@/modules/statistics-input";
 import {
   getStatisticsWorkspace,
@@ -120,9 +123,36 @@ export async function POST(request: Request): Promise<Response> {
     .filter((item): item is File => item instanceof File);
 
   try {
-    return NextResponse.json(
-      await saveStatisticsInput(session, payload, files),
-    );
+    const saved = await saveStatisticsInput(session, payload, files);
+    try {
+      await appendAuditEvent(db(), {
+        actorId: uuidOrNull(session.userId),
+        action: "asn.statistics.saved",
+        targetTable: "statistic_entries",
+        targetId: uuidOrNull(saved.id),
+        metadata: {
+          tenantId: session.tenantId,
+          actorRole: session.roles.join(","),
+          result: "success",
+          status: saved.status,
+        },
+        occurredAt: new Date(),
+      });
+      return NextResponse.json(saved);
+    } catch (auditError) {
+      logger.error("asn.statistics.audit_failed_after_save", {
+        actorId: session.userId,
+        tenantId: session.tenantId,
+        entryId: saved.id,
+        errorName:
+          auditError instanceof Error ? auditError.name : "UnknownError",
+      });
+      return NextResponse.json({
+        ...saved,
+        auditWarning:
+          "Data tersimpan, tetapi riwayat audit gagal dicatat. Jangan kirim ulang; hubungi administrator.",
+      });
+    }
   } catch (error) {
     return errorResponse(error);
   }

@@ -370,9 +370,11 @@ export function AgencyDashboard() {
                     </td>
                     <td className="px-4 py-4">
                       {maskApplicantName(application.applicantName)}
-                      <p className="text-muted-foreground mt-1 font-mono text-xs">
-                        {maskPhone(application.phone)}
-                      </p>
+                      {application.kind === "service_application" ? (
+                        <p className="text-muted-foreground mt-1 font-mono text-xs">
+                          {maskPhone(application.phone)}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="text-muted-foreground px-4 py-4 whitespace-nowrap">
                       {formatDateTimeWib(application.submittedAt)}

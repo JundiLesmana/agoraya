@@ -169,6 +169,55 @@
       "when": 1794254081820,
       "tag": "0023_loud_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794318240000,
+      "tag": "0025_service_application_assignee",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794332352000,
+      "tag": "0026_ticket_provenance_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794333420000,
+      "tag": "0027_optional_reporter_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1794333420001,
+      "tag": "0028_bps_indicator_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794333420002,
+      "tag": "0029_apbd_review_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794333420003,
+      "tag": "0030_service_application_category_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794583503000,
+      "tag": "0031_bps_statistics_category",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,8 @@
 ﻿import { z } from "zod";
+import {
+  SERVICE_APPLICATION_CATEGORIES,
+  type ServiceApplicationCategory,
+} from "@/modules/service-applications/catalog";
 
 export const agencyDashboardResponseSchema = z.object({
   reports: z.array(
@@ -16,8 +20,8 @@ export const agencyDashboardResponseSchema = z.object({
       city: z.string(),
       address: z.string(),
       reporterName: z.string().nullable(),
-      reporterEmail: z.string(),
-      reporterPhone: z.string(),
+      reporterEmail: z.string().nullable().optional(),
+      reporterPhone: z.string().nullable().optional(),
       isPublic: z.boolean(),
       showIdentity: z.boolean(),
       attachments: z.array(z.string()),
@@ -30,7 +34,7 @@ export const serviceApplicationsResponseSchema = z.object({
     z.object({
       id: z.string(),
       trackingNumber: z.string(),
-      category: z.string(),
+      category: z.enum(SERVICE_APPLICATION_CATEGORIES),
       serviceType: z.string(),
       serviceId: z.string(),
       routeKey: z.string(),
@@ -51,10 +55,7 @@ export type AgencyApplicationStatus =
   "Diterima" | "Diproses" | "Perlu Dokumen" | "Selesai";
 
 export type SubmissionQueueStatus =
-  | "Menunggu Asignasi"
-  | "Sedang Ditangani"
-  | "Menunggu Warga"
-  | "Selesai";
+  "Menunggu Asignasi" | "Sedang Ditangani" | "Menunggu Warga" | "Selesai";
 
 export type AgencySubmissionKind = "report" | "service_application";
 
@@ -86,6 +87,7 @@ export interface SubmissionQueueItem {
   serviceName: string;
   serviceType: string;
   category: string;
+  categoryKey: ServiceApplicationCategory;
   agency: string;
   applicantLabel: string;
   applicantName: string;
@@ -107,12 +109,9 @@ export function toAgencyApplication(
     description: report.description,
     category: report.category,
     subcategory: report.subcategory,
-    applicantName:
-      report.showIdentity && report.reporterName
-        ? report.reporterName
-        : "Pelapor anonim",
-    email: report.reporterEmail,
-    phone: report.reporterPhone,
+    applicantName: report.reporterName ?? "Pelapor anonim",
+    email: report.reporterEmail ?? "",
+    phone: report.reporterPhone ?? "-",
     address: [report.address, report.city, report.province].join(", "),
     submittedAt,
     targetAt: report.responseDueAt ?? submittedAt,
@@ -166,7 +165,9 @@ export function getSubmissionQueueStatus(
   status: string,
   assigneeId: string | null,
 ): SubmissionQueueStatus {
-  if (status === "resolved" || status === "closed") return "Selesai";
+  if (status === "resolved" || status === "closed" || status === "completed") {
+    return "Selesai";
+  }
   if (status === "rejected" || status === "waiting_for_citizen") {
     return "Menunggu Warga";
   }
@@ -176,7 +177,9 @@ export function getSubmissionQueueStatus(
   return "Menunggu Asignasi";
 }
 
-export function getSlaTone(waitingTimeMinutes: number): "green" | "yellow" | "red" {
+export function getSlaTone(
+  waitingTimeMinutes: number,
+): "green" | "yellow" | "red" {
   if (waitingTimeMinutes >= 24 * 60) return "red";
   if (waitingTimeMinutes >= 8 * 60) return "yellow";
   return "green";
@@ -195,7 +198,8 @@ export function getAverageWaitingTimeMinutes(
 ): number {
   if (items.length === 0) return 0;
   return Math.round(
-    items.reduce((total, item) => total + item.waitingTimeMinutes, 0) / items.length,
+    items.reduce((total, item) => total + item.waitingTimeMinutes, 0) /
+      items.length,
   );
 }
 
@@ -267,6 +271,7 @@ export function toSubmissionQueueItem(
     serviceName: application.serviceName,
     serviceType: application.serviceType,
     category: categoryLabel(application.category),
+    categoryKey: application.category,
     agency: application.agency,
     applicantLabel: formatApplicantQueueLabel(
       application.applicantName,
@@ -286,7 +291,9 @@ export function toSubmissionQueueItem(
 
 function getAgencyStatus(status: string): AgencyApplicationStatus {
   if (status === "in_progress" || status === "verified") return "Diproses";
-  if (status === "resolved" || status === "closed") return "Selesai";
+  if (status === "resolved" || status === "closed" || status === "completed") {
+    return "Selesai";
+  }
   if (status === "rejected") return "Perlu Dokumen";
   return "Diterima";
 }

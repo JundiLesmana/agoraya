@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { asnProfiles, userSessions, users } from "@/modules/identity/db";
-import { roles, userRoles } from "@/lib/db/schema";
+import { applicationRoles, roles, userApplicationRoles, userRoles } from "@/lib/db/schema";
 import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 
@@ -49,6 +49,7 @@ export async function validateSession(token: string): Promise<{
   sessionId?: string;
   tenantId?: string;
   roles?: string[];
+  applicationRoles?: string[];
 }> {
   if (!token) {
     return { valid: false };
@@ -100,6 +101,21 @@ export async function validateSession(token: string): Promise<{
       ),
     );
 
+  const activeApplicationRoles = await database
+    .select({ key: applicationRoles.key })
+    .from(userApplicationRoles)
+    .innerJoin(
+      applicationRoles,
+      eq(userApplicationRoles.applicationRoleId, applicationRoles.id),
+    )
+    .where(
+      and(
+        eq(userApplicationRoles.userId, session.userId),
+        eq(userApplicationRoles.tenantId, user.tenantId),
+        isNull(userApplicationRoles.revokedAt),
+      ),
+    );
+
   const [asnProfile] = await database
     .select({ userId: asnProfiles.userId })
     .from(asnProfiles)
@@ -121,6 +137,7 @@ export async function validateSession(token: string): Promise<{
     sessionId: session.id,
     tenantId: user.tenantId,
     roles: sessionRoles,
+    applicationRoles: activeApplicationRoles.map((r) => r.key),
   };
 }
 

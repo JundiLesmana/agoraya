@@ -3,15 +3,61 @@ import { render, screen, within } from "@testing-library/react";
 import { BudgetActualsTrend } from "@/app/(public)/data/_components/budget-actuals-trend";
 
 const trendResponse = {
-  wilayah: "Kota Bandung",
-  periode: "2020-2024",
-  source: "SIMULATED",
-  data: [
-    { tahun: 2020, anggaran: 1.8, realisasi: 1.5 },
-    { tahun: 2021, anggaran: 2, realisasi: 1.7 },
-    { tahun: 2022, anggaran: 2.3, realisasi: 2 },
-    { tahun: 2023, anggaran: 2.6, realisasi: 2.3 },
-    { tahun: 2024, anggaran: 3, realisasi: 2.7 },
+  entries: [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      agencyId: "pemda-bandung",
+      regionId: "bandung",
+      regionName: "Kota Bandung",
+      sectorId: "pendidikan",
+      referenceYear: 2020,
+      publishedAt: "2026-11-10T00:00:00.000Z",
+      items: [
+        {
+          code: "PENDIDIKAN",
+          programName: "Pendidikan",
+          subactivityName: "Pendidikan dasar",
+          pagu: "1800000000000",
+          realisasi: "1500000000000",
+          periodValue: "Q1",
+        },
+        ...["Q2", "Q3", "Q4"].map((periodValue) => ({
+          code: "PENDIDIKAN",
+          programName: "Pendidikan",
+          subactivityName: "Pendidikan dasar",
+          pagu: "0",
+          realisasi: "0",
+          periodValue,
+        })),
+      ],
+    },
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      agencyId: "pemda-bandung",
+      regionId: "bandung",
+      regionName: "Kota Bandung",
+      sectorId: "pendidikan",
+      referenceYear: 2024,
+      publishedAt: "2026-11-10T00:00:00.000Z",
+      items: [
+        {
+          code: "PENDIDIKAN",
+          programName: "Pendidikan",
+          subactivityName: "Pendidikan dasar",
+          pagu: "3000000000000",
+          realisasi: "2700000000000",
+          periodValue: "Q1",
+        },
+        ...["Q2", "Q3", "Q4"].map((periodValue) => ({
+          code: "PENDIDIKAN",
+          programName: "Pendidikan",
+          subactivityName: "Pendidikan dasar",
+          pagu: "0",
+          realisasi: "0",
+          periodValue,
+        })),
+      ],
+    },
   ],
 };
 
@@ -31,28 +77,29 @@ describe("BudgetActualsTrend", () => {
 
     render(<BudgetActualsTrend />);
 
+    expect(await screen.findByText(/Pada 2024, 90%/)).toBeTruthy();
     expect(
-      await screen.findByRole("heading", {
-        name: "Anggaran naik, bagaimana realisasinya?",
+      screen.getByRole("heading", {
+        name: "Anggaran dan realisasi APBD",
       }),
     ).toBeTruthy();
-    expect(screen.getByText("Kota Bandung · 2020-2024")).toBeTruthy();
-    expect(screen.queryByText("Data contoh", { exact: true })).toBeNull();
-    expect(document.querySelectorAll('[data-source="SIMULATED"]')).toHaveLength(
-      0,
-    );
-    expect(screen.getByText("90% anggaran terealisasi pada 2024.")).toBeTruthy();
     expect(
-      screen.getByText(/Naik 80% dibanding realisasi 2020 \(Rp1,5 triliun\)/),
+      screen.getByText(
+        "Akumulasi data APBD yang telah dipublikasikan · seluruh wilayah",
+      ),
     ).toBeTruthy();
-    expect(screen.getByText(/Simulasi APBD Agoraya/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Pada 2024, 90% pagu yang dipublikasikan telah terealisasi/,
+      ),
+    ).toBeTruthy();
 
     const table = screen.getByRole("table", {
-      name: /Data anggaran dan realisasi Kota Bandung tahun 2020 sampai 2024/i,
+      name: /Pagu dan realisasi APBD terpublikasi menurut tahun/i,
     });
-    expect(within(table).getAllByRole("row")).toHaveLength(6);
+    expect(within(table).getAllByRole("row")).toHaveLength(3);
     expect(within(table).getByRole("row", { name: /2020 1,8 1,5/ })).toBeTruthy();
-    expect(within(table).getByRole("row", { name: /2024 3,0 2,7/ })).toBeTruthy();
+    expect(within(table).getByRole("row", { name: /2024 3 2,7/ })).toBeTruthy();
   });
 
   it("reports API failures and provides a retry action", async () => {

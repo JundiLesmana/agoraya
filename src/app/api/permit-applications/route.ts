@@ -12,6 +12,9 @@ const commonDataSchema = {
   kontakNotifikasi: z.email(),
   kecamatan: z.string().trim().min(1).max(200),
   kelurahan: z.string().trim().min(1).max(200),
+  alamat: z.string().trim().min(1).max(500),
+  latitude: z.number(),
+  longitude: z.number(),
   judulPermohonan: z.string().trim().min(1).max(200),
   uraian: z.string().trim().min(1).max(5_000),
 };

@@ -6,7 +6,12 @@ import {
   parseRupiahInteger,
   validateApbdItems,
 } from "@/modules/apbd-budget/domain";
-import { APBD_PERIODS } from "@/modules/apbd-budget/contract";
+import {
+  APBD_PERIODS,
+  apbdRecordMetadataSchema,
+  apbdSavePayloadSchema,
+  publishedApbdResponseSchema,
+} from "@/modules/apbd-budget/contract";
 
 describe("APBD amount input", () => {
   it("parses Indonesian and international thousands separators without using floats", () => {
@@ -44,6 +49,59 @@ describe("APBD amount input", () => {
     expect(result.completeness).toBe(75);
     expect(result.absorption).toBe("96,66%");
     expect(result.warningCount).toBe(1);
+  });
+});
+
+describe("published APBD response contract", () => {
+  it("rejects amounts that cannot be safely used in public calculations", () => {
+    const result = publishedApbdResponseSchema.safeParse({
+      entries: [
+        {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          agencyId: "agency-1",
+          regionId: "region-1",
+          regionName: "Jawa Barat",
+          sectorId: "education",
+          referenceYear: 2025,
+          publishedAt: "2026-01-15T00:00:00.000Z",
+          items: [
+            {
+              code: "EDU-01",
+              programName: "Pendidikan",
+              subactivityName: "Rehabilitasi sekolah",
+              periodValue: "Q1",
+              pagu: "not-a-number",
+              realisasi: "100",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("APBD operator review contract", () => {
+  it("applies the persisted metadata defaults and only accepts draft or review statuses", () => {
+    const metadata = apbdRecordMetadataSchema.parse({});
+    expect(metadata.currency).toBe("IDR");
+    expect(metadata.basis).toBe("kumulatif");
+    expect(metadata.publicationAccess).toBe("public");
+
+    const basePayload = {
+      referenceYear: 2026,
+      agencyId: "agency-1",
+      regionId: "region-1",
+      sectorId: "education",
+      items: [],
+    };
+    expect(
+      apbdSavePayloadSchema.safeParse({ ...basePayload, status: "draft" }).success,
+    ).toBe(true);
+    expect(
+      apbdSavePayloadSchema.safeParse({ ...basePayload, status: "published" }).success,
+    ).toBe(false);
   });
 });
 

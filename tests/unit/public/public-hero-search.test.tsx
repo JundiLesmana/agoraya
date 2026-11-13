@@ -15,7 +15,7 @@ describe('PublicHeroSearch', () => {
     const user = userEvent.setup();
     render(<PublicHeroSearch />);
 
-    const input = screen.getByRole('textbox', { name: /cari data, layanan, atau informasi/i });
+    const input = screen.getByRole('searchbox', { name: /cari data, layanan, atau informasi/i });
     await user.type(input, 'APBD');
 
     expect(screen.getByRole('button', { name: /hapus pencarian/i })).toBeTruthy();
@@ -28,16 +28,29 @@ describe('PublicHeroSearch', () => {
 
     await user.click(screen.getByRole('button', { name: 'APBD' }));
 
-    expect((screen.getByRole('textbox', { name: /cari data, layanan, atau informasi/i }) as HTMLInputElement).value).toBe('APBD');
+    expect((screen.getByRole('searchbox', { name: /cari data, layanan, atau informasi/i }) as HTMLInputElement).value).toBe('APBD');
   });
 
   it('navigates to the search results page with query params', async () => {
     const user = userEvent.setup();
     render(<PublicHeroSearch />);
 
-    await user.type(screen.getByRole('textbox', { name: /cari data, layanan, atau informasi/i }), 'Pendidikan');
+    await user.type(screen.getByRole('searchbox', { name: /cari data, layanan, atau informasi/i }), 'Pendidikan');
     await user.click(screen.getByRole('button', { name: /^cari$/i }));
 
-    expect(push).toHaveBeenCalledWith('/data?query=Pendidikan');
+    expect(push).toHaveBeenCalledWith('/cari?q=Pendidikan');
+  });
+
+  it('does not navigate for a query shorter than two characters', async () => {
+    const user = userEvent.setup();
+    render(<PublicHeroSearch />);
+
+    await user.type(
+      screen.getByRole('searchbox', { name: /cari data, layanan, atau informasi/i }),
+      'a',
+    );
+    await user.click(screen.getByRole('button', { name: /^cari$/i }));
+
+    expect(push).not.toHaveBeenCalled();
   });
 });

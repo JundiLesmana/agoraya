@@ -83,94 +83,104 @@ export async function fetchAccessibleProjects(
         eq(infrastructureProjects.assignedUserId, session.userId),
         eq(infrastructureProjects.fiscalYear, fiscalYear),
       ];
-    if (projectIds) {
-      conditions.push(inArray(infrastructureProjects.id, projectIds));
-    }
-
-    const projects = await tx
-      .select({
-        id: infrastructureProjects.id,
-        status: infrastructureProjects.status,
-        contractValue: infrastructureProjects.contractValue,
-        initialPhysicalProgress: infrastructureProjects.initialPhysicalProgress,
-        initialFinancialProgress: infrastructureProjects.initialFinancialProgress,
-      })
-      .from(infrastructureProjects)
-      .where(and(...conditions))
-      .orderBy(infrastructureProjects.packageName, infrastructureProjects.id);
-
-    if (projects.length === 0) return [];
-
-    const projectIdList = projects.map((project) => project.id);
-    const reports = await tx
-      .select({
-        projectId: projectProgressReports.projectId,
-        physicalProgress: projectProgressReports.physicalProgress,
-        financialProgress: projectProgressReports.financialProgress,
-        periodYear: projectProgressReports.periodYear,
-        periodMonth: projectProgressReports.periodMonth,
-        submittedAt: projectProgressReports.submittedAt,
-      })
-      .from(projectProgressReports)
-      .where(
-        and(
-          eq(projectProgressReports.tenantId, session.tenantId),
-          inArray(projectProgressReports.projectId, projectIdList),
-          eq(projectProgressReports.status, "submitted"),
-        ),
-      )
-      .orderBy(
-        desc(projectProgressReports.periodYear),
-        desc(projectProgressReports.periodMonth),
-        desc(projectProgressReports.submittedAt),
-      );
-
-    const latestByProject = new Map<string, (typeof reports)[number]>();
-    for (const report of reports) {
-      if (!latestByProject.has(report.projectId)) {
-        latestByProject.set(report.projectId, report);
+      if (projectIds) {
+        conditions.push(inArray(infrastructureProjects.id, projectIds));
       }
-    }
 
-    return projects.map((project) => {
-      const report = latestByProject.get(project.id);
-      const hasReport = report !== undefined;
-      const physicalSource: CriterionSourceIdentity = hasReport
-        ? {
-            kind: "submitted_report",
-            periodYear: report.periodYear,
-            periodMonth: report.periodMonth,
-            ...(report.submittedAt
-              ? { submittedAt: report.submittedAt.toISOString() }
-              : {}),
-          }
-        : { kind: "initial_field", field: "initial_physical_progress" };
-      const financialSource: CriterionSourceIdentity = hasReport
-        ? {
-            kind: "submitted_report",
-            periodYear: report.periodYear,
-            periodMonth: report.periodMonth,
-            ...(report.submittedAt
-              ? { submittedAt: report.submittedAt.toISOString() }
-              : {}),
-          }
-        : { kind: "initial_field", field: "initial_financial_progress" };
-      return {
-        projectId: project.id,
-        status: project.status,
-        physicalProgress: {
-          value: hasReport ? report.physicalProgress : project.initialPhysicalProgress,
-          source: physicalSource,
-        },
-        financialProgress: {
-          value: hasReport ? report.financialProgress : project.initialFinancialProgress,
-          source: financialSource,
-        },
-        contractValue: project.contractValue,
-        progressDataAvailable: hasReport,
-      };
-    });
-  }, database);
+      const projects = await tx
+        .select({
+          id: infrastructureProjects.id,
+          status: infrastructureProjects.status,
+          contractValue: infrastructureProjects.contractValue,
+          initialPhysicalProgress:
+            infrastructureProjects.initialPhysicalProgress,
+          initialFinancialProgress:
+            infrastructureProjects.initialFinancialProgress,
+        })
+        .from(infrastructureProjects)
+        .where(and(...conditions))
+        .orderBy(
+          infrastructureProjects.packageName,
+          infrastructureProjects.id,
+        );
+
+      if (projects.length === 0) return [];
+
+      const projectIdList = projects.map((project) => project.id);
+      const reports = await tx
+        .select({
+          projectId: projectProgressReports.projectId,
+          physicalProgress: projectProgressReports.physicalProgress,
+          financialProgress: projectProgressReports.financialProgress,
+          periodYear: projectProgressReports.periodYear,
+          periodMonth: projectProgressReports.periodMonth,
+          submittedAt: projectProgressReports.submittedAt,
+        })
+        .from(projectProgressReports)
+        .where(
+          and(
+            eq(projectProgressReports.tenantId, session.tenantId),
+            inArray(projectProgressReports.projectId, projectIdList),
+            eq(projectProgressReports.periodYear, fiscalYear),
+            eq(projectProgressReports.status, "submitted"),
+          ),
+        )
+        .orderBy(
+          desc(projectProgressReports.periodYear),
+          desc(projectProgressReports.periodMonth),
+          desc(projectProgressReports.submittedAt),
+        );
+
+      const latestByProject = new Map<string, (typeof reports)[number]>();
+      for (const report of reports) {
+        if (!latestByProject.has(report.projectId)) {
+          latestByProject.set(report.projectId, report);
+        }
+      }
+
+      return projects.map((project) => {
+        const report = latestByProject.get(project.id);
+        const hasReport = report !== undefined;
+        const physicalSource: CriterionSourceIdentity = hasReport
+          ? {
+              kind: "submitted_report",
+              periodYear: report.periodYear,
+              periodMonth: report.periodMonth,
+              ...(report.submittedAt
+                ? { submittedAt: report.submittedAt.toISOString() }
+                : {}),
+            }
+          : { kind: "initial_field", field: "initial_physical_progress" };
+        const financialSource: CriterionSourceIdentity = hasReport
+          ? {
+              kind: "submitted_report",
+              periodYear: report.periodYear,
+              periodMonth: report.periodMonth,
+              ...(report.submittedAt
+                ? { submittedAt: report.submittedAt.toISOString() }
+                : {}),
+            }
+          : { kind: "initial_field", field: "initial_financial_progress" };
+        return {
+          projectId: project.id,
+          status: project.status,
+          physicalProgress: {
+            value: hasReport
+              ? report.physicalProgress
+              : project.initialPhysicalProgress,
+            source: physicalSource,
+          },
+          financialProgress: {
+            value: hasReport
+              ? report.financialProgress
+              : project.initialFinancialProgress,
+            source: financialSource,
+          },
+          contractValue: project.contractValue,
+          progressDataAvailable: hasReport,
+        };
+      });
+    }, database);
 }
 
 export interface CreateDecisionRunItemInput {
@@ -278,10 +288,22 @@ export async function listDecisionRuns(
     const hasMore = runs.length > limit;
     const page = hasMore ? runs.slice(0, -1) : runs;
 
-    const countRows = await tx
-      .select({ runId: decisionRunItems.runId, count: count() })
-      .from(decisionRunItems)
-      .groupBy(decisionRunItems.runId);
+    const countRows =
+      page.length > 0
+        ? await tx
+            .select({ runId: decisionRunItems.runId, count: count() })
+            .from(decisionRunItems)
+            .where(
+              and(
+                eq(decisionRunItems.tenantId, session.tenantId),
+                inArray(
+                  decisionRunItems.runId,
+                  page.map((run) => run.id),
+                ),
+              ),
+            )
+            .groupBy(decisionRunItems.runId)
+        : [];
     const counts = new Map<string, number>();
     for (const row of countRows) {
       counts.set(row.runId, Number(row.count));
@@ -338,14 +360,25 @@ export async function getDecisionRun(
         createdAt: decisionRuns.createdAt,
       })
       .from(decisionRuns)
-      .where(eq(decisionRuns.id, runId))
+      .where(
+        and(
+          eq(decisionRuns.id, runId),
+          eq(decisionRuns.tenantId, session.tenantId),
+          eq(decisionRuns.requestedBy, session.userId),
+        ),
+      )
       .limit(1);
     if (!run) return null;
 
     const items = await tx
       .select()
       .from(decisionRunItems)
-      .where(eq(decisionRunItems.runId, runId))
+      .where(
+        and(
+          eq(decisionRunItems.runId, runId),
+          eq(decisionRunItems.tenantId, session.tenantId),
+        ),
+      )
       .orderBy(decisionRunItems.rank);
 
     return {

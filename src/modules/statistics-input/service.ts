@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { tenantCloudinaryFolder } from "@/lib/cloudinary/folders";
 import { getDefaultDatabase } from "@/lib/db/client";
 import type { Database, Row } from "@/lib/db/types";
 import type { Session } from "@/lib/auth/session";
@@ -93,15 +94,18 @@ export async function getPublishedStatisticInputs(
   database: Database = getDefaultDatabase(),
 ) {
   const entries = await database.query<PublishedEntryRow>(
-    `SELECT id::text AS id, region_id AS "regionId",
+    `SELECT DISTINCT ON (
+         tenant_id, region_id, sector_id, indicator_id, reference_year
+       )
+       id::text AS id, region_id AS "regionId",
        region_name AS "regionName",
        sector_id AS "sectorId", indicator_id AS "indicatorId",
        reference_year AS "referenceYear", source_name AS "sourceName",
        methodology, published_at AS "publishedAt"
      FROM statistic_entries
      WHERE status = 'published'
-     ORDER BY published_at DESC
-     LIMIT 50`,
+     ORDER BY tenant_id, region_id, sector_id, indicator_id, reference_year,
+       published_at DESC NULLS LAST, id DESC`,
   );
   if (!entries.length) return { entries: [] };
 
@@ -525,7 +529,12 @@ async function uploadDocuments(
       {
         resource_type: "raw",
         type: "authenticated",
-        folder: `tenant/${session.tenantId}/statistic-input/${payload.regionId}/${payload.referenceYear}`,
+        folder: tenantCloudinaryFolder(
+          session.tenantId,
+          "statistics-input",
+          payload.regionId,
+          String(payload.referenceYear),
+        ),
         public_id: crypto.randomUUID(),
         overwrite: false,
         unique_filename: false,
@@ -803,6 +812,10 @@ export async function saveStatisticsInput(
                 "statistic_values",
                 valueRow.id,
                 JSON.stringify({
+                  tenantId: session.tenantId,
+                  actorRole: session.roles.join(","),
+                  result: "success",
+                  status: payload.status,
                   periodValue: value.periodValue,
                   previousValue,
                   newValue: value.value,
@@ -856,4 +869,113 @@ export async function saveStatisticsInput(
 
     throw error;
   }
+}
+
+type AdminStatisticAssignmentRow = Row & {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  agencyId: string;
+  regionId: string;
+  regionName: string;
+  sectorId: string;
+};
+
+export async function listStatisticOperatorAssignments(
+  session: Session,
+  database: Database = getDefaultDatabase(),
+): Promise<AdminStatisticAssignmentRow[]> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const rows = await transaction.query<AdminStatisticAssignmentRow>(
+        `SELECT a.id::text AS id, a.user_id AS "userId",
+               u.email AS "userEmail", u.name AS "userName",
+               a.agency_id AS "agencyId", a.region_id AS "regionId",
+               a.region_name AS "regionName", a.sector_id AS "sectorId"
+        FROM statistic_operator_assignments a
+        INNER JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+        WHERE a.tenant_id = $1
+        ORDER BY u.email, a.region_name, a.sector_id, a.agency_id`,
+        [session.tenantId],
+      );
+      return rows;
+    },
+    database,
+  );
+}
+
+export async function createStatisticOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    regionName: string;
+    sectorId: StatisticAssignment["sectorId"];
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const user = await transaction.queryOne<Row & { id: string }>(
+        `SELECT id::text AS id FROM users WHERE id = $1 AND tenant_id = $2`,
+        [payload.userId, session.tenantId],
+      );
+      if (!user) {
+        throw new StatisticsInputError(
+          "Pengguna tidak ditemukan dalam tenant Anda.",
+          404,
+        );
+      }
+      await transaction.query(
+        `INSERT INTO statistic_operator_assignments (
+           tenant_id, user_id, agency_id, region_id, region_name, sector_id
+         ) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (user_id, tenant_id, agency_id, region_id, sector_id)
+         DO NOTHING`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.regionName,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
+}
+
+export async function deleteStatisticOperatorAssignment(
+  session: Session,
+  payload: {
+    userId: string;
+    agencyId: string;
+    regionId: string;
+    sectorId: StatisticAssignment["sectorId"];
+  },
+  database: Database = getDefaultDatabase(),
+): Promise<void> {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      await transaction.query(
+        `DELETE FROM statistic_operator_assignments
+         WHERE tenant_id = $1 AND user_id = $2 AND agency_id = $3
+           AND region_id = $4 AND sector_id = $5`,
+        [
+          session.tenantId,
+          payload.userId,
+          payload.agencyId,
+          payload.regionId,
+          payload.sectorId,
+        ],
+      );
+    },
+    database,
+  );
 }

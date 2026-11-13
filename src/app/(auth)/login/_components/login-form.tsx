@@ -30,13 +30,14 @@ export function LoginForm() {
         error?: string;
         ok?: boolean;
         roles?: string[];
+        redirectTo?: string;
       };
       if (!response.ok || !result.ok) {
         setError(result.error ?? "NIK/email atau kata sandi tidak sesuai.");
         return;
       }
 
-      router.replace(getPostLoginRoute(result.roles ?? []));
+      router.replace(result.redirectTo ?? getPostLoginRoute(result.roles ?? []));
       router.refresh();
     } catch {
       setError(

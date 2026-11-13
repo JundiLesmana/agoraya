@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowRight, Clock3, FileSearch, UserRound } from "lucide-react";
 import { requireAuth } from "@/lib/auth/guards";
@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDateTimeWib } from "@/app/(citizen)/citizen/service/_components/tracking-format";
+import {
+  isServiceApplicationSupervisor,
+  listAccessibleServiceCategories,
+} from "@/modules/service-applications/access";
 
 export const dynamic = "force-dynamic";
 
@@ -28,38 +32,39 @@ export default async function AsnSubmissionProcessingListPage() {
     roles: ["asn", "staff", "admin", "superadmin"],
   });
 
-  const applications = await db()
-    .select({
-      id: serviceApplications.id,
-      trackingNumber: serviceApplications.trackingNumber,
-      serviceName: serviceApplications.serviceName,
-      applicantName: serviceApplications.applicantName,
-      status: serviceApplications.status,
-      submittedAt: serviceApplications.submittedAt,
-      assigneeName: users.name,
-    })
-    .from(serviceApplications)
-    .leftJoin(users, eq(serviceApplications.assigneeId, users.id))
-    .where(
-      and(
-        eq(serviceApplications.tenantId, session.tenantId),
-        inArray(serviceApplications.status, [
-          "submitted",
-          "verified",
-          "in_progress",
-          "waiting_for_citizen",
-        ]),
-        or(
-          isNotNull(serviceApplications.assigneeId),
-          inArray(serviceApplications.status, [
-            "verified",
-            "in_progress",
-            "waiting_for_citizen",
-          ]),
-        ),
-      ),
-    )
-    .orderBy(asc(serviceApplications.submittedAt));
+  const categories = await listAccessibleServiceCategories(session);
+  const conditions = [
+    eq(serviceApplications.tenantId, session.tenantId),
+    inArray(serviceApplications.status, [
+      "submitted",
+      "verified",
+      "in_progress",
+      "waiting_for_citizen",
+    ]),
+  ];
+  if (!isServiceApplicationSupervisor(session)) {
+    conditions.push(eq(serviceApplications.assigneeId, session.userId));
+  }
+  if (categories.length > 0) {
+    conditions.push(inArray(serviceApplications.category, categories));
+  }
+
+  const applications = categories.length
+    ? await db()
+        .select({
+          id: serviceApplications.id,
+          trackingNumber: serviceApplications.trackingNumber,
+          serviceName: serviceApplications.serviceName,
+          applicantName: serviceApplications.applicantName,
+          status: serviceApplications.status,
+          submittedAt: serviceApplications.submittedAt,
+          assigneeName: users.name,
+        })
+        .from(serviceApplications)
+        .leftJoin(users, eq(serviceApplications.assigneeId, users.id))
+        .where(and(...conditions))
+        .orderBy(asc(serviceApplications.submittedAt))
+    : [];
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
@@ -84,7 +89,10 @@ export default async function AsnSubmissionProcessingListPage() {
 
         {applications.length === 0 ? (
           <Card className="items-center gap-3 border-dashed px-6 py-12 text-center shadow-none">
-            <FileSearch className="text-muted-foreground size-8" aria-hidden="true" />
+            <FileSearch
+              className="text-muted-foreground size-8"
+              aria-hidden="true"
+            />
             <div className="space-y-1">
               <p className="font-medium">Belum ada pengajuan yang ditangani</p>
               <p className="text-muted-foreground text-sm">
@@ -96,7 +104,7 @@ export default async function AsnSubmissionProcessingListPage() {
             </Button>
           </Card>
         ) : (
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <div className="bg-card overflow-hidden rounded-2xl border shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-muted/50 text-left">

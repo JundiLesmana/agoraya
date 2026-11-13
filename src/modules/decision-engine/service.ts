@@ -141,6 +141,9 @@ export async function createPrioritizationRun(
     targetTable: "decision_runs",
     targetId: runId,
     metadata: {
+      tenantId: session.tenantId,
+      actorRole: session.roles.join(","),
+      result: "success",
       fiscalYear: input.fiscalYear,
       algorithm: ALGORITHM_VERSION,
       projectCount: items.length,

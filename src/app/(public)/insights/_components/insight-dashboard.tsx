@@ -13,6 +13,7 @@ import { BudgetTrend } from "./budget-trend";
 import { SekilasCards } from "./sekilas-cards";
 import { TimelyServiceComparison } from "./timely-service-comparison";
 import { WellbeingIndicators } from "./wellbeing-indicators";
+import { BpsAnalyticsPanel } from "../../data/_components/bps-analytics-panel";
 import {
   getRegencyOptions,
   isIndonesianProvince,
@@ -91,6 +92,7 @@ export function InsightDashboard() {
         onApply={setFilters}
         onReset={() => setFilters(DEFAULT_FILTERS)}
       />
+      <BpsAnalyticsPanel includeAllAsnCategories />
       <InfoBanner
         wilayah={filters.wilayah}
         periode={filters.periode}

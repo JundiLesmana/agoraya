@@ -6,11 +6,14 @@ const testState = vi.hoisted(() => ({
   loggerError: vi.fn(),
   and: vi.fn((...conditions: unknown[]) => ({ type: 'and', conditions })),
   eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
+  inArray: vi.fn((column: unknown, values: readonly unknown[]) => ({ column, values })),
+  resolveReportingTenantId: vi.fn(),
 }));
 
 vi.mock('drizzle-orm', () => ({
   and: testState.and,
   eq: testState.eq,
+  inArray: testState.inArray,
 }));
 
 vi.mock('@/lib/auth/session', () => ({
@@ -41,11 +44,16 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
+vi.mock('@/lib/tenancy/reporting', () => ({
+  resolveReportingTenantId: testState.resolveReportingTenantId,
+}));
+
 import { GET } from '@/app/api/citizen/service-applications/[id]/route';
 
 describe('GET /api/citizen/service-applications/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    testState.resolveReportingTenantId.mockResolvedValue('tenant-recipient');
   });
 
   it('returns 404 when the citizen does not own the requested submission', async () => {
@@ -66,8 +74,11 @@ describe('GET /api/citizen/service-applications/[id]', () => {
       error: 'Pengajuan tidak ditemukan.',
     });
     expect(testState.eq).toHaveBeenNthCalledWith(1, 'id-column', 'app-9');
-    expect(testState.eq).toHaveBeenNthCalledWith(2, 'tenant-column', 'tenant-1');
-    expect(testState.eq).toHaveBeenNthCalledWith(3, 'applicant-column', 'user-1');
+    expect(testState.inArray).toHaveBeenCalledWith('tenant-column', [
+      'tenant-1',
+      'tenant-recipient',
+    ]);
+    expect(testState.eq).toHaveBeenNthCalledWith(2, 'applicant-column', 'user-1');
   });
 
   it('returns the matching submission detail for the current citizen', async () => {

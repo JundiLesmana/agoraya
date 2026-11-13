@@ -15,8 +15,8 @@ function PublicHeroSearch() {
 
   const submitSearch = React.useCallback(() => {
     const trimmed = query.trim();
-    if (!trimmed) return;
-    router.push(`/data?query=${encodeURIComponent(trimmed)}`);
+    if (trimmed.length < 2) return;
+    router.push(`/cari?q=${encodeURIComponent(trimmed)}`);
   }, [query, router]);
 
   return (
@@ -31,10 +31,14 @@ function PublicHeroSearch() {
         <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2 sm:gap-3 sm:rounded-2xl sm:px-4">
           <Search className="size-4 shrink-0 text-slate-400 dark:text-muted-foreground sm:size-5" aria-hidden="true" />
           <Input
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Cari data, layanan, atau informasi..."
             aria-label="Cari data, layanan, atau informasi"
+            minLength={2}
+            maxLength={120}
+            required
             className="h-10 min-w-0 border-0 bg-transparent px-0 text-sm text-foreground shadow-none placeholder:text-xs placeholder:text-slate-400 dark:placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-12 sm:text-base sm:placeholder:text-sm lg:h-10"
           />
           {query ? (

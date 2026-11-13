@@ -8,7 +8,10 @@ import {
   serviceErrorResponse,
 } from "../../_auth";
 import { getPrioritizationRun } from "@/modules/decision-engine/service";
-import { explainProjectPriority } from "@/modules/ai/project-priority-explanation";
+import {
+  criterionFactorInputSchema,
+  explainProjectPriority,
+} from "@/modules/ai/project-priority-explanation";
 import type { CriterionFactorInput } from "@/modules/ai/project-priority-explanation";
 import { logger } from "@/lib/logger";
 
@@ -49,17 +52,20 @@ export async function POST(
       );
     }
 
-    const criteriaKeys = new Set<string>();
-    for (const item of detail.items) {
-      for (const breakdown of item.scoreBreakdown as readonly { readonly criterion: string }[]) {
+    const criteriaKeys = new Set<CriterionFactorInput["criterion"]>();
+    const items = detail.items.map((item) => {
+      const parsedBreakdown = z
+        .array(criterionFactorInputSchema)
+        .safeParse(item.scoreBreakdown);
+      if (!parsedBreakdown.success) {
+        throw new Error("Snapshot kriteria prioritisasi tidak valid.");
+      }
+      for (const breakdown of parsedBreakdown.data) {
         criteriaKeys.add(breakdown.criterion);
       }
-    }
-    const criteria = Array.from(criteriaKeys).map((key) => ({ key }));
-
-    const items = detail.items.map((item) => ({
-      breakdown: (item.scoreBreakdown as readonly CriterionFactorInput[]),
-    }));
+      return { breakdown: parsedBreakdown.data };
+    });
+    const criteria = Array.from(criteriaKeys);
 
     const explanation = await explainProjectPriority({
       criteriaVersion: detail.run.criteriaVersion,

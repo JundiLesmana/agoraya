@@ -96,6 +96,8 @@ export async function POST(request: Request): Promise<Response> {
       targetTable: "datasets",
       targetId: null,
       metadata: {
+        tenantId: authorization.session.tenantId,
+        actorRole: authorization.session.roles.join(","),
         slug: "statistik-bps",
         result: "success",
       },

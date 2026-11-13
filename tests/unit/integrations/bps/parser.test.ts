@@ -72,19 +72,43 @@ describe("BPS parser", () => {
     expect(parseBpsResponse(bpsResponse, selector, "124", 2024)).toEqual([
       {
         indicatorCode: "bps:0000:413:0:0",
+        indicatorName: "Indeks Pembangunan Manusia",
         regionCode: "1100",
         value: 74.03,
         year: 2024,
         unit: "Indeks",
+        category: "Tidak ada",
       },
       {
         indicatorCode: "bps:0000:413:0:0",
+        indicatorName: "Indeks Pembangunan Manusia",
         regionCode: "1101",
         value: 69.01,
         year: 2024,
         unit: "Indeks",
+        category: "Tidak ada",
       },
     ]);
+  });
+
+  it("menerima unit bernilai null dari API BPS resmi dan menggunakan fallback", () => {
+    const responseWithNullUnit = {
+      ...bpsResponse,
+      var: [
+        {
+          val: 413,
+          label: "Indeks Pembangunan Manusia",
+          unit: null,
+        },
+      ],
+    };
+    const parsed = parseBpsResponse(
+      responseWithNullUnit,
+      selector,
+      "124",
+      2024,
+    );
+    expect(parsed[0].unit).toBe("Tidak Ada Satuan");
   });
 
   it("menolak respons rusak dan dimensi indikator yang tidak cocok", () => {

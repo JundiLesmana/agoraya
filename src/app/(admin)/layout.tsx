@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth/guards";
 
-import { AdminNavigation } from "./admin-navigation";
+import { AdminShell } from "./admin-navigation";
 
 export default async function AdminLayout({
   children,
@@ -13,11 +13,11 @@ export default async function AdminLayout({
   const isAdministrator = session.roles.some((role) =>
     ["admin", "superadmin"].includes(role),
   );
+  const roleLabel = isAdministrator ? "Administrator" : "Verifikator KYC";
 
   return (
-    <div className="min-h-screen">
-      <AdminNavigation isAdministrator={isAdministrator} />
-      <main className="container mx-auto max-w-7xl px-4 py-8">{children}</main>
-    </div>
+    <AdminShell isAdministrator={isAdministrator} roleLabel={roleLabel}>
+      {children}
+    </AdminShell>
   );
 }

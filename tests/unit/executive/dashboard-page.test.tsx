@@ -35,6 +35,6 @@ describe("ExecutiveDashboardPage", () => {
 
     expect(await screen.findByRole("heading", { name: "Kontrol akses ASN" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Direktori ASN" })).toBeTruthy();
-    expect(screen.getByText("Tidak ada ASN yang sesuai")).toBeTruthy();
+    expect(screen.getByText("Tidak ada akun yang sesuai")).toBeTruthy();
   });
 });

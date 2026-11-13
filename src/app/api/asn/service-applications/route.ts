@@ -1,9 +1,11 @@
 ﻿import { NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
 import { getCurrentSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
+import { listAccessibleServiceCategories } from "@/modules/service-applications/access";
 
 function getWaitingTimeMinutes(submittedAt: Date, now = new Date()): number {
   return Math.max(
@@ -35,6 +37,35 @@ export async function GET(): Promise<Response> {
         { status: 403 },
       );
     }
+    const reportingTenantId = await resolveReportingTenantId();
+    if (!reportingTenantId) {
+      return NextResponse.json(
+        {
+          error:
+            "Tenant penerima pengajuan layanan belum dikonfigurasi atau tidak aktif.",
+        },
+        { status: 503 },
+      );
+    }
+    if (reportingTenantId !== session.tenantId) {
+      logger.error("service_applications.recipient_tenant_mismatch", {
+        userId: session.userId,
+        sessionTenantId: session.tenantId,
+        reportingTenantId,
+      });
+      return NextResponse.json(
+        {
+          error:
+            "Akun ASN tidak berada pada tenant penerima pengajuan layanan.",
+        },
+        { status: 403 },
+      );
+    }
+
+    const categories = await listAccessibleServiceCategories(session);
+    if (categories.length === 0) {
+      return NextResponse.json({ applications: [] });
+    }
 
     const rows = await db()
       .select({
@@ -54,7 +85,12 @@ export async function GET(): Promise<Response> {
         assigneeId: serviceApplications.assigneeId,
       })
       .from(serviceApplications)
-      .where(eq(serviceApplications.tenantId, session.tenantId))
+      .where(
+        and(
+          eq(serviceApplications.tenantId, session.tenantId),
+          inArray(serviceApplications.category, categories),
+        ),
+      )
       .orderBy(asc(serviceApplications.submittedAt));
 
     return NextResponse.json({

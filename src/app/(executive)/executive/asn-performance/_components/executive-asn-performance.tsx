@@ -25,8 +25,12 @@ type AsnPerformanceTaskType =
   | "laporan_warga"
   | "perizinan"
   | "submit_cms"
+  | "apbd_input"
   | "review_cms"
-  | "review_kyc";
+  | "review_kyc"
+  | "review_workflow"
+  | "access_management"
+  | "decision_engine";
 
 const ALL_TASK_TYPES: readonly AsnPerformanceTaskType[] = [
   "layanan_kesehatan",
@@ -35,8 +39,12 @@ const ALL_TASK_TYPES: readonly AsnPerformanceTaskType[] = [
   "laporan_warga",
   "perizinan",
   "submit_cms",
+  "apbd_input",
   "review_cms",
   "review_kyc",
+  "review_workflow",
+  "access_management",
+  "decision_engine",
 ];
 
 const TASK_TYPE_LABELS: Readonly<Record<AsnPerformanceTaskType, string>> = {
@@ -45,9 +53,13 @@ const TASK_TYPE_LABELS: Readonly<Record<AsnPerformanceTaskType, string>> = {
   layanan_sosial: "Layanan Sosial",
   laporan_warga: "Laporan Warga",
   perizinan: "Perizinan",
-  submit_cms: "Submit CMS",
+  submit_cms: "Submit Data",
+  apbd_input: "Publikasi APBD",
   review_cms: "Review CMS",
   review_kyc: "Review KYC",
+  review_workflow: "Review Layanan & Laporan",
+  access_management: "Pengelolaan Akses",
+  decision_engine: "Prioritisasi Proyek",
 };
 
 const TASK_TYPE_COLORS: Readonly<Record<AsnPerformanceTaskType, string>> = {
@@ -57,8 +69,12 @@ const TASK_TYPE_COLORS: Readonly<Record<AsnPerformanceTaskType, string>> = {
   laporan_warga: "#7c3aed",
   perizinan: "#b91c1c",
   submit_cms: "#2563eb",
+  apbd_input: "#15803d",
   review_cms: "#0d9488",
   review_kyc: "#38bdf8",
+  review_workflow: "#7c3aed",
+  access_management: "#b91c1c",
+  decision_engine: "#a16207",
 };
 
 interface TaskBreakdown extends Record<AsnPerformanceTaskType, number> {
@@ -68,8 +84,12 @@ interface TaskBreakdown extends Record<AsnPerformanceTaskType, number> {
   laporan_warga: number;
   perizinan: number;
   submit_cms: number;
+  apbd_input: number;
   review_cms: number;
   review_kyc: number;
+  review_workflow: number;
+  access_management: number;
+  decision_engine: number;
 }
 
 interface AsnPerformanceRecord {
@@ -81,6 +101,7 @@ interface AsnPerformanceRecord {
   email: string;
   nip: string | null;
   accessScope: string;
+  roles: readonly string[];
   assignedTasks: number;
   completedTasks: number;
   completionRate: number | null;
@@ -132,7 +153,7 @@ interface FilterState {
 }
 
 const INITIAL_FILTERS: FilterState = {
-  dateRange: "2026-10-01:2026-10-28",
+  dateRange: "30d",
   opd: "",
   position: "",
   accessScope: "",
@@ -141,7 +162,13 @@ const INITIAL_FILTERS: FilterState = {
 
 function buildPerformanceParams(appliedFilters: FilterState): URLSearchParams {
   const params = new URLSearchParams();
-  const [start, end] = appliedFilters.dateRange.split(":");
+  const endDate = new Date();
+  const days = appliedFilters.dateRange === "7d" ? 7 : 30;
+  const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+  const [start, end] =
+    appliedFilters.dateRange === "7d" || appliedFilters.dateRange === "30d"
+      ? [startDate.toISOString().slice(0, 10), endDate.toISOString().slice(0, 10)]
+      : appliedFilters.dateRange.split(":");
   if (start && end) {
     params.set("start_date", start);
     params.set("end_date", end);
@@ -165,8 +192,12 @@ function emptyTaskBreakdown(): TaskBreakdown {
     laporan_warga: 0,
     perizinan: 0,
     submit_cms: 0,
+    apbd_input: 0,
     review_cms: 0,
     review_kyc: 0,
+    review_workflow: 0,
+    access_management: 0,
+    decision_engine: 0,
   };
 }
 
@@ -179,6 +210,7 @@ function mapDetailItem(
     opd: string | null;
     unit: string | null;
     position: string | null;
+    roles?: readonly string[];
     assignedTasks: number;
     completedTasks: number;
     completionRate: number | null;
@@ -189,6 +221,7 @@ function mapDetailItem(
   const breakdown: TaskBreakdown = { ...emptyTaskBreakdown(), ...item.taskBreakdown };
   const assigned = item.assignedTasks;
   const completed = item.completedTasks;
+  const roles = item.roles ?? [];
   return {
     id: item.userId,
     name: item.name,
@@ -197,7 +230,8 @@ function mapDetailItem(
     unit: item.unit ?? null,
     email: item.email,
     nip: item.nip,
-    accessScope: "Kewenangan terdaftar",
+    accessScope: roles.join(", "),
+    roles,
     assignedTasks: assigned,
     completedTasks: completed,
     completionRate: item.completionRate,
@@ -324,11 +358,10 @@ export function ExecutiveAsnPerformance() {
           asnCount: totals.asnCount ?? 0,
           assignedTasks: assigned,
           completedTasks: completed,
-          completionRate:
-            totals.completionRate ?? (assigned > 0 ? completed / assigned : 0),
-          pendingTasks: Math.max(0, assigned - completed),
-          withAssignmentCount: totals.asnCount ?? 0,
-          noAssignmentCount: 0,
+          completionRate: totals.completionRate ?? null,
+          pendingTasks: 0,
+          withAssignmentCount: totals.withActivityCount ?? 0,
+          noAssignmentCount: totals.noActivityCount ?? 0,
           byTaskType,
         });
       }
@@ -339,7 +372,7 @@ export function ExecutiveAsnPerformance() {
         const mappedTrends: TrendWeekData[] = items.map(
           (item: { periodStart: string; totalCompleted: number; taskBreakdown: Partial<TaskBreakdown> }, idx: number) => ({
             label: `Minggu ${idx + 1}`,
-            taskCountLabel: `${item.totalCompleted} tugas`,
+            taskCountLabel: `${item.totalCompleted} aktivitas`,
             taskBreakdown: { ...emptyTaskBreakdown(), ...item.taskBreakdown },
             total: item.totalCompleted,
           }),
@@ -356,6 +389,7 @@ export function ExecutiveAsnPerformance() {
             email: string;
             opd: string | null;
             position: string | null;
+            roles?: readonly string[];
             taskBreakdown: Partial<TaskBreakdown>;
             completedTasks: number;
             assignedTasks: number;
@@ -459,11 +493,10 @@ export function ExecutiveAsnPerformance() {
       "Unit",
       "Email",
       "NIP",
-      "Ditugaskan",
-      "Selesai",
+      "Peran",
+      "Aktivitas",
       ...ALL_TASK_TYPES.map((t) => TASK_TYPE_LABELS[t]),
-      "Penyelesaian",
-      "Status",
+      "Status aktivitas",
     ];
     const rows = records.map((r) => [
       `"${r.name}"`,
@@ -472,10 +505,9 @@ export function ExecutiveAsnPerformance() {
       `"${r.unit ?? ""}"`,
       `"${r.email}"`,
       `"${r.nip ?? ""}"`,
+      `"${r.roles.join(", ")}"`,
       r.assignedTasks,
-      r.completedTasks,
       ...ALL_TASK_TYPES.map((t) => r.taskBreakdown[t]),
-      r.completionRate !== null ? `${(r.completionRate * 100).toFixed(1)}%` : "Tidak ada penugasan",
       `"${r.statusLabel}"`,
     ]);
     const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
@@ -483,7 +515,7 @@ export function ExecutiveAsnPerformance() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `kinerja-asn-${Date.now()}.csv`;
+    a.download = `kinerja-operasional-${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -576,13 +608,6 @@ export function ExecutiveAsnPerformance() {
     return list;
   }, [lowestData, lowestSortDirection]);
 
-  // Action needed banner items
-  const actionNeededItems = useMemo(() => {
-    return records.filter(
-      (r) => r.assignedTasks >= 5 && (r.completionRate ?? 1) < 0.75,
-    );
-  }, [records]);
-
   // Totals by task type across all records
   const totalsByTaskType = useMemo(() => {
     const result: Record<AsnPerformanceTaskType, number> = {} as Record<
@@ -627,8 +652,15 @@ export function ExecutiveAsnPerformance() {
   };
 
   const totalEvents = summaryData?.assignedTasks ?? 0;
-  const successCount = summaryData?.completedTasks ?? 0;
-  const pendingCount = summaryData?.pendingTasks ?? 0;
+  const activeStaffCount = summaryData?.withAssignmentCount ?? 0;
+  const submissionAndReviewCount =
+    totalsByTaskType.submit_cms +
+    totalsByTaskType.apbd_input +
+    totalsByTaskType.review_cms +
+    totalsByTaskType.review_kyc +
+    totalsByTaskType.review_workflow;
+  const governanceActivityCount =
+    totalsByTaskType.access_management + totalsByTaskType.decision_engine;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col justify-between font-sans antialiased selection:bg-blue-100 selection:text-blue-900">
@@ -832,7 +864,7 @@ export function ExecutiveAsnPerformance() {
                 Kinerja ASN
               </h1>
               <p className="mt-0.5 text-xs text-slate-500">
-                Pantau volume, penyelesaian dan beban kerja tanpa mengabaikan kewenangan petugas.
+                Pantau aktivitas dan beban kerja lintas peran operasional tanpa mengabaikan kewenangan.
               </p>
             </div>
 
@@ -899,9 +931,8 @@ export function ExecutiveAsnPerformance() {
                     onChange={(e) => setFilters((prev) => ({ ...prev, dateRange: e.target.value }))}
                     className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-xs focus:border-blue-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="2026-10-01:2026-10-28">1–28 Oktober 2026</option>
-                    <option value="2026-10-22:2026-10-28">7 hari terakhir</option>
-                    <option value="2026-09-28:2026-10-28">30 hari terakhir</option>
+                    <option value="7d">7 hari terakhir</option>
+                    <option value="30d">30 hari terakhir</option>
                   </select>
                 </div>
 
@@ -982,6 +1013,7 @@ export function ExecutiveAsnPerformance() {
                     <option value="laporan_warga">Laporan Warga</option>
                     <option value="perizinan">Perizinan</option>
                     <option value="submit_cms">Submit CMS</option>
+                    <option value="apbd_input">Publikasi APBD</option>
                     <option value="review_cms">Review CMS</option>
                     <option value="review_kyc">Review KYC</option>
                   </select>
@@ -1024,61 +1056,57 @@ export function ExecutiveAsnPerformance() {
                 {/* Card 1 */}
                 <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Tugas ditugaskan</span>
+                    <span className="text-xs font-medium text-slate-500">Aktivitas tercatat</span>
                     <Inbox aria-hidden="true" className="size-4 text-blue-600" />
                   </div>
                   <div className="mt-3 text-[32px] font-bold tracking-tight text-slate-900 leading-none">
                     {summaryData?.assignedTasks ?? 0}
                   </div>
                   <p className="mt-2 text-[11px] text-slate-400">
-                    {summaryData?.withAssignmentCount ?? 0} ASN memiliki penugasan ·{" "}
-                    {summaryData?.noAssignmentCount ?? 0} tanpa tugas
+                    {activeStaffCount} petugas beraktivitas ·{" "}
+                    {summaryData?.noAssignmentCount ?? 0} belum memiliki aktivitas tercatat
                   </p>
                 </div>
 
                 {/* Card 2 */}
                 <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Total selesai</span>
+                    <span className="text-xs font-medium text-slate-500">Petugas beraktivitas</span>
                     <CheckCircle2 aria-hidden="true" className="size-4 text-blue-600" />
                   </div>
                   <div className="mt-3 text-[32px] font-bold tracking-tight text-slate-900 leading-none">
-                    {summaryData?.completedTasks ?? 0}
+                    {activeStaffCount}
                   </div>
                   <p className="mt-2 text-[11px] text-slate-400">
-                    {totalsByTaskType.submit_cms} submit ·{" "}
-                    {totalsByTaskType.review_cms} review CMS ·{" "}
-                    {totalsByTaskType.review_kyc} review KYC
+                    Dari {summaryData?.asnCount ?? 0} akun operasional
                   </p>
                 </div>
 
                 {/* Card 3 */}
                 <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Tingkat penyelesaian</span>
+                    <span className="text-xs font-medium text-slate-500">Submit dan review</span>
                     <Clock aria-hidden="true" className="size-4 text-blue-600" />
                   </div>
                   <div className="mt-3 text-[32px] font-bold tracking-tight text-slate-900 leading-none">
-                    {summaryData?.completionRate !== null && summaryData?.completionRate !== undefined
-                      ? `${((summaryData?.completionRate ?? 0) * 100).toFixed(1).replace(".", ",")}%`
-                      : "0%"}
+                    {submissionAndReviewCount}
                   </div>
                   <p className="mt-2 text-[11px] text-slate-400">
-                    {successCount} selesai ÷ {totalEvents} ditugaskan × 100%
+                    Submit data, review CMS, KYC, layanan, dan laporan
                   </p>
                 </div>
 
                 {/* Card 4 */}
                 <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Tugas tertunda</span>
+                    <span className="text-xs font-medium text-slate-500">Akses dan keputusan</span>
                     <Clock aria-hidden="true" className="size-4 text-blue-600" />
                   </div>
                   <div className="mt-3 text-[32px] font-bold tracking-tight text-slate-900 leading-none">
-                    {pendingCount}
+                    {governanceActivityCount}
                   </div>
                   <p className="mt-2 text-[11px] text-slate-400">
-                    Belum selesai pada akhir periode
+                    Perubahan akses dan proses Decision Engine
                   </p>
                 </div>
               </>
@@ -1093,16 +1121,16 @@ export function ExecutiveAsnPerformance() {
               </div>
             ) : (
               <>
-                {/* Left Card: Tren penyelesaian tugas */}
+                {/* Left Card: Tren aktivitas */}
                 <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs lg:col-span-7 flex flex-col justify-between">
                   <div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
                         <h2 className="text-sm font-bold text-slate-800">
-                          Tren penyelesaian tugas
+                          Tren aktivitas
                         </h2>
                         <p className="text-xs text-slate-400">
-                          Jumlah tugas selesai per minggu · semua jenis layanan
+                          Jumlah aktivitas tercatat per periode
                         </p>
                       </div>
                     </div>
@@ -1162,13 +1190,13 @@ export function ExecutiveAsnPerformance() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            opacity={t === "submit_cms" || t === "review_cms" || t === "review_kyc" ? 1 : 0.6}
+                            opacity={t === "submit_cms" || t === "apbd_input" || t === "review_cms" || t === "review_kyc" ? 1 : 0.6}
                           />
                         ))}
 
                         {/* Dots for primary task types */}
                         {trendsData.flatMap((item, idx) =>
-                          (["submit_cms", "review_cms", "review_kyc"] as const).map((t) => {
+                          (["submit_cms", "apbd_input", "review_cms", "review_kyc"] as const).map((t) => {
                             const val = item.taskBreakdown[t as AsnPerformanceTaskType];
                             return val > 0 ? (
                               <circle
@@ -1215,7 +1243,7 @@ export function ExecutiveAsnPerformance() {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-                    Total {summaryData?.completedTasks ?? 0} tugas =
+                    Total {summaryData?.completedTasks ?? 0} aktivitas =
                     {ALL_TASK_TYPES.map((t) => totalsByTaskType[t]).join(" + ")}.
                   </div>
                 </div>
@@ -1227,7 +1255,7 @@ export function ExecutiveAsnPerformance() {
                       <div>
                         <h2 className="text-sm font-bold text-slate-800">Aktivitas terendah</h2>
                         <p className="text-xs text-slate-400">
-                          Total tugas paling sedikit · petugas dengan penugasan
+                          Aktivitas tercatat paling sedikit · petugas operasional
                         </p>
                       </div>
                       <button
@@ -1275,8 +1303,7 @@ export function ExecutiveAsnPerformance() {
                               })}
                             </div>
                             <span className="w-10 text-right text-xs text-slate-500 shrink-0">
-                              <strong className="text-slate-800">{item.completedTasks}</strong>{" "}
-                              <span className="text-slate-400">/ {item.assignedTasks}</span>
+                              <strong className="text-slate-800">{item.completedTasks}</strong>
                             </span>
                           </div>
                         );
@@ -1293,8 +1320,8 @@ export function ExecutiveAsnPerformance() {
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] leading-relaxed text-slate-400">
-                      Angka kanan: selesai / ditugaskan. Bandingkan kembali dalam hak dan beban
-                      tugas setara.
+                      Bandingkan volume aktivitas dengan kewenangan, tanggung jawab, dan beban kerja
+                      yang setara.
                     </div>
                   </div>
                 </div>
@@ -1302,29 +1329,7 @@ export function ExecutiveAsnPerformance() {
             )}
           </section>
 
-          {/* Action Needed Banner */}
-          {actionNeededItems.length > 0 && (
-            <section
-              aria-label="Pemberitahuan tindak lanjut"
-              className="rounded-lg border border-amber-200/90 bg-[#fffbeb] p-3.5 flex items-start gap-3"
-            >
-              <AlertCircle aria-hidden="true" className="size-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <p className="font-semibold text-amber-900">
-                  Perlu tindak lanjut · {actionNeededItems.length} ASN
-                </p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-amber-800">
-                  {actionNeededItems
-                    .map((item) => `${item.name.split(" ")[0]}: ${item.completedTasks} dari ${item.assignedTasks} tugas selesai`)
-                    .join(". ")}
-                  . Tinjau hambatan, distribusi tugas, dan cakupan kewenangan terlebih dahulu;
-                  jumlah aktivitas bukan penilaian tunggal kinerja.
-                </p>
-              </div>
-            </section>
-          )}
-
-          {/* Table Card: Rincian kinerja per ASN */}
+          {/* Table Card: Rincian kinerja per petugas */}
           <section
             aria-labelledby="table-heading"
             className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs"
@@ -1332,11 +1337,11 @@ export function ExecutiveAsnPerformance() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 id="table-heading" className="text-sm font-bold text-slate-800">
-                  Rincian kinerja per ASN
+                  Rincian kinerja per petugas
                 </h2>
                 <p className="text-xs text-slate-400">
                   Semua jenis tugas layanan publik, sosial, dan tata kelola. Diurutkan menurut
-                  total submit / review paling sedikit; ASN tanpa tugas ditempatkan terpisah.
+                  total aktivitas tercatat paling sedikit; petugas tanpa aktivitas ditempatkan terpisah.
                 </p>
               </div>
 
@@ -1371,7 +1376,7 @@ export function ExecutiveAsnPerformance() {
                     : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
                 }`}
               >
-                Total selesai {tableSortColumn === "completedTasks" ? (tableSortDirection === "asc" ? "↑" : "↓") : ""}
+                Total aktivitas {tableSortColumn === "completedTasks" ? (tableSortDirection === "asc" ? "↑" : "↓") : ""}
               </button>
 
               {ALL_TASK_TYPES.map((t) => (
@@ -1412,9 +1417,9 @@ export function ExecutiveAsnPerformance() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-[11px] text-slate-400 font-medium">
-                    <th className="py-2.5 pr-4 font-medium">ASN / jabatan</th>
+                    <th className="py-2.5 pr-4 font-medium">Petugas / jabatan</th>
                     <th className="py-2.5 px-3 font-medium">OPD / unit</th>
-                    <th className="py-2.5 px-3 text-right font-medium">Ditugaskan</th>
+                    <th className="py-2.5 px-3 text-right font-medium">Aktivitas</th>
                     {ALL_TASK_TYPES.map((t) => (
                       <th
                         key={t}
@@ -1424,12 +1429,7 @@ export function ExecutiveAsnPerformance() {
                         {t === "submit_cms" ? "Submit CMS" : t === "review_cms" ? "Review CMS" : t === "review_kyc" ? "Review KYC" : TASK_TYPE_LABELS[t]}
                       </th>
                     ))}
-                    <th className="py-2.5 px-3 text-right font-semibold text-blue-600">
-                      Selesai {tableSortColumn === "completedTasks" ? (tableSortDirection === "asc" ? "↑" : "↓") : ""}
-                    </th>
-                    <th className="py-2.5 px-3 text-right font-medium">Tertunda</th>
-                    <th className="py-2.5 px-3 font-medium min-w-[120px]">Penyelesaian</th>
-                    <th className="py-2.5 pl-3 text-right font-medium">Status</th>
+                    <th className="py-2.5 pl-3 text-right font-medium">Status aktivitas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -1438,6 +1438,9 @@ export function ExecutiveAsnPerformance() {
                       {/* ASN / Jabatan */}
                       <td className="py-3.5 pr-4">
                         <div className="font-semibold text-slate-900">{item.name}</div>
+                        <div className="text-[11px] text-slate-400">
+                          {item.roles.join(", ") || "Peran belum tercatat"}
+                        </div>
                         <div className="text-[11px] text-slate-400">{item.position}</div>
                       </td>
 
@@ -1447,7 +1450,7 @@ export function ExecutiveAsnPerformance() {
                         <div className="text-[11px] text-slate-400">{item.unit ?? "—"}</div>
                       </td>
 
-                      {/* Ditugaskan */}
+                      {/* Aktivitas */}
                       <td className="py-3.5 px-3 text-right font-medium text-slate-700">
                         {item.assignedTasks}
                       </td>
@@ -1463,35 +1466,6 @@ export function ExecutiveAsnPerformance() {
                         </td>
                       ))}
 
-                      {/* Selesai */}
-                      <td className="py-3.5 px-3 text-right font-bold text-blue-600">
-                        {item.completedTasks}
-                      </td>
-
-                      {/* Tertunda */}
-                      <td className="py-3.5 px-3 text-right font-medium text-slate-700">
-                        {Math.max(0, item.assignedTasks - item.completedTasks)}
-                      </td>
-
-                      {/* Penyelesaian */}
-                      <td className="py-3.5 px-3">
-                        {item.completionRate !== null ? (
-                          <div className="space-y-1">
-                            <span className="font-semibold text-slate-800">
-                              {(item.completionRate * 100).toFixed(1).replace(".0", "").replace(".", ",")}%
-                            </span>
-                            <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                              <div
-                                style={{ width: `${Math.min(item.completionRate * 100, 100)}%` }}
-                                className="h-full bg-blue-600 rounded-full"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400">Tidak ada penugasan</span>
-                        )}
-                      </td>
-
                       {/* Status */}
                       <td className="py-3.5 pl-3 text-right font-medium text-slate-600">
                         {item.statusLabel}
@@ -1500,8 +1474,8 @@ export function ExecutiveAsnPerformance() {
                   ))}
                   {filteredAndSortedRecords.length === 0 && (
                     <tr>
-                      <td colSpan={10 + ALL_TASK_TYPES.length} className="px-5 py-8 text-center text-slate-400">
-                        Tidak ada data kinerja ASN yang cocok dengan filter.
+                      <td colSpan={4 + ALL_TASK_TYPES.length} className="px-5 py-8 text-center text-slate-400">
+                        Tidak ada data aktivitas petugas yang cocok dengan filter.
                       </td>
                     </tr>
                   )}
@@ -1512,11 +1486,10 @@ export function ExecutiveAsnPerformance() {
             {/* Table Footer */}
             <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-slate-100 pt-3 text-[11px] text-slate-400">
               <div>
-                {records.length} ASN aktif · {summaryData?.withAssignmentCount ?? 0} dengan penugasan ·
-                akun belum aktif tidak dihitung
+                {records.length} akun operasional · {summaryData?.withAssignmentCount ?? 0} dengan aktivitas
               </div>
               <div className="font-semibold text-slate-700">
-                Total: {totalEvents} tugas · {successCount} selesai · {pendingCount} tertunda
+                Total: {totalEvents} aktivitas tercatat
               </div>
             </div>
           </section>
@@ -1527,13 +1500,9 @@ export function ExecutiveAsnPerformance() {
             <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs text-xs space-y-2">
               <h3 className="font-bold text-slate-800 text-sm">Cara membaca metrik</h3>
               <p className="leading-relaxed text-slate-500">
-                Total selesai = jumlah semua jenis tugas (layanan kesehatan, pendidikan, sosial,
-                laporan warga, perizinan, submit CMS, review CMS, review KYC). Satu tugas dihitung
-                sekali setelah aksi selesai; bukan jumlah klik atau perubahan draf.
-              </p>
-              <p className="leading-relaxed text-slate-500">
-                Penyelesaian = tugas selesai / tugas ditugaskan × 100%. Tertunda = ditugaskan −
-                selesai. Status menilai keterlengkapan penugasan dalam periode.
+                Aktivitas berasal dari submit, review, perubahan status, pengelolaan akses, dan
+                keputusan yang tercatat pada sumber data tenant. Angka ini mengukur kejadian kerja,
+                bukan jumlah penugasan atau rasio penyelesaian.
               </p>
             </div>
 
@@ -1545,8 +1514,8 @@ export function ExecutiveAsnPerformance() {
                 review, kewenangan dan beban penugasan yang setara.
               </p>
               <p className="leading-relaxed text-slate-500">
-                Filter jabatan dan jenis tugas sebelum membandingkan individu. Tanpa penugasan
-                tidak diberi rasio 0% dan tidak dilabeli aktivitas rendah.
+                Filter jabatan dan jenis aktivitas sebelum membandingkan individu. Volume aktivitas
+                bukan penilaian tunggal kinerja dan perlu dibaca bersama konteks kewenangan serta beban kerja.
               </p>
             </div>
           </section>

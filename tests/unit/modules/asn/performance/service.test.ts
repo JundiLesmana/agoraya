@@ -55,6 +55,14 @@ const dbState = vi.hoisted(() => ({
       taskType: "review_kyc",
     },
   ],
+  auditRows: [] as {
+    actorId: string;
+    action: string;
+    targetTable: string;
+    targetId: string;
+    metadata: Record<string, unknown>;
+    completedAt: Date;
+  }[],
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -78,6 +86,8 @@ vi.mock("@/lib/db", () => ({
         rows = dbState.reviewCmsRows;
       } else if (fieldNames.includes("approver_id")) {
         rows = dbState.reviewKycRows;
+      } else if (fieldNames.includes("metadata")) {
+        rows = dbState.auditRows;
       }
 
       return {
@@ -148,6 +158,7 @@ describe("asn performance service", () => {
         taskType: "review_kyc",
       },
     ];
+    dbState.auditRows = [];
   });
 
   afterEach(() => {
@@ -156,20 +167,22 @@ describe("asn performance service", () => {
     delete process.env.PERFORMANCE_ACTION_MIN_TASKS;
   });
 
-  it("excludes ASN without tasks from summary aggregates and lowest-activity ranking", async () => {
+  it("includes staff without activity in summary and lowest-activity ranking", async () => {
     const filters = resolveAsnPerformanceFilters({ task_types: undefined });
 
     const summary = await getAsnPerformanceSummary("tenant-1", filters);
     const lowest = await getLowestActivityAsn("tenant-1", filters);
 
     expect(summary.totals).toEqual({
-      asnCount: 1,
+      asnCount: 2,
       assignedTasks: 3,
       completedTasks: 3,
-      completionRate: 1,
+      completionRate: null,
+      withActivityCount: 1,
+      noActivityCount: 1,
     });
-    expect(lowest.items).toHaveLength(1);
-    expect(lowest.items[0]?.userId).toBe("user-1");
+    expect(lowest.items).toHaveLength(2);
+    expect(lowest.items[0]?.userId).toBe("user-2");
   });
 
   it("shows no-assignment label and null completion rate in details", async () => {
@@ -182,7 +195,7 @@ describe("asn performance service", () => {
       assignedTasks: 0,
       completedTasks: 0,
       completionRate: null,
-      statusLabel: "Tidak ada penugasan",
+      statusLabel: "Belum ada aktivitas",
     });
   });
 
@@ -191,50 +204,60 @@ describe("asn performance service", () => {
 
     const trends = await getAsnPerformanceTrends("tenant-1", filters);
 
-    expect(trends.items).toEqual([
-      {
-        periodStart: "2026-02-01",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 1,
-          review_cms: 0,
-          review_kyc: 0,
-        },
-      },
-      {
-        periodStart: "2026-02-02",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 0,
-          review_cms: 1,
-          review_kyc: 0,
-        },
-      },
-      {
-        periodStart: "2026-02-03",
-        totalCompleted: 1,
-        taskBreakdown: {
-          layanan_kesehatan: 0,
-          layanan_pendidikan: 0,
-          layanan_sosial: 0,
-          laporan_warga: 0,
-          perizinan: 0,
-          submit_cms: 0,
-          review_cms: 0,
-          review_kyc: 1,
-        },
-      },
+    expect(trends.items).toHaveLength(3);
+    expect(trends.items.map(({ periodStart, totalCompleted }) => ({
+      periodStart,
+      totalCompleted,
+    }))).toEqual([
+      { periodStart: "2026-02-01", totalCompleted: 1 },
+      { periodStart: "2026-02-02", totalCompleted: 1 },
+      { periodStart: "2026-02-03", totalCompleted: 1 },
     ]);
+    expect(trends.items[0]?.taskBreakdown.submit_cms).toBe(1);
+    expect(trends.items[1]?.taskBreakdown.review_cms).toBe(1);
+    expect(trends.items[2]?.taskBreakdown.review_kyc).toBe(1);
+  });
+
+  it("counts published APBD entries as their own ASN performance activity", async () => {
+    dbState.auditRows = [
+      {
+        actorId: "user-1",
+        action: "asn.apbd.saved",
+        targetTable: "apbd_entries",
+        targetId: "entry-1",
+        metadata: { tenantId: "tenant-1", status: "published", result: "success" },
+        completedAt: new Date("2026-02-04T10:00:00.000Z"),
+      },
+      {
+        actorId: "user-2",
+        action: "asn.apbd.saved",
+        targetTable: "apbd_entries",
+        targetId: "entry-2",
+        metadata: { tenantId: "tenant-1", status: "draft", result: "success" },
+        completedAt: new Date("2026-02-04T11:00:00.000Z"),
+      },
+      {
+        actorId: "user-1",
+        action: "asn.apbd.review.approved",
+        targetTable: "apbd_entries",
+        targetId: "entry-3",
+        metadata: {
+          tenantId: "tenant-1",
+          status: "published",
+          result: "success",
+          operatorId: "user-2",
+        },
+        completedAt: new Date("2026-02-04T12:00:00.000Z"),
+      },
+    ];
+    const filters = resolveAsnPerformanceFilters({
+      task_types: ["apbd_input"],
+    });
+
+    const details = await getAsnPerformanceDetails("tenant-1", filters);
+
+    expect(details.items.find((item) => item.userId === "user-1")?.taskBreakdown.apbd_input).toBe(1);
+    expect(details.items.find((item) => item.userId === "user-2")?.taskBreakdown.apbd_input).toBe(1);
   });
 
   it("returns empty action-needed items when everyone meets threshold", async () => {

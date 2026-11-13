@@ -25,11 +25,17 @@ beforeEach(() => {
         JSON.stringify({
           ok: true,
           success: true,
-          message: "Pendaftaran berhasil.",
-          data: {
-            email: "rani@example.id",
-            status: "pending_approval",
-          },
+          message:
+            String(input).includes("/step1")
+              ? "Identitas tersimpan."
+              : "Pendaftaran berhasil.",
+          data:
+            String(input).includes("/step1")
+              ? { userId: "11111111-1111-1111-1111-111111111111" }
+              : {
+                  email: "rani@example.id",
+                  status: "pending_approval",
+                },
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
@@ -99,7 +105,7 @@ describe("RegisterAsnForm — alur lima langkah", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Lanjut →" }));
     expect(screen.getByText("NIP harus 18 digit angka")).toBeDefined();
-    expect(fetchMock.urls).toHaveLength(0);
+    expect(fetchMock.urls).toHaveLength(1);
 
     fireEvent.change(document.getElementById("nip") as HTMLInputElement, {
       target: { value: "198501012010011001" },
@@ -116,7 +122,7 @@ describe("RegisterAsnForm — alur lima langkah", () => {
     expect(
       screen.getByText("Alamat jalan domisili minimal 10 karakter"),
     ).toBeDefined();
-    expect(fetchMock.urls).toHaveLength(1);
+    expect(fetchMock.urls).toHaveLength(4);
 
     fireEvent.click(
       screen.getByRole("checkbox", {

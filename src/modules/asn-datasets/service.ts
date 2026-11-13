@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { getDefaultDatabase } from "@/lib/db/client";
 import type { Database, Row } from "@/lib/db/types";
@@ -17,6 +17,8 @@ import type {
   DatasetSubmissionPayload,
 } from "./contract";
 import { parseDatasetCsv } from "./domain";
+import { bpsRegionCodesForAssignment } from "./region-code";
+import { serializeBpsStatisticsCsv } from "@/modules/integrations/bps/catalog";
 
 type AssignmentRow = Row & {
   assignmentType: "statistics" | "apbd" | "project";
@@ -38,7 +40,7 @@ type SubmissionRow = Row & {
   sourceOrganization: string;
   sourceLabel: "BPS_API" | "ASN_SUBMITTED";
   sourceKind: "manual" | "bps";
-  status: "draft" | "submitted";
+  status: "draft" | "submitted" | "published";
   assignmentType: "statistics" | "apbd" | "project";
   agencyId: string | null;
   regionId: string | null;
@@ -51,12 +53,14 @@ type SubmissionRow = Row & {
   createdByName: string;
   updatedAt: Date | string;
   submittedAt: Date | string | null;
-  description?: string;
+  createdBy?: string;
   sourceUrl?: string | null;
   licenseName?: string;
   licenseUrl?: string | null;
   tags?: string[];
   dataDictionary?: unknown;
+  csvPreview?: string;
+  description?: string;
   periodStart?: string | null;
   periodEnd?: string | null;
   frequency?: "monthly" | "quarterly" | "annual" | "irregular";
@@ -71,6 +75,10 @@ export class AsnDatasetError extends Error {
     super(message);
     this.name = "AsnDatasetError";
   }
+}
+
+function canManageTenantDatasets(session: Session): boolean {
+  return session.roles.some((role) => role === "admin" || role === "superadmin");
 }
 
 function isoDate(value: Date | string | null): string | null {
@@ -115,6 +123,7 @@ async function listAssignments(
   transaction: Database,
   session: Session,
 ): Promise<DatasetAssignment[]> {
+  const canManageTenant = canManageTenantDatasets(session);
   const rows = await transaction.query<AssignmentRow>(
     `SELECT 'statistics'::varchar AS "assignmentType",
        agency_id AS "agencyId", region_id AS "regionId",
@@ -122,7 +131,7 @@ async function listAssignments(
        EXTRACT(YEAR FROM NOW())::int AS "referenceYear",
        NULL::text AS "projectId", NULL::text AS "projectLabel"
      FROM statistic_operator_assignments
-     WHERE tenant_id = $1 AND user_id = $2
+     WHERE tenant_id = $1 AND ($3::boolean OR user_id = $2)
      UNION
      SELECT 'apbd'::varchar AS "assignmentType",
        agency_id AS "agencyId", region_id AS "regionId",
@@ -130,7 +139,7 @@ async function listAssignments(
        EXTRACT(YEAR FROM NOW())::int AS "referenceYear",
        NULL::text AS "projectId", NULL::text AS "projectLabel"
      FROM apbd_operator_assignments
-     WHERE tenant_id = $1 AND user_id = $2
+     WHERE tenant_id = $1 AND ($3::boolean OR user_id = $2)
      UNION
      SELECT 'project'::varchar AS "assignmentType",
        ''::text AS "agencyId", location AS "regionId",
@@ -138,9 +147,9 @@ async function listAssignments(
        fiscal_year AS "referenceYear", id::text AS "projectId",
        external_project_id || ' — ' || package_name AS "projectLabel"
      FROM infrastructure_projects
-     WHERE tenant_id = $1 AND assigned_user_id = $2
+     WHERE tenant_id = $1 AND ($3::boolean OR assigned_user_id = $2)
      ORDER BY "assignmentType", "referenceYear" DESC, "regionName", "sectorId"`,
-    [session.tenantId, session.userId],
+    [session.tenantId, session.userId, canManageTenant],
   );
   return rows.map(mapAssignment);
 }
@@ -174,13 +183,32 @@ function mapSummary(row: SubmissionRow) {
 async function listSubmissionRows(
   transaction: Database,
   session: Session,
+  pendingReview = false,
 ): Promise<SubmissionRow[]> {
+  const submissionFilter = pendingReview
+    ? `AND submission.status = 'submitted'
+       AND submission.source_kind IN ('manual', 'bps')
+       AND dataset.slug <> 'statistik-bps'
+       AND submission.created_by <> $2`
+    : `AND (submission.status <> 'draft' OR submission.created_by = $2)`;
+  const reviewFields = pendingReview
+    ? `submission.source_url AS "sourceUrl",
+       submission.license_name AS "licenseName",
+       submission.data_dictionary AS "dataDictionary",
+       LEFT(submission.csv_data, 4000) AS "csvPreview"`
+    : `NULL::text AS "sourceUrl", NULL::text AS "licenseName",
+       NULL::jsonb AS "dataDictionary", NULL::text AS "csvPreview"`;
   return transaction.query<SubmissionRow>(
     `SELECT submission.id::text AS id, submission.dataset_id::text AS "datasetId",
        submission.title, submission.summary, submission.category,
        submission.source_organization AS "sourceOrganization",
        submission.source_label AS "sourceLabel", submission.source_kind AS "sourceKind",
-       submission.status, submission.assignment_type AS "assignmentType",
+       CASE
+         WHEN submission.status = 'submitted' AND dataset.is_published
+           THEN 'published'
+         ELSE submission.status
+       END AS status,
+       submission.assignment_type AS "assignmentType",
        submission.agency_id AS "agencyId", submission.region_id AS "regionId",
        submission.region_name AS "regionName", submission.sector_id AS "sectorId",
        submission.reference_year AS "referenceYear",
@@ -188,15 +216,20 @@ async function listSubmissionRows(
        CASE WHEN project.id IS NULL THEN NULL
          ELSE project.external_project_id || ' — ' || project.package_name
        END AS "projectLabel",
-       submission.record_count AS "recordCount", creator.name AS "createdByName",
+       submission.record_count AS "recordCount",
+       submission.created_by::text AS "createdBy",
+       creator.name AS "createdByName",
+       ${reviewFields},
        submission.updated_at AS "updatedAt", submission.submitted_at AS "submittedAt"
      FROM asn_dataset_submissions submission
+     INNER JOIN datasets dataset ON dataset.id = submission.dataset_id
      INNER JOIN users creator
        ON creator.id = submission.created_by AND creator.tenant_id = submission.tenant_id
      LEFT JOIN infrastructure_projects project
        ON project.id = submission.project_id AND project.tenant_id = submission.tenant_id
      WHERE submission.tenant_id = $1
-       AND (
+       ${submissionFilter}
+       AND ($3::boolean OR (
          (
            submission.assignment_type = 'statistics'
            AND EXISTS (
@@ -228,10 +261,161 @@ async function listSubmissionRows(
                AND assigned_project.assigned_user_id = $2
            )
          )
-       )
+       ))
      ORDER BY submission.updated_at DESC, submission.id
      LIMIT 200`,
-    [session.tenantId, session.userId],
+    [session.tenantId, session.userId, canManageTenantDatasets(session)],
+  );
+}
+
+export async function getPendingAsnDatasetSubmissions(
+  session: Session,
+  database?: Database,
+) {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const rows = await listSubmissionRows(transaction, session, true);
+      return rows.map((row) => ({
+        ...mapSummary(row),
+        sourceUrl: row.sourceUrl ?? null,
+        licenseName: row.licenseName ?? "",
+        dataDictionary: row.dataDictionary ?? [],
+        csvPreview: row.csvPreview ?? "",
+      }));
+    },
+    database,
+  );
+}
+
+export async function publishAsnDatasetSubmission(
+  session: Session,
+  submissionId: string,
+  database: Database = getDefaultDatabase(),
+) {
+  return withUserContext(
+    session,
+    async (transaction) => {
+      const submission = await transaction.queryOne<
+        Row & {
+          id: string;
+          datasetId: string;
+          title: string;
+          createdBy: string;
+          sourceKind: "manual" | "bps";
+          assignmentType: DatasetAssignment["assignmentType"];
+          agencyId: string | null;
+          regionId: string | null;
+          sectorId: string;
+          projectId: string | null;
+          csvData: string;
+          slug: string;
+        }
+      >(
+        `SELECT submission.id::text AS id,
+           submission.dataset_id::text AS "datasetId", submission.title,
+           submission.created_by::text AS "createdBy",
+           submission.source_kind AS "sourceKind",
+           submission.assignment_type AS "assignmentType",
+           submission.agency_id AS "agencyId",
+           submission.region_id AS "regionId",
+           submission.sector_id AS "sectorId",
+           submission.project_id::text AS "projectId",
+           submission.csv_data AS "csvData", dataset.slug
+         FROM asn_dataset_submissions submission
+         INNER JOIN datasets dataset ON dataset.id = submission.dataset_id
+         WHERE submission.id = $1 AND submission.tenant_id = $2
+           AND submission.status = 'submitted'
+           AND submission.source_kind IN ('manual', 'bps')
+           AND dataset.slug <> 'statistik-bps'
+           AND dataset.is_published = FALSE
+         FOR UPDATE OF submission, dataset`,
+        [submissionId, session.tenantId],
+      );
+      if (!submission) {
+        throw new AsnDatasetError(
+          "Pengajuan dataset tidak ditemukan atau sudah ditinjau.",
+          404,
+        );
+      }
+      if (submission.createdBy === session.userId) {
+        throw new AsnDatasetError(
+          "Pembuat dataset tidak dapat meninjau pengajuannya sendiri.",
+          403,
+        );
+      }
+
+      const assignments = await listAssignments(transaction, session);
+      const assigned = assignments.some((assignment) =>
+        submission.assignmentType === "project"
+          ? assignment.assignmentType === "project" &&
+            assignment.projectId === submission.projectId
+          : assignment.assignmentType === submission.assignmentType &&
+            assignment.agencyId === submission.agencyId &&
+            assignment.regionId === submission.regionId &&
+            assignment.sectorId === submission.sectorId,
+      );
+      if (!assigned) {
+        throw new AsnDatasetError(
+          "Dataset berada di luar penugasan yang dapat Anda tinjau.",
+          403,
+        );
+      }
+
+      const now = new Date();
+      const published = await transaction.queryOne<Row & { id: string }>(
+        `UPDATE datasets
+         SET is_published = TRUE, csv_data = $2, last_updated_at = $3
+         WHERE id = $1 AND is_published = FALSE
+         RETURNING id::text AS id`,
+        [submission.datasetId, submission.csvData, now],
+      );
+      if (!published) {
+        throw new AsnDatasetError(
+          "Dataset sudah dipublikasikan oleh peninjau lain.",
+          409,
+        );
+      }
+
+      await transaction.query(
+        `INSERT INTO dataset_resources (dataset_id, title, format, url)
+         VALUES ($1, 'Unduh data CSV', 'CSV', $2)
+         ON CONFLICT (dataset_id, format, url) DO NOTHING`,
+        [submission.datasetId, `/api/asn/datasets/${submission.slug}/download`],
+      );
+      await transaction.query(
+        `INSERT INTO audit_events (
+           id, actor_id, action, target_table, target_id, metadata
+         ) VALUES (
+           gen_random_uuid(), $1, 'asn.dataset.published',
+           'asn_dataset_submissions', $2, $3::jsonb
+         )`,
+        [
+          session.userId,
+          submission.id,
+          JSON.stringify({
+            tenantId: session.tenantId,
+            actorRole: session.roles.join(","),
+            datasetId: submission.datasetId,
+            sourceKind: submission.sourceKind,
+            assignmentType: submission.assignmentType,
+            agencyId: submission.agencyId,
+            regionId: submission.regionId,
+            sectorId: submission.sectorId,
+            projectId: submission.projectId,
+            result: "success",
+          }),
+        ],
+      );
+
+      return {
+        submissionId: submission.id,
+        datasetId: submission.datasetId,
+        title: submission.title,
+        slug: submission.slug,
+      };
+    },
+    database,
   );
 }
 
@@ -331,7 +515,10 @@ async function requireAssignment(
   session: Session,
   payload: DatasetSubmissionPayload,
 ): Promise<CanonicalAssignment> {
-  if (payload.assignmentType === "statistics" || payload.assignmentType === "apbd") {
+  if (
+    payload.assignmentType === "statistics" ||
+    payload.assignmentType === "apbd"
+  ) {
     const table =
       payload.assignmentType === "statistics"
         ? "statistic_operator_assignments"
@@ -347,8 +534,8 @@ async function requireAssignment(
       `SELECT agency_id AS "agencyId", region_id AS "regionId",
          region_name AS "regionName", sector_id AS "sectorId"
        FROM ${table}
-       WHERE tenant_id = $1 AND user_id = $2 AND agency_id = $3
-         AND region_id = $4 AND sector_id = $5
+       WHERE tenant_id = $1 AND ($6::boolean OR user_id = $2)
+         AND agency_id = $3 AND region_id = $4 AND sector_id = $5
        LIMIT 1`,
       [
         session.tenantId,
@@ -356,6 +543,7 @@ async function requireAssignment(
         payload.agencyId,
         payload.regionId,
         payload.sectorId,
+        canManageTenantDatasets(session),
       ],
     );
     if (!assignment) {
@@ -385,9 +573,15 @@ async function requireAssignment(
   >(
     `SELECT id::text AS id, location, sector, fiscal_year AS "fiscalYear"
      FROM infrastructure_projects
-     WHERE id = $1 AND tenant_id = $2 AND assigned_user_id = $3
+     WHERE id = $1 AND tenant_id = $2
+       AND ($4::boolean OR assigned_user_id = $3)
      LIMIT 1`,
-    [payload.projectId, session.tenantId, session.userId],
+    [
+      payload.projectId,
+      session.tenantId,
+      session.userId,
+      canManageTenantDatasets(session),
+    ],
   );
   if (!project || project.fiscalYear !== payload.referenceYear) {
     throw new AsnDatasetError(
@@ -445,7 +639,12 @@ async function recordDatasetAudit(
     action,
     targetTable: "asn_dataset_submissions",
     targetId: uuidOrNull(submissionId),
-    metadata: { ...metadata, result: "success" },
+    metadata: {
+      tenantId: session.tenantId,
+      actorRole: session.roles.join(","),
+      ...metadata,
+      result: "success",
+    },
     occurredAt: new Date(),
   });
 }
@@ -701,8 +900,8 @@ export async function importAssignedBpsDataset(
         `SELECT agency_id AS "agencyId", region_id AS "regionId",
            region_name AS "regionName", sector_id AS "sectorId"
          FROM statistic_operator_assignments
-         WHERE tenant_id = $1 AND user_id = $2 AND agency_id = $3
-           AND region_id = $4 AND sector_id = $5
+         WHERE tenant_id = $1 AND ($6::boolean OR user_id = $2)
+           AND agency_id = $3 AND region_id = $4 AND sector_id = $5
          LIMIT 1`,
         [
           session.tenantId,
@@ -710,6 +909,7 @@ export async function importAssignedBpsDataset(
           scope.agencyId,
           scope.regionId,
           scope.sectorId,
+          canManageTenantDatasets(session),
         ],
       );
       if (!assignment) {
@@ -723,19 +923,32 @@ export async function importAssignedBpsDataset(
     database,
   );
 
+  const regionCodes = bpsRegionCodesForAssignment(
+    saved.regionId,
+    saved.regionName,
+  );
+  if (!regionCodes.length) {
+    throw new AsnDatasetError(
+      "Wilayah penugasan belum memiliki pemetaan kode BPS. Hubungi administrator untuk melengkapi pemetaan wilayah.",
+      422,
+    );
+  }
+
   const bpsRows = await db()
     .select({
       indicatorCode: bpsStatistics.indicatorCode,
+      indicatorName: bpsStatistics.indicatorName,
       regionCode: bpsStatistics.regionCode,
       year: bpsStatistics.year,
       value: bpsStatistics.value,
       unit: bpsStatistics.unit,
+      category: bpsStatistics.category,
     })
     .from(bpsStatistics)
     .where(
       and(
         eq(bpsStatistics.sourceLabel, "BPS_API"),
-        eq(bpsStatistics.regionCode, saved.regionId),
+        inArray(bpsStatistics.regionCode, [...regionCodes]),
       ),
     )
     .orderBy(desc(bpsStatistics.year), bpsStatistics.indicatorCode);
@@ -748,95 +961,178 @@ export async function importAssignedBpsDataset(
   }
   const latestYear = bpsRows[0].year;
   const regionRows = bpsRows.filter((row) => row.year === latestYear);
-  const serializedCsv = [
-    ["indicator_code", "region_code", "year", "value", "unit"],
-    ...regionRows.map((row) => [
-      row.indicatorCode,
-      row.regionCode,
-      String(row.year),
-      String(row.value),
-      row.unit,
-    ]),
-  ]
-    .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
+  const serializedCsv = serializeBpsStatisticsCsv(regionRows);
   const now = new Date();
+  const title = `Statistik BPS — ${saved.regionName.slice(0, 220)} — ${latestYear}`;
+  const summary = `Agregat indikator BPS untuk ${saved.regionName} tahun ${latestYear}.`;
+  const description =
+    "Snapshot statistik BPS yang diimpor sesuai penugasan wilayah operator.";
+  const dataDictionary = JSON.stringify([
+    {
+      name: "indicator_name",
+      type: "text",
+      description: "Nama indikator dari metadata BPS.",
+    },
+    {
+      name: "category",
+      type: "text",
+      description: "Kategori indikator yang diturunkan dari nama indikator BPS.",
+    },
+    {
+      name: "indicator_code",
+      type: "text",
+      description: "Kode indikator BPS.",
+    },
+    {
+      name: "region_code",
+      type: "text",
+      description: "Kode wilayah BPS.",
+    },
+    {
+      name: "year",
+      type: "integer",
+      description: "Tahun referensi data.",
+    },
+    {
+      name: "value",
+      type: "decimal",
+      description: "Nilai agregat indikator.",
+    },
+    {
+      name: "unit",
+      type: "text",
+      description: "Satuan nilai.",
+    },
+  ]);
 
   const result = await withUserContext(
     session,
     async (transaction) => {
-      const dataset = await transaction.queryOne<Row & { id: string }>(
-        `SELECT id::text AS id FROM datasets WHERE slug = 'statistik-bps' LIMIT 1`,
-      );
-      if (!dataset) {
-        throw new Error("Metadata dataset BPS tidak tersedia setelah sinkronisasi.");
-      }
-      const submitted = await transaction.queryOne<Row & { id: string }>(
-        `INSERT INTO asn_dataset_submissions (
-           tenant_id, dataset_id, created_by, updated_by, assignment_type,
-           agency_id, region_id, region_name, sector_id, reference_year,
-           project_id, title, summary, description, category,
-           source_organization, source_url, source_label, source_kind,
-           license_name, license_url, tags, data_dictionary, period_start,
-           period_end, frequency, csv_data, record_count, status, submitted_at
-         ) VALUES (
-           $1, $2, $3, $3, 'statistics', $4, $5, $6, $7, $8, NULL,
-           $9, $10, $11, 'Statistik', 'Badan Pusat Statistik',
-           'https://webapi.bps.go.id/developer/', 'BPS_API', 'bps',
-           'Sesuai ketentuan BPS', NULL, ARRAY['statistik','BPS','indikator'],
-           $12::jsonb, NULL, NULL, 'annual', $13, $14, 'submitted', $15
-         ) RETURNING id::text AS id`,
+      const existing = await transaction.queryOne<
+        Row & { submissionId: string; datasetId: string }
+      >(
+        `SELECT submission.id::text AS "submissionId",
+           submission.dataset_id::text AS "datasetId"
+         FROM asn_dataset_submissions submission
+         INNER JOIN datasets dataset ON dataset.id = submission.dataset_id
+         WHERE submission.tenant_id = $1 AND submission.created_by = $2
+           AND submission.assignment_type = 'statistics'
+           AND submission.agency_id = $3 AND submission.region_id = $4
+           AND submission.sector_id = $5 AND submission.reference_year = $6
+           AND submission.source_kind = 'bps' AND submission.status = 'submitted'
+           AND dataset.is_published = FALSE AND dataset.slug <> 'statistik-bps'
+         ORDER BY submission.updated_at DESC
+         LIMIT 1
+         FOR UPDATE OF submission, dataset`,
         [
           session.tenantId,
-          dataset.id,
           session.userId,
           saved.agencyId,
           saved.regionId,
-          saved.regionName,
           saved.sectorId,
           latestYear,
-          `Statistik BPS — ${saved.regionName} — ${latestYear}`,
-          `Agregat indikator BPS untuk ${saved.regionName} tahun ${latestYear}.`,
-          "Snapshot statistik BPS yang diimpor sesuai penugasan wilayah operator.",
-          JSON.stringify([
-            {
-              name: "indicator_code",
-              type: "text",
-              description: "Kode indikator BPS.",
-            },
-            {
-              name: "region_code",
-              type: "text",
-              description: "Kode wilayah BPS.",
-            },
-            {
-              name: "year",
-              type: "integer",
-              description: "Tahun referensi data.",
-            },
-            {
-              name: "value",
-              type: "decimal",
-              description: "Nilai agregat indikator.",
-            },
-            {
-              name: "unit",
-              type: "text",
-              description: "Satuan nilai.",
-            },
-          ]),
-          serializedCsv,
-          regionRows.length,
-          now,
         ],
       );
-      if (!submitted) {
-        throw new Error("Snapshot BPS tidak dapat diajukan.");
+      let datasetId: string;
+      let submissionId: string;
+
+      if (existing) {
+        datasetId = existing.datasetId;
+        submissionId = existing.submissionId;
+        await transaction.query(
+          `UPDATE datasets
+           SET title = $2, summary = $3, description = $4,
+             last_updated_at = $5, is_published = FALSE, csv_data = NULL
+           WHERE id = $1 AND is_published = FALSE`,
+          [datasetId, title, summary, description, now],
+        );
+        await transaction.query(
+          `UPDATE asn_dataset_submissions
+           SET updated_by = $3, reference_year = $4, title = $5, summary = $6,
+             description = $7, data_dictionary = $8::jsonb, csv_data = $9,
+             record_count = $10, submitted_at = $11, updated_at = $11
+           WHERE id = $1 AND tenant_id = $2 AND status = 'submitted'`,
+          [
+            submissionId,
+            session.tenantId,
+            session.userId,
+            latestYear,
+            title,
+            summary,
+            description,
+            dataDictionary,
+            serializedCsv,
+            regionRows.length,
+            now,
+          ],
+        );
+      } else {
+        const dataset = await transaction.queryOne<Row & { id: string }>(
+          `INSERT INTO datasets (
+             slug, title, summary, description, category, source_organization,
+             source_url, source_label, license_name, tags, data_dictionary,
+             last_updated_at, is_published, csv_data
+           ) VALUES (
+             $1, $2, $3, $4, 'Statistik', 'Badan Pusat Statistik',
+             'https://webapi.bps.go.id/developer/', 'BPS_API',
+             'Sesuai ketentuan BPS', ARRAY['statistik','BPS','indikator'],
+             $5::jsonb, $6, FALSE, NULL
+           ) RETURNING id::text AS id`,
+          [
+            `statistik-bps-${crypto.randomUUID().slice(0, 8)}`,
+            title,
+            summary,
+            description,
+            dataDictionary,
+            now,
+          ],
+        );
+        if (!dataset) {
+          throw new Error("Metadata dataset BPS tidak dapat disiapkan.");
+        }
+        datasetId = dataset.id;
+        const submitted = await transaction.queryOne<Row & { id: string }>(
+          `INSERT INTO asn_dataset_submissions (
+             tenant_id, dataset_id, created_by, updated_by, assignment_type,
+             agency_id, region_id, region_name, sector_id, reference_year,
+             project_id, title, summary, description, category,
+             source_organization, source_url, source_label, source_kind,
+             license_name, license_url, tags, data_dictionary, period_start,
+             period_end, frequency, csv_data, record_count, status, submitted_at
+           ) VALUES (
+             $1, $2, $3, $3, 'statistics', $4, $5, $6, $7, $8, NULL,
+             $9, $10, $11, 'Statistik', 'Badan Pusat Statistik',
+             'https://webapi.bps.go.id/developer/', 'BPS_API', 'bps',
+             'Sesuai ketentuan BPS', NULL, ARRAY['statistik','BPS','indikator'],
+             $12::jsonb, NULL, NULL, 'annual', $13, $14, 'submitted', $15
+           ) RETURNING id::text AS id`,
+          [
+            session.tenantId,
+            datasetId,
+            session.userId,
+            saved.agencyId,
+            saved.regionId,
+            saved.regionName,
+            saved.sectorId,
+            latestYear,
+            title,
+            summary,
+            description,
+            dataDictionary,
+            serializedCsv,
+            regionRows.length,
+            now,
+          ],
+        );
+        if (!submitted) {
+          throw new Error("Snapshot BPS tidak dapat diajukan.");
+        }
+        submissionId = submitted.id;
       }
       return {
-        submissionId: submitted.id,
-        datasetId: dataset.id,
-        title: `Statistik BPS — ${saved.regionName} — ${latestYear}`,
+        submissionId,
+        datasetId,
+        title,
         category: "Statistik" as const,
         status: "submitted" as const,
         recordCount: regionRows.length,
@@ -854,18 +1150,23 @@ export async function importAssignedBpsDataset(
     database,
   );
 
-  await recordDatasetAudit(session, "asn.dataset.bps_imported", result.submissionId, {
-    datasetId: result.datasetId,
-    assignmentType: "statistics",
-    agencyId: saved.agencyId,
-    regionId: saved.regionId,
-    sectorId: saved.sectorId,
-    referenceYear: latestYear,
-    recordCount: regionRows.length,
-    status: "submitted",
-    sourceKind: "bps",
-    sourceLabel: "BPS_API",
-  });
+  await recordDatasetAudit(
+    session,
+    "asn.dataset.bps_imported",
+    result.submissionId,
+    {
+      datasetId: result.datasetId,
+      assignmentType: "statistics",
+      agencyId: saved.agencyId,
+      regionId: saved.regionId,
+      sectorId: saved.sectorId,
+      referenceYear: latestYear,
+      recordCount: regionRows.length,
+      status: "submitted",
+      sourceKind: "bps",
+      sourceLabel: "BPS_API",
+    },
+  );
   return result;
 }
 
@@ -882,6 +1183,27 @@ export async function getApbdDatasetSources(
   return withUserContext(
     session,
     async (transaction) => {
+      const assigned = await transaction.queryOne<Row & { agencyId: string }>(
+        `SELECT agency_id AS "agencyId"
+         FROM apbd_operator_assignments
+         WHERE tenant_id = $1 AND ($6::boolean OR user_id = $2)
+           AND agency_id = $3 AND region_id = $4 AND sector_id = $5
+         LIMIT 1`,
+        [
+          session.tenantId,
+          session.userId,
+          scope.agencyId,
+          scope.regionId,
+          scope.sectorId,
+          canManageTenantDatasets(session),
+        ],
+      );
+      if (!assigned) {
+        throw new AsnDatasetError(
+          "Konteks APBD tidak termasuk dalam penugasan yang dapat Anda akses.",
+          403,
+        );
+      }
       const rows = await transaction.query<
         Row & {
           id: string;
@@ -938,8 +1260,14 @@ export async function getProjectDatasetSources(
       >(
         `SELECT id::text AS id, sector, fiscal_year AS "fiscalYear", location
          FROM infrastructure_projects
-         WHERE id = $1 AND tenant_id = $2 AND assigned_user_id = $3`,
-        [projectId, session.tenantId, session.userId],
+         WHERE id = $1 AND tenant_id = $2
+           AND ($4::boolean OR assigned_user_id = $3)`,
+        [
+          projectId,
+          session.tenantId,
+          session.userId,
+          canManageTenantDatasets(session),
+        ],
       );
       if (!project) {
         throw new AsnDatasetError("Proyek tidak termasuk dalam penugasan Anda.", 403);

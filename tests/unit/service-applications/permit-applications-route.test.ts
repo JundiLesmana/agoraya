@@ -14,6 +14,9 @@ function createPayload(
     kontakNotifikasi: "ayu@example.test",
     kecamatan: "Kecamatan Melati",
     kelurahan: "Kelurahan Melati",
+    alamat: "Jl. Melati No. 1",
+    latitude: -6.2088,
+    longitude: 106.8456,
     judulPermohonan: "Permohonan layanan",
     uraian: "Informasi kebutuhan izin.",
   };

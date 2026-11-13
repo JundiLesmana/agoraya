@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import {
   ArrowDown,
   ArrowRight,
@@ -51,6 +52,9 @@ import {
 import { SummaryKpiCards } from "./summary-kpi-cards";
 import { BudgetActualsTrend } from "./budget-actuals-trend";
 import { PublicCategoryDatasets } from "./public-category-datasets";
+import { BpsAnalyticsPanel } from "./bps-analytics-panel";
+import { publishedApbdResponseSchema } from "@/modules/apbd-budget/contract";
+import { publishedStatisticInputsSchema } from "@/modules/statistics-input";
 
 type AsnDataset = {
   id: string;
@@ -103,7 +107,7 @@ const REGIONS = [
   ...LEGACY_NON_PROVINCE_REGIONS,
 ];
 
-const YEARS = ["2025", "2024", "2023", "2022", "2021", "2020"] as const;
+const YEARS = ["2026", "2025", "2024", "2023", "2022", "2021", "2020"] as const;
 const PERIODS = [
   { value: "q1", label: "s.d. Triwulan I", months: 3, realization: 0.25 },
   { value: "q2", label: "s.d. Triwulan II", months: 6, realization: 0.5 },
@@ -218,16 +222,61 @@ interface Project {
   agency: string;
   province: string;
   district: string;
-  year: (typeof YEARS)[number];
+  year: string;
   budget: number;
   realization: number;
   physicalProgress: number;
   status: ProjectStatus;
+  /** Raw status string from the API (e.g. "ongoing", "delayed"). Used to re-derive status per period. */
+  rawStatus?: string;
   description: string;
-  beneficiaries: number;
+  beneficiaries?: number;
   startDate: string;
   endDate: string;
+  sector?: string;
+  financialProgress?: number;
+  initialPhysicalProgress?: number;
+  initialFinancialProgress?: number;
+  reports?: readonly {
+    year: number;
+    month: number;
+    physicalProgress: number;
+    financialProgress: number;
+  }[];
 }
+
+const publicProjectsResponseSchema = z.object({
+  projects: z.array(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string(),
+      agency: z.string(),
+      location: z.string(),
+      sector: z.string(),
+      budget: z.number().nonnegative(),
+      startDate: z.string(),
+      endDate: z.string(),
+      fiscalYear: z.number().int(),
+      initialPhysicalProgress: z.number().min(0).max(100),
+      initialFinancialProgress: z.number().min(0).max(100),
+      status: z.string(),
+      reports: z.array(
+        z.object({
+          year: z.number().int(),
+          month: z.number().int().min(1).max(12),
+          physicalProgress: z.number().min(0).max(100),
+          financialProgress: z.number().min(0).max(100),
+        }),
+      ),
+    }),
+  ),
+});
+
+type PublishedApbdResponse = z.infer<typeof publishedApbdResponseSchema>;
+type PublishedStatistics = z.infer<typeof publishedStatisticInputsSchema>;
+type PublicProjectRecord = z.infer<
+  typeof publicProjectsResponseSchema
+>["projects"][number];
 
 const PROJECTS: Project[] = [
   {
@@ -442,19 +491,84 @@ function getStatusClass(status: ProjectStatus): string {
 }
 
 function getProjectSector(agency: string): string {
-  if (agency.includes("Pendidikan")) return "pendidikan";
-  if (agency.includes("Kesehatan")) return "kesehatan";
-  if (agency.includes("Bina Marga") || agency.includes("Sumber Daya Air"))
+  const normalized = agency.trim().toLocaleLowerCase("id-ID");
+  if (normalized.includes("pendidikan")) return "pendidikan";
+  if (normalized.includes("kesehatan")) return "kesehatan";
+  if (
+    normalized.includes("infrastruktur") ||
+    normalized.includes("bina marga") ||
+    normalized.includes("sumber daya air")
+  ) {
     return "infrastruktur";
+  }
   return "lainnya";
+}
+
+function projectSectorLabel(sector: string): string {
+  return (
+    BUDGET_SECTORS.find(
+      (item) =>
+        item.id === sector ||
+        item.name.toLocaleLowerCase("id-ID") === sector,
+    )?.name ?? sector
+  );
+}
+
+function normalizePublicRegion(value: string): string {
+  return value
+    .toLocaleLowerCase("id-ID")
+    .replace(/^(provinsi|kabupaten|kota|kab\.|kot\.)\s+/, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function matchesPublicRegion(value: string, selectedLabel: string): boolean {
+  const candidate = normalizePublicRegion(value);
+  const selected = normalizePublicRegion(selectedLabel);
+  return Boolean(candidate && selected && (candidate === selected || candidate.includes(selected)));
+}
+
+function deriveProjectStatus(
+  status: string,
+  physicalProgress: number,
+  endDate: string,
+): ProjectStatus {
+  const normalizedStatus = status.trim().toLocaleLowerCase("en-US");
+  if (
+    physicalProgress >= 100 ||
+    normalizedStatus === "completed" ||
+    normalizedStatus === "complete"
+  ) {
+    return "Selesai";
+  }
+  if (
+    normalizedStatus === "delayed" ||
+    normalizedStatus === "suspended" ||
+    new Date(`${endDate}T23:59:59`).getTime() < Date.now()
+  ) {
+    return "Tertunda";
+  }
+  return "Berjalan";
+}
+
+function displayedProjectDate(value: string): string {
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(date);
 }
 
 function isRegion(value: string): value is (typeof REGIONS)[number]["value"] {
   return REGIONS.some((option) => option.value === value);
 }
 
-function isYear(value: string): value is (typeof YEARS)[number] {
-  return YEARS.some((option) => option === value);
+function isYear(value: string): boolean {
+  const parsed = Number(value);
+  return /^\d{4}$/.test(value) && parsed >= 2000 && parsed <= 2100;
 }
 
 function isPeriod(value: string): value is (typeof PERIODS)[number]["value"] {
@@ -496,7 +610,7 @@ export function PublicDataDashboard({
 }) {
   const [region, setRegion] =
     useState<(typeof REGIONS)[number]["value"]>("jabar");
-  const [year, setYear] = useState<(typeof YEARS)[number]>("2025");
+  const [year, setYear] = useState("2025");
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["value"]>("q3");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "budget" | "progress">(
@@ -509,6 +623,132 @@ export function PublicDataDashboard({
   const [sectorFilter, setSectorFilter] = useState("all");
   const [projectSector, setProjectSector] = useState("all");
   const [projectStatus, setProjectStatus] = useState("all");
+  const [publishedApbd, setPublishedApbd] =
+    useState<PublishedApbdResponse["entries"]>([]);
+  const [publishedStatistics, setPublishedStatistics] =
+    useState<PublishedStatistics["entries"]>([]);
+  const [publicProjects, setPublicProjects] = useState<Project[]>([]);
+  const [publicDataLoading, setPublicDataLoading] = useState(true);
+  const [publicDataError, setPublicDataError] = useState(false);
+  const availableYears = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...YEARS,
+          ...publishedApbd.map((entry) => String(entry.referenceYear)),
+          ...publishedStatistics.map((entry) =>
+            String(entry.referenceYear),
+          ),
+          ...publicProjects.map((project) => project.year),
+        ]),
+      ].sort((left, right) => Number(right) - Number(left)),
+    [publishedApbd, publishedStatistics, publicProjects],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadPublishedData() {
+      setPublicDataLoading(true);
+      setPublicDataError(false);
+      try {
+        const [apbdResult, statisticsResult, projectsResult] =
+          await Promise.allSettled([
+            fetch("/api/v1/apbd/published", {
+              cache: "no-store",
+              signal: controller.signal,
+            }).then(async (response) => {
+              if (!response.ok) throw new Error("APBD gagal dimuat.");
+              const parsed = publishedApbdResponseSchema.safeParse(
+                await response.json(),
+              );
+              if (!parsed.success) throw new Error("Format APBD tidak valid.");
+              return parsed.data;
+            }),
+            fetch("/api/v1/statistics/published", {
+              cache: "no-store",
+              signal: controller.signal,
+            }).then(async (response) => {
+              if (!response.ok) throw new Error("Statistik gagal dimuat.");
+              const parsed = publishedStatisticInputsSchema.safeParse(
+                await response.json(),
+              );
+              if (!parsed.success) {
+                throw new Error("Format statistik tidak valid.");
+              }
+              return parsed.data;
+            }),
+            fetch("/api/v1/projects/published", {
+              cache: "no-store",
+              signal: controller.signal,
+            }).then(async (response) => {
+              if (!response.ok) throw new Error("Proyek gagal dimuat.");
+              const parsed = publicProjectsResponseSchema.safeParse(
+                await response.json(),
+              );
+              if (!parsed.success) throw new Error("Format proyek tidak valid.");
+              return parsed.data;
+            }),
+          ]);
+        if (controller.signal.aborted) return;
+        const failed =
+          apbdResult.status === "rejected" ||
+          statisticsResult.status === "rejected" ||
+          projectsResult.status === "rejected";
+        setPublicDataError(failed);
+        if (apbdResult.status === "fulfilled") {
+          setPublishedApbd(apbdResult.value.entries);
+        }
+        if (statisticsResult.status === "fulfilled") {
+          setPublishedStatistics(statisticsResult.value.entries);
+        }
+        if (projectsResult.status === "fulfilled") {
+          setPublicProjects(projectsResult.value.projects.map((project) => {
+            const latestReport = project.reports
+              .filter((report) => report.year === project.fiscalYear)
+              .at(-1);
+            const physicalProgress =
+              latestReport?.physicalProgress ?? project.initialPhysicalProgress;
+            const financialProgress =
+              latestReport?.financialProgress ?? project.initialFinancialProgress;
+            return {
+              id: project.id,
+              name: project.name,
+              agency: project.agency,
+              province: "",
+              district: project.location,
+              year: String(project.fiscalYear),
+              budget: project.budget,
+              realization: (project.budget * financialProgress) / 100,
+              physicalProgress,
+              status: deriveProjectStatus(
+                project.status,
+                physicalProgress,
+                project.endDate,
+              ),
+              rawStatus: project.status,
+              description: "Progres fisik dan keuangan yang dilaporkan ASN.",
+              beneficiaries: 0,
+              startDate: displayedProjectDate(project.startDate),
+              endDate: displayedProjectDate(project.endDate),
+              sector: project.sector,
+              financialProgress,
+              initialPhysicalProgress: project.initialPhysicalProgress,
+              initialFinancialProgress: project.initialFinancialProgress,
+              reports: project.reports,
+            };
+          }));
+        }
+      } catch {
+        if (!controller.signal.aborted) setPublicDataError(true);
+      } finally {
+        if (!controller.signal.aborted) setPublicDataLoading(false);
+      }
+    }
+
+    void loadPublishedData();
+    return () => controller.abort();
+  }, []);
+
   type AsnDataset = {
     id: string;
     slug: string;
@@ -589,102 +829,182 @@ export function PublicDataDashboard({
     REGIONS.find((option) => option.value === region) ?? REGIONS[1];
   const selectedPeriod =
     PERIODS.find((option) => option.value === period) ?? PERIODS[2];
-  const yearMultiplier = year === "2023" ? 0.88 : year === "2024" ? 0.94 : 1;
-  const budget = selectedRegion.budget * 1_000_000_000_000 * yearMultiplier;
-  const realization = budget * selectedPeriod.realization;
-  const projectTotal =
-    region === "all"
-      ? 4_380
-      : region === "bogor" || region === "bandung"
-        ? 22
-        : region === "jabar"
-          ? 240
-          : 198;
-  const completedProjects = Math.min(
-    projectTotal,
-    Math.round(projectTotal * 0.65 * (selectedPeriod.realization / 0.75)),
+  const selectedQuarter = PERIODS.findIndex(
+    (item) => item.value === selectedPeriod.value,
+  ) + 1;
+  const matchingApbdEntries = publishedApbd.filter(
+    (entry) =>
+      entry.referenceYear === Number(year) &&
+      (region === "all" ||
+        matchesPublicRegion(entry.regionName, selectedRegion.label) ||
+        matchesPublicRegion(entry.regionId, selectedRegion.label)),
   );
-  const coverage = selectedRegion.coverage;
+  const apbdQuarterTotals = (quarter: number) =>
+    matchingApbdEntries.reduce(
+      (totals, entry) => {
+        for (const item of entry.items) {
+          const itemQuarter = Number(item.periodValue.slice(1));
+          if (itemQuarter > quarter) continue;
+          totals.budget += Number(item.pagu ?? 0);
+          totals.realization += Number(item.realisasi ?? 0);
+        }
+        return totals;
+      },
+      { budget: 0, realization: 0 },
+    );
+  const selectedBudgetTotals = apbdQuarterTotals(selectedQuarter);
+  const budget = selectedBudgetTotals.budget;
+  const realization = selectedBudgetTotals.realization;
+  const hasPaguData = matchingApbdEntries.some((entry) =>
+    entry.items.some((item) => item.pagu !== null),
+  );
+  const hasRealizationData = matchingApbdEntries.some((entry) =>
+    entry.items.some((item) => item.realisasi !== null),
+  );
+  const hasBudgetData =
+    hasPaguData &&
+    hasRealizationData;
+  const projectRecordsForPeriod = publicProjects
+    .filter(
+      (project) =>
+        project.year === year &&
+        (region === "all" ||
+          matchesPublicRegion(project.district, selectedRegion.label)),
+    )
+    .map((project) => {
+      const report = [...(project.reports ?? [])]
+        .filter(
+          (item) => item.year === Number(year) && item.month <= selectedPeriod.months,
+        )
+        .sort((left, right) => left.month - right.month)
+        .at(-1);
+      const physicalProgress =
+        report?.physicalProgress ?? project.initialPhysicalProgress ?? 0;
+      const financialProgress =
+        report?.financialProgress ?? project.initialFinancialProgress ?? 0;
+      return {
+        ...project,
+        physicalProgress,
+        financialProgress,
+        realization: (project.budget * financialProgress) / 100,
+        status: deriveProjectStatus(
+          project.rawStatus ?? project.status,
+          physicalProgress,
+          project.endDate,
+        ),
+      };
+    });
+  const projectTotal = projectRecordsForPeriod.length;
+  const completedProjects = projectRecordsForPeriod.filter(
+    (project) => project.status === "Selesai",
+  ).length;
+  const coverage = new Set(
+    projectRecordsForPeriod.map((project) => project.district),
+  ).size;
   const activeCategory: DashboardCategory = view;
   const isOverview = view === "overview";
   const showBudget = view === "budget" || isOverview;
   const showProjects = view === "projects" || isOverview;
   const showStatistics = view === "statistics" || isOverview;
-  const regionalIndicator =
-    REGIONAL_INDICATORS.find((indicator) => indicator.region === region) ??
-    REGIONAL_INDICATORS[1];
-  const yearDifference = Number(year) - 2025;
-  const regionalStats = [
-    {
-      label: "Jumlah penduduk",
-      value: `${new Intl.NumberFormat("id-ID", {
-        maximumFractionDigits: 1,
-      }).format(regionalIndicator.population + yearDifference * 0.6)} juta`,
-      note: `Estimasi pertengahan ${year}`,
-      Icon: Users,
-    },
-    {
-      label: "Indeks pembangunan manusia",
-      value: new Intl.NumberFormat("id-ID", {
-        maximumFractionDigits: 1,
-      }).format(regionalIndicator.ipm + yearDifference * 0.4),
-      note: "Skala 0–100",
-      Icon: HeartPulse,
-    },
-    {
-      label: "Tingkat kemiskinan",
-      value: `${new Intl.NumberFormat("id-ID", {
-        maximumFractionDigits: 1,
-      }).format(regionalIndicator.poverty + yearDifference * 0.2)}%`,
-      note: `Indikator tahunan ${year}`,
-      Icon: Activity,
-    },
-    {
-      label: "Pengangguran terbuka",
-      value: `${new Intl.NumberFormat("id-ID", {
-        maximumFractionDigits: 1,
-      }).format(regionalIndicator.unemployment + yearDifference * 0.3)}%`,
-      note: "Persentase angkatan kerja",
-      Icon: UserRoundSearch,
-    },
-  ];
+  const regionalStats = publishedStatistics
+    .filter(
+      (entry) =>
+        entry.referenceYear === Number(year) &&
+        (region === "all" ||
+          matchesPublicRegion(entry.regionName, selectedRegion.label) ||
+          matchesPublicRegion(entry.regionId, selectedRegion.label)),
+    )
+    .map((entry) => {
+      const latestValue = entry.values.at(-1)?.value;
+      return {
+        label: entry.indicatorName,
+        value:
+          latestValue === undefined
+            ? "—"
+            : `${new Intl.NumberFormat("id-ID", {
+                maximumFractionDigits: 2,
+              }).format(latestValue)} ${entry.unit}`,
+        note: `${entry.regionName} · ${entry.referenceYear} · ${entry.sourceName}`,
+        Icon:
+          entry.sectorId === "social"
+            ? HeartPulse
+            : entry.sectorId === "agriculture"
+              ? Activity
+              : UserRoundSearch,
+      };
+    });
 
   const trendData = useMemo(
-    () =>
-      MONTHS.slice(0, selectedPeriod.months).map((bulan, index) => {
-        const month = index + 1;
-        const share = month / selectedPeriod.months;
-        const periodTarget = budget * Math.min((month / 12) * (16 / 15), 1);
+    () => {
+      const quarters = PERIODS.slice(0, selectedQuarter);
+      return quarters.map((quarter, index) => {
+        const totals = apbdQuarterTotals(index + 1);
         return {
-          bulan,
-          target: Math.round(periodTarget / 1_000_000_000_000),
-          realisasi: Math.round((realization * share) / 1_000_000_000_000),
+          bulan: quarter.label.replace("Triwulan ", "TW "),
+          target: Number((totals.budget / 1_000_000_000_000).toFixed(2)),
+          realisasi: Number((totals.realization / 1_000_000_000_000).toFixed(2)),
         };
-      }),
-    [budget, realization, selectedPeriod.months],
+      });
+    },
+    [matchingApbdEntries, selectedQuarter],
   );
 
   const sectorData = useMemo(() => {
-    return BUDGET_SECTORS.map(({ name, allocation }) => ({
-      sektor: name,
-      anggaran: Math.round((budget * allocation) / 1_000_000_000_000),
-      realisasi: Math.round((realization * allocation) / 1_000_000_000_000),
+    const totals = new Map<string, { budget: number; realization: number }>();
+    for (const entry of matchingApbdEntries) {
+      const sector = totals.get(entry.sectorId) ?? {
+        budget: 0,
+        realization: 0,
+      };
+      for (const item of entry.items) {
+        if (Number(item.periodValue.slice(1)) > selectedQuarter) continue;
+        sector.budget += Number(item.pagu ?? 0);
+        sector.realization += Number(item.realisasi ?? 0);
+      }
+      totals.set(entry.sectorId, sector);
+    }
+    return [...totals.entries()].map(([name, value]) => ({
+      sektor:
+        BUDGET_SECTORS.find((sector) => sector.id === name)?.name ?? name,
+      anggaran: Number((value.budget / 1_000_000_000_000).toFixed(2)),
+      realisasi: Number((value.realization / 1_000_000_000_000).toFixed(2)),
     }));
-  }, [budget, realization]);
+  }, [matchingApbdEntries, selectedQuarter]);
 
   const budgetSectorRows = useMemo(
-    () =>
-      BUDGET_SECTORS.map((sector) => {
-        const allocation = Math.round(budget * sector.allocation);
-        const realized = Math.round(realization * sector.allocation);
+    () => {
+      const totals = new Map<string, { allocation: number; realization: number }>();
+      for (const entry of matchingApbdEntries) {
+        const sector = totals.get(entry.sectorId) ?? {
+          allocation: 0,
+          realization: 0,
+        };
+        for (const item of entry.items) {
+          if (Number(item.periodValue.slice(1)) > selectedQuarter) continue;
+          sector.allocation += Number(item.pagu ?? 0);
+          sector.realization += Number(item.realisasi ?? 0);
+        }
+        totals.set(entry.sectorId, sector);
+      }
+      return [...totals.entries()]
+        .map(([id, values]) => {
+          const allocation = values.allocation;
+          const realized = values.realization;
+          const name =
+            BUDGET_SECTORS.find((sector) => sector.id === id)?.name ?? id;
         return {
-          ...sector,
+          id,
+          name,
+          description: matchingApbdEntries
+            .find((entry) => entry.sectorId === id)
+            ?.agencyId ?? "Sektor APBD",
           allocation,
           realization: realized,
           remaining: allocation - realized,
           percentage: allocation > 0 ? realized / allocation : 0,
         };
-      }).filter((sector) => {
+        })
+        .filter((sector) => {
         const query = sectorSearch.trim().toLocaleLowerCase("id-ID");
         return (
           (sectorFilter === "all" || sector.id === sectorFilter) &&
@@ -693,70 +1013,48 @@ export function PublicDataDashboard({
               .toLocaleLowerCase("id-ID")
               .includes(query))
         );
-      }),
-    [budget, realization, sectorFilter, sectorSearch],
+        });
+    },
+    [matchingApbdEntries, selectedQuarter, sectorFilter, sectorSearch],
   );
 
-  const projectStatusData = [
-    { name: "Selesai", value: Math.round(projectTotal * 0.65) },
-    { name: "Berjalan", value: Math.round(projectTotal * 0.3) },
-    {
-      name: "Tertunda",
-      value:
-        projectTotal -
-        Math.round(projectTotal * 0.65) -
-        Math.round(projectTotal * 0.3),
-    },
-  ];
+  const projectStatusData = (["Selesai", "Berjalan", "Tertunda"] as const).map(
+    (status) => ({
+      name: status,
+      value: projectRecordsForPeriod.filter((project) => project.status === status)
+        .length,
+    }),
+  );
   const projectSectorData = [
-    {
-      sector: "Infrastruktur",
-      complete: Math.round((projectTotal * 52) / 240),
-      total: Math.round((projectTotal * 80) / 240),
-    },
-    {
-      sector: "Pendidikan",
-      complete: Math.round((projectTotal * 39) / 240),
-      total: Math.round((projectTotal * 60) / 240),
-    },
-    {
-      sector: "Kesehatan",
-      complete: Math.round((projectTotal * 39) / 240),
-      total: Math.round((projectTotal * 60) / 240),
-    },
-    {
-      sector: "Sektor lainnya",
-      complete: Math.round((projectTotal * 26) / 240),
-      total: Math.round((projectTotal * 40) / 240),
-    },
-  ];
+    ...new Set(
+      projectRecordsForPeriod.map((project) =>
+        getProjectSector(project.sector ?? project.agency),
+      ),
+    ),
+  ].map((sector) => {
+    const projects = projectRecordsForPeriod.filter(
+      (project) => getProjectSector(project.sector ?? project.agency) === sector,
+    );
+    return {
+      sector: projectSectorLabel(sector),
+      complete: projects.filter((project) => project.status === "Selesai").length,
+      total: projects.length,
+    };
+  });
 
   const filteredProjects = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("id-ID");
-    const matchesRegion = (project: Project) =>
-      region === "all" ||
-      project.province === region ||
-      (region === "bogor" && project.district === "Kab. Bogor") ||
-      (region === "bandung" && project.district === "Kota Bandung");
-    return PROJECTS.filter(
+    return projectRecordsForPeriod
+      .filter(
       (project) =>
-        matchesRegion(project) &&
-        project.year === year &&
         (projectSector === "all" ||
-          getProjectSector(project.agency) === projectSector) &&
+          getProjectSector(project.sector ?? project.agency) === projectSector) &&
         (projectStatus === "all" || project.status === projectStatus) &&
         (!normalizedSearch ||
           `${project.name} ${project.agency} ${project.district} ${project.status}`
             .toLocaleLowerCase("id-ID")
             .includes(normalizedSearch)),
     )
-      .map((project) => ({
-        ...project,
-        realization: Math.min(
-          project.budget,
-          Math.round(project.realization * (selectedPeriod.realization / 0.75)),
-        ),
-      }))
       .sort((left, right) => {
         const comparison =
           sortBy === "name"
@@ -767,21 +1065,18 @@ export function PublicDataDashboard({
         return ascending ? comparison : -comparison;
       });
   }, [
-    region,
     search,
     sortBy,
     ascending,
     year,
-    selectedPeriod.realization,
+    projectRecordsForPeriod,
     projectSector,
     projectStatus,
   ]);
 
   const pageSize = 4;
   const pageCount = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
-  const featuredProject =
-    filteredProjects.find((project) => project.id === "JBR-024") ??
-    filteredProjects[0];
+  const featuredProject = filteredProjects[0];
   const visibleProjects = filteredProjects.slice(
     (page - 1) * pageSize,
     page * pageSize,
@@ -836,23 +1131,19 @@ export function PublicDataDashboard({
         "Progres fisik",
         "Target selesai",
         "Status",
-        "Penerima manfaat",
       ],
       ...filteredProjects.map((project) => [
         project.id,
         project.name,
         project.agency,
         project.district,
-        BUDGET_SECTORS.find(
-          (sector) => sector.id === getProjectSector(project.agency),
-        )?.name ?? "Sektor lainnya",
+        projectSectorLabel(getProjectSector(project.sector ?? project.agency)),
         project.year,
         String(project.budget),
         String(project.realization),
         `${project.physicalProgress}%`,
         project.endDate,
         project.status,
-        String(project.beneficiaries),
       ]),
     ];
     downloadFile(
@@ -1070,7 +1361,10 @@ export function PublicDataDashboard({
                       }
                     }}
                     className="pl-9"
-                    options={YEARS.map((value) => ({ value, label: value }))}
+                    options={availableYears.map((value) => ({
+                      value,
+                      label: value,
+                    }))}
                   />
                 </span>
               </label>
@@ -1096,7 +1390,7 @@ export function PublicDataDashboard({
                   }}
                   options={
                     view === "projects"
-                      ? YEARS.flatMap((yearOption) =>
+                      ? availableYears.flatMap((yearOption) =>
                           PERIODS.map((periodOption) => ({
                             value: `${yearOption}-${periodOption.value}`,
                             label: `${yearOption} · ${periodOption.label}`,
@@ -1120,10 +1414,16 @@ export function PublicDataDashboard({
                     }}
                     options={[
                       { value: "all", label: "Semua sektor" },
-                      { value: "infrastruktur", label: "Infrastruktur" },
-                      { value: "pendidikan", label: "Pendidikan" },
-                      { value: "kesehatan", label: "Kesehatan" },
-                      { value: "lainnya", label: "Sektor lainnya" },
+                      ...[
+                        ...new Set(
+                          publicProjects.map((project) =>
+                            getProjectSector(project.sector ?? project.agency),
+                          ),
+                        ),
+                      ].map((sector) => ({
+                        value: sector,
+                        label: projectSectorLabel(sector),
+                      })),
                     ]}
                   />
                 </label>
@@ -1159,17 +1459,36 @@ export function PublicDataDashboard({
                 {selectedRegion.label} · {year} · {selectedPeriod.label}
               </span>
               <span className="ml-2">
-                Pembaruan data: 30 Sep {year}, 16.00 WIB
+                {publicDataLoading
+                  ? "Memuat data ASN terpublikasi…"
+                  : publicDataError
+                    ? "Sebagian data ASN gagal dimuat"
+                    : `Data dipublikasikan melalui workspace ASN · ${year}`}
               </span>
             </p>
           </CardContent>
         </Card>
 
+        {publicDataError ? (
+          <p role="alert" className="text-destructive rounded-md border p-3 text-sm">
+            Sebagian sumber data ASN gagal dimuat. Kartu untuk sumber lain tetap
+            menggunakan data terpublikasi yang berhasil dimuat; coba muat ulang
+            halaman.
+          </p>
+        ) : null}
+        {!publicDataLoading && !publicDataError ? (
+          <p role="status" className="text-muted-foreground text-xs">
+            Grafik dan ringkasan dihitung hanya dari data ASN yang sudah
+            dipublikasikan atau laporan proyek yang sudah dikirim. Data draf
+            tidak ditampilkan.
+          </p>
+        ) : null}
+
         {isOverview ? (
           <SummaryKpiCards
             data={{
-              totalAnggaran: budget,
-              realisasi: realization,
+              totalAnggaran: hasPaguData ? budget : null,
+              realisasi: hasRealizationData ? realization : null,
               proyekSelesai: completedProjects,
               totalProyek: projectTotal,
               cakupanWilayah: coverage,
@@ -1196,28 +1515,40 @@ export function PublicDataDashboard({
               {[
                 {
                   label: "Total anggaran",
-                  value: formatRupiah(budget),
-                  note: `Pagu APBD tahun ${year}`,
+                  value: hasPaguData ? formatRupiah(budget) : "—",
+                  note: hasPaguData
+                    ? `Pagu APBD tahun ${year}`
+                    : "Belum ada pagu APBD terpublikasi",
                   Icon: Wallet,
                 },
                 {
                   label: "Realisasi anggaran",
-                  value: formatRupiah(realization),
-                  note: `Kumulatif s.d. ${MONTHS[selectedPeriod.months - 1]}`,
+                  value: hasRealizationData ? formatRupiah(realization) : "—",
+                  note: hasRealizationData
+                    ? `Kumulatif s.d. ${MONTHS[selectedPeriod.months - 1]}`
+                    : "Belum ada realisasi APBD terpublikasi",
                   Icon: Landmark,
                 },
                 {
                   label: "Sisa anggaran",
-                  value: formatRupiah(budget - realization),
-                  note: `${formatPersentase(1 - selectedPeriod.realization)} belum terealisasi`,
+                  value: hasBudgetData
+                    ? formatRupiah(budget - realization)
+                    : "—",
+                  note: hasBudgetData
+                    ? `${formatPersentase(1 - selectedPeriod.realization)} belum terealisasi`
+                    : "Belum ada data untuk dihitung",
                   Icon: Building2,
                 },
                 {
                   label: "Tingkat realisasi",
-                  value: formatPersentase(
-                    budget > 0 ? realization / budget : 0,
-                  ),
-                  note: `${formatRupiah(realization)} dari pagu ${formatRupiah(budget)}`,
+                  value: hasBudgetData && budget > 0
+                    ? formatPersentase(
+                        realization / budget,
+                      )
+                    : "—",
+                  note: hasBudgetData && budget > 0
+                    ? `${formatRupiah(realization)} dari pagu ${formatRupiah(budget)}`
+                    : "Tidak tersedia tanpa pagu dan realisasi yang valid",
                   Icon: Percent,
                 },
               ].map(({ label, value, note, Icon }) => (
@@ -1269,19 +1600,28 @@ export function PublicDataDashboard({
                 {
                   label: "Selesai",
                   value: projectStatusData[0].value,
-                  note: `${formatPersentase(projectStatusData[0].value / projectTotal)} dari total proyek`,
+                  note:
+                    projectTotal > 0
+                      ? `${formatPersentase(projectStatusData[0].value / projectTotal)} dari total proyek`
+                      : "Belum ada laporan proyek untuk filter ini",
                   Icon: CheckCircle2,
                 },
                 {
                   label: "Berjalan",
                   value: projectStatusData[1].value,
-                  note: `${formatPersentase(projectStatusData[1].value / projectTotal)} dari total proyek`,
+                  note:
+                    projectTotal > 0
+                      ? `${formatPersentase(projectStatusData[1].value / projectTotal)} dari total proyek`
+                      : "Belum ada laporan proyek untuk filter ini",
                   Icon: Activity,
                 },
                 {
                   label: "Tertunda",
                   value: projectStatusData[2].value,
-                  note: `${formatPersentase(projectStatusData[2].value / projectTotal)} perlu perhatian`,
+                  note:
+                    projectTotal > 0
+                      ? `${formatPersentase(projectStatusData[2].value / projectTotal)} perlu perhatian`
+                      : "Belum ada laporan proyek untuk filter ini",
                   Icon: CalendarDays,
                 },
                 {
@@ -1329,30 +1669,38 @@ export function PublicDataDashboard({
                 </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className="h-[260px]">
-                  <LineChart
-                    data={trendData}
-                    xKey="bulan"
-                    series={[
-                      { key: "target", name: "Target realisasi" },
-                      { key: "realisasi", name: "Realisasi" },
-                    ]}
-                    width="100%"
-                    height={250}
-                    showGrid
-                    showLegend
-                    showTooltip
-                    ariaLabel={`Grafik tren target dan realisasi anggaran ${selectedRegion.label}, tahun ${year}, ${selectedPeriod.label}, dalam triliun rupiah`}
-                  />
-                </div>
-                <p
-                  aria-label={`Realisasi kumulatif ${formatRupiahForScreenReader(realization)}`}
-                  className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
-                >
-                  Realisasi kumulatif: {formatRupiah(realization)} ·{" "}
-                  {formatPersentase(budget > 0 ? realization / budget : 0)} dari
-                  pagu.
-                </p>
+                {hasBudgetData ? (
+                  <>
+                    <div className="h-[260px]">
+                      <LineChart
+                        data={trendData}
+                        xKey="bulan"
+                        series={[
+                          { key: "target", name: "Pagu kumulatif" },
+                          { key: "realisasi", name: "Realisasi" },
+                        ]}
+                        width="100%"
+                        height={250}
+                        showGrid
+                        showLegend
+                        showTooltip
+                        ariaLabel={`Grafik tren pagu dan realisasi anggaran ${selectedRegion.label}, tahun ${year}, ${selectedPeriod.label}, dalam triliun rupiah`}
+                      />
+                    </div>
+                    <p
+                      aria-label={`Realisasi kumulatif ${formatRupiahForScreenReader(realization)}`}
+                      className="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
+                    >
+                      Realisasi kumulatif: {formatRupiah(realization)} ·{" "}
+                      {formatPersentase(budget > 0 ? realization / budget : 0)}{" "}
+                      dari pagu.
+                    </p>
+                  </>
+                ) : (
+                  <p role="status" className="text-muted-foreground py-12 text-center text-sm">
+                    Belum ada data APBD terpublikasi untuk filter ini.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -1364,7 +1712,7 @@ export function PublicDataDashboard({
                       Rincian anggaran per sektor
                     </h2>
                     <CardDescription className="mt-2 text-xs">
-                      {budgetSectorRows.length} sektor · nilai dalam rupiah
+                      {budgetSectorRows.length} sektor/urusan · nilai dalam rupiah
                     </CardDescription>
                   </div>
                   <Button
@@ -1398,9 +1746,11 @@ export function PublicDataDashboard({
                       onChange={(event) => setSectorFilter(event.target.value)}
                       options={[
                         { value: "all", label: "Semua sektor" },
-                        ...BUDGET_SECTORS.map(({ id, name }) => ({
+                        ...[...new Set(publishedApbd.map((entry) => entry.sectorId))].map((id) => ({
                           value: id,
-                          label: name,
+                          label:
+                            BUDGET_SECTORS.find((sector) => sector.id === id)
+                              ?.name ?? id,
                         })),
                       ]}
                     />
@@ -1442,23 +1792,33 @@ export function PublicDataDashboard({
                           </th>
                           <td className="px-3 py-3 text-right">
                             <span className="font-medium">
-                              {formatRupiah(sector.allocation)}
+                              {hasPaguData
+                                ? formatRupiah(sector.allocation)
+                                : "—"}
                             </span>
                             <span className="text-muted-foreground block text-xs">
-                              {formatPersentase(sector.allocation / budget)}{" "}
-                              dari pagu
+                              {hasPaguData && budget > 0
+                                ? formatPersentase(sector.allocation / budget)
+                                : "—"}{" "}
+                              {hasPaguData ? "dari pagu" : ""}
                             </span>
                           </td>
                           <td className="px-3 py-3 text-right font-medium">
-                            {formatRupiah(sector.realization)}
+                            {hasRealizationData
+                              ? formatRupiah(sector.realization)
+                              : "—"}
                           </td>
                           <td className="px-3 py-3 text-right">
-                            {formatRupiah(sector.remaining)}
+                            {hasBudgetData
+                              ? formatRupiah(sector.remaining)
+                              : "—"}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
                               <span className="text-xs font-medium">
-                                {formatPersentase(sector.percentage)}
+                                {hasBudgetData
+                                  ? formatPersentase(sector.percentage)
+                                  : "—"}
                               </span>
                               <span
                                 className="bg-muted h-1.5 w-16 overflow-hidden rounded-full"
@@ -1466,14 +1826,12 @@ export function PublicDataDashboard({
                                 aria-label={`Penyerapan sektor ${sector.name}`}
                                 aria-valuemin={0}
                                 aria-valuemax={100}
-                                aria-valuenow={Math.round(
-                                  sector.percentage * 100,
-                                )}
+                                aria-valuenow={hasBudgetData ? Math.round(sector.percentage * 100) : 0}
                               >
                                 <span
                                   className="bg-primary block h-full rounded-full"
                                   style={{
-                                    width: `${sector.percentage * 100}%`,
+                                    width: `${hasBudgetData ? sector.percentage * 100 : 0}%`,
                                   }}
                                 />
                               </span>
@@ -1487,7 +1845,9 @@ export function PublicDataDashboard({
                             colSpan={5}
                             className="text-muted-foreground px-4 py-8 text-center"
                           >
-                            Tidak ada sektor yang cocok dengan pencarian.
+                            {hasBudgetData
+                              ? "Tidak ada sektor yang cocok dengan pencarian."
+                              : "Belum ada data APBD terpublikasi untuk filter ini."}
                           </td>
                         </tr>
                       ) : null}
@@ -1499,16 +1859,20 @@ export function PublicDataDashboard({
                           {selectedRegion.label.replace("Provinsi ", "")}
                         </th>
                         <td className="px-3 py-3 text-right">
-                          {formatRupiah(budget)}
+                          {hasBudgetData ? formatRupiah(budget) : "—"}
                         </td>
                         <td className="px-3 py-3 text-right">
-                          {formatRupiah(realization)}
+                          {hasBudgetData ? formatRupiah(realization) : "—"}
                         </td>
                         <td className="px-3 py-3 text-right">
-                          {formatRupiah(budget - realization)}
+                          {hasBudgetData
+                            ? formatRupiah(budget - realization)
+                            : "—"}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {formatPersentase(realization / budget)}
+                          {hasBudgetData && budget > 0
+                            ? formatPersentase(realization / budget)
+                            : "—"}
                         </td>
                       </tr>
                     </tfoot>
@@ -1531,22 +1895,28 @@ export function PublicDataDashboard({
                 </div>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <div className="h-[260px]">
-                  <BarChart
-                    data={sectorData}
-                    xKey="sektor"
-                    series={[
-                      { key: "anggaran", name: "Pagu anggaran" },
-                      { key: "realisasi", name: "Realisasi" },
-                    ]}
-                    width="100%"
-                    height={250}
-                    showGrid
-                    showLegend
-                    showTooltip
-                    ariaLabel={`Grafik anggaran dan realisasi per sektor ${selectedRegion.label} tahun ${year}`}
-                  />
-                </div>
+                {hasBudgetData ? (
+                  <div className="h-[260px]">
+                    <BarChart
+                      data={sectorData}
+                      xKey="sektor"
+                      series={[
+                        { key: "anggaran", name: "Pagu anggaran" },
+                        { key: "realisasi", name: "Realisasi" },
+                      ]}
+                      width="100%"
+                      height={250}
+                      showGrid
+                      showLegend
+                      showTooltip
+                      ariaLabel={`Grafik anggaran dan realisasi per sektor ${selectedRegion.label} tahun ${year}`}
+                    />
+                  </div>
+                ) : (
+                  <p role="status" className="text-muted-foreground py-12 text-center text-sm">
+                    Belum ada data APBD terpublikasi untuk filter ini.
+                  </p>
+                )}
               </CardContent>
             </Card>
             <div className="lg:order-4 lg:col-span-2">
@@ -1582,12 +1952,10 @@ export function PublicDataDashboard({
                   <p className="text-muted-foreground mt-1 text-xs">{note}</p>
                 </div>
               ))}
-              <div className="sm:col-span-2 lg:col-span-4">
-                <PublicCategoryDatasets category="Statistik" />
-              </div>
             </CardContent>
           </Card>
         ) : null}
+        {showStatistics ? <BpsAnalyticsPanel /> : null}
 
         {view === "budget" ? (
           <section
@@ -1600,21 +1968,21 @@ export function PublicDataDashboard({
                   Anggaran & realisasi APBD
                 </h2>
                 <CardDescription className="text-xs">
-                  Sumber: simulasi APBD Agoraya · Data ilustratif
+                  Sumber: data APBD ASN berstatus terbit.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 px-4 pb-4 text-xs">
                 <p>
                   Wilayah: {selectedRegion.label} · {year} ·{" "}
-                  {BUDGET_SECTORS.length} sektor
+                  {sectorData.length} sektor/urusan
                 </p>
                 <p>
                   Skema: keuangan daerah · satuan ditampilkan dalam triliun
                   rupiah.
                 </p>
                 <p>
-                  Pembaruan visualisasi mengikuti filter periode kumulatif yang
-                  dipilih.
+                  Pagu dan realisasi merupakan akumulasi triwulan sampai dengan
+                  periode yang dipilih.
                 </p>
               </CardContent>
             </Card>
@@ -1652,7 +2020,10 @@ export function PublicDataDashboard({
                   <strong>Tingkat realisasi</strong>
                   <span className="text-muted-foreground mt-1 block">
                     Realisasi ÷ pagu × 100% ={" "}
-                    {formatPersentase(realization / budget)}.
+                    {budget > 0
+                      ? formatPersentase(realization / budget)
+                      : "—"}
+                    .
                   </span>
                 </p>
                 <p className="text-muted-foreground">
@@ -1691,9 +2062,11 @@ export function PublicDataDashboard({
                   />
                   <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-xl font-bold">
-                      {formatPersentase(
-                        projectStatusData[0].value / projectTotal,
-                      )}
+                      {projectTotal > 0
+                        ? formatPersentase(
+                            projectStatusData[0].value / projectTotal,
+                          )
+                        : "—"}
                     </span>
                     <span className="text-muted-foreground text-[10px]">
                       selesai
@@ -1715,7 +2088,9 @@ export function PublicDataDashboard({
                       </span>
                       <span className="font-medium tabular-nums">
                         {item.value} ·{" "}
-                        {formatPersentase(item.value / projectTotal)}
+                        {projectTotal > 0
+                          ? formatPersentase(item.value / projectTotal)
+                          : "—"}
                       </span>
                     </li>
                   ))}
@@ -1778,7 +2153,12 @@ export function PublicDataDashboard({
                     </h2>
                     <CardDescription className="mt-1 text-xs">
                       {featuredProject.district} ·{" "}
-                      {getProjectSector(featuredProject.agency)} ·{" "}
+                      {projectSectorLabel(
+                        getProjectSector(
+                          featuredProject.sector ?? featuredProject.agency,
+                        ),
+                      )}{" "}
+                      ·{" "}
                       {featuredProject.agency}
                     </CardDescription>
                   </div>
@@ -1844,11 +2224,8 @@ export function PublicDataDashboard({
                       {formatRupiah(featuredProject.realization)}
                     </p>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Penerima manfaat:{" "}
-                      {new Intl.NumberFormat("id-ID").format(
-                        featuredProject.beneficiaries,
-                      )}{" "}
-                      orang (estimasi)
+                      Jumlah penerima manfaat tidak tersedia pada laporan
+                      proyek.
                     </p>
                     <Button
                       variant="outline"
@@ -1873,8 +2250,8 @@ export function PublicDataDashboard({
                   Pantau proyek, lihat dampaknya
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Contoh proyek {selectedRegion.label} · {year} · data
-                  ilustratif.
+                  Laporan proyek ASN {selectedRegion.label} · {year} · hanya
+                  data yang sudah dikirim.
                 </p>
               </div>
             </div>
@@ -2027,10 +2404,9 @@ export function PublicDataDashboard({
                           {project.district}
                         </td>
                         <td className="px-3 py-3 text-xs">
-                          {BUDGET_SECTORS.find(
-                            (sector) =>
-                              sector.id === getProjectSector(project.agency),
-                          )?.name ?? "Sektor lainnya"}
+                          {projectSectorLabel(
+                            getProjectSector(project.sector ?? project.agency),
+                          )}
                         </td>
                         <td className="px-3 py-3 text-xs font-medium">
                           {formatRupiah(project.budget)}
@@ -2101,7 +2477,7 @@ export function PublicDataDashboard({
                 <span>
                   {filteredProjects.length === 0
                     ? "Tidak ada proyek"
-                    : `Menampilkan ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredProjects.length)} dari ${filteredProjects.length} contoh proyek`}
+                    : `Menampilkan ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filteredProjects.length)} dari ${filteredProjects.length} proyek`}
                 </span>
                 <div className="flex items-center gap-2">
                   <Button
@@ -2329,7 +2705,7 @@ export function PublicDataDashboard({
         title={selectedProject?.name ?? "Detail proyek"}
         description={
           selectedProject
-            ? `${selectedProject.agency} · ${selectedProject.district} · Data ilustratif`
+            ? `${selectedProject.agency} · ${selectedProject.district} · Data laporan ASN terpublikasi`
             : undefined
         }
         contentClassName="max-h-[90vh] max-w-2xl overflow-y-auto"
@@ -2357,14 +2733,9 @@ export function PublicDataDashboard({
               </div>
               <div className="bg-muted/40 rounded-lg p-3">
                 <p className="text-muted-foreground text-xs">
-                  Penerima manfaat
+                  Sumber data
                 </p>
-                <p className="mt-1 font-semibold">
-                  {new Intl.NumberFormat("id-ID").format(
-                    selectedProject.beneficiaries,
-                  )}{" "}
-                  orang
-                </p>
+                <p className="mt-1 font-semibold">Laporan ASN terpublikasi</p>
               </div>
             </div>
             <div>
@@ -2412,8 +2783,8 @@ export function PublicDataDashboard({
               </ol>
             </div>
             <p className="text-muted-foreground border-border border-t pt-3 text-xs">
-              Penerima manfaat merupakan estimasi simulasi. Realisasi fisik dan
-              keuangan ditampilkan secara terpisah.
+              Realisasi keuangan dihitung dari nilai kontrak dan progres
+              keuangan yang dilaporkan.
             </p>
           </div>
         ) : null}

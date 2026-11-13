@@ -58,6 +58,7 @@ describe("audit log api routes", () => {
       searchQuery: "grant",
       limit: 25,
       offset: 10,
+      tenantId: "tenant-1",
     });
   });
 
@@ -70,7 +71,11 @@ describe("audit log api routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(getAuditLogByEventId).toHaveBeenCalledWith("db-instance", "AUD-20261008-001");
+    expect(getAuditLogByEventId).toHaveBeenCalledWith(
+      "db-instance",
+      "AUD-20261008-001",
+      "tenant-1",
+    );
   });
 
   it("returns summary data using shared query parsing", async () => {
@@ -91,6 +96,7 @@ describe("audit log api routes", () => {
       result: undefined,
       objectType: undefined,
       searchQuery: "approval",
+      tenantId: "tenant-1",
     });
   });
 
@@ -117,6 +123,7 @@ describe("audit log api routes", () => {
       result: undefined,
       objectType: undefined,
       searchQuery: undefined,
+      tenantId: "tenant-1",
     }, "csv");
   });
 

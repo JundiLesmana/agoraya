@@ -14,6 +14,7 @@ const person = {
   position: "Analis",
   accountStatus: "active",
   applicationRoles: [{ key: "operator", name: "Operator" }],
+  systemRoles: [{ key: "superadmin", name: "Superadmin" }],
   modules: ["ogd"],
   executiveStatus: "not_granted",
 } as const;
@@ -99,6 +100,7 @@ describe("ASN access directory", () => {
 
     render(<AsnAccessDirectory />);
     expect(await screen.findByText("ASN contoh")).toBeTruthy();
+    expect(screen.getByText("Operator, Superadmin")).toBeTruthy();
     expect(screen.getByRole("option", { name: "CMS · Data Pemerintah" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "KYC · Verifikasi akun ASN" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "CMS Editor" })).toBeTruthy();

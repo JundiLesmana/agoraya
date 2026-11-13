@@ -2,7 +2,7 @@
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ProgressForm } from "@/app/(asn)/project/_components/progress-form";
+import { ProgressForm } from "@/app/(asn)/asn/project/_components/progress-form";
 import type { ProjectDetail } from "@/modules/project-progress/types";
 
 const PROJECT: ProjectDetail = {
@@ -65,7 +65,11 @@ describe("ProgressForm", () => {
   it("merender semua bidang wajib formulir input progres", () => {
     renderForm();
     expect(screen.getByLabelText(/bulan pelaporan/i)).toBeTruthy();
-    expect(screen.getByLabelText(/tahun anggaran/i)).toBeTruthy();
+    const fiscalYear = screen.getByLabelText(
+      /tahun anggaran/i,
+    ) as HTMLInputElement;
+    expect(fiscalYear.value).toBe("2025");
+    expect(fiscalYear.readOnly).toBe(true);
     expect(screen.getByLabelText(/progres fisik/i)).toBeTruthy();
     expect(screen.getByLabelText(/progres keuangan/i)).toBeTruthy();
     expect(screen.getByLabelText(/catatan evaluasi/i)).toBeTruthy();
@@ -104,6 +108,7 @@ describe("ProgressForm", () => {
     expect(screen.queryByTestId("error-progresFisik")).toBeNull();
     const hasil = captured();
     expect(hasil?.values).toMatchObject({
+      periodeTahun: 2025,
       progresFisik: 75,
       progresKeuangan: 52,
     });

@@ -16,7 +16,10 @@ import {
   Workflow,
 } from "lucide-react";
 import { formatDateTimeWib } from "@/app/(citizen)/citizen/service/_components/tracking-format";
-import { saveReviewAssignment, type ReviewActionState } from "@/app/(asn)/review/actions";
+import {
+  saveReviewAssignment,
+  type ReviewActionState,
+} from "@/app/(asn)/review/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,6 +36,7 @@ import {
   type SubmissionQueueItem,
   type SubmissionQueueStatus,
 } from "./agency-dashboard-data";
+import type { ServiceApplicationCategory } from "@/modules/service-applications/catalog";
 
 type StaffOption = {
   id: string;
@@ -43,7 +47,10 @@ type StaffOption = {
 
 type SubmissionQueueProps = {
   initialItems: SubmissionQueueItem[];
-  staff: readonly StaffOption[];
+  staffByCategory: Readonly<
+    Record<ServiceApplicationCategory, readonly StaffOption[]>
+  >;
+  accessibleCategories: readonly ServiceApplicationCategory[];
 };
 
 type DateFilter = "all" | "today" | "last_7_days" | "last_30_days";
@@ -57,7 +64,10 @@ type QueueStats = {
 };
 
 const initialActionState: ReviewActionState = { error: null, success: null };
-const STATUS_OPTIONS: readonly { value: SubmissionQueueStatus | "all"; label: string }[] = [
+const STATUS_OPTIONS: readonly {
+  value: SubmissionQueueStatus | "all";
+  label: string;
+}[] = [
   { value: "all", label: "Semua status" },
   { value: "Menunggu Asignasi", label: "Menunggu Asignasi" },
   { value: "Sedang Ditangani", label: "Sedang Ditangani" },
@@ -121,7 +131,12 @@ function SummaryCard({
   alert?: string | null;
 }) {
   return (
-    <Card className={cn("gap-3 border p-4 shadow-none sm:p-5", getSummaryCardToneClassName(tone))}>
+    <Card
+      className={cn(
+        "gap-3 border p-4 shadow-none sm:p-5",
+        getSummaryCardToneClassName(tone),
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">{label}</p>
@@ -134,7 +149,10 @@ function SummaryCard({
       <p className="text-sm/6 opacity-90">{helper}</p>
       {alert ? (
         <div className="flex items-start gap-2 rounded-lg border border-current/15 bg-white/60 px-3 py-2 text-xs font-medium dark:bg-slate-950/20">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <AlertTriangle
+            className="mt-0.5 size-4 shrink-0"
+            aria-hidden="true"
+          />
           <p>{alert}</p>
         </div>
       ) : null}
@@ -193,8 +211,10 @@ async function readJson(response: Response): Promise<unknown> {
 function buildQueueStats(items: readonly SubmissionQueueItem[]): QueueStats {
   return {
     total: items.length,
-    unassigned: items.filter((item) => item.queueStatus === "Menunggu Asignasi").length,
-    active: items.filter((item) => item.queueStatus === "Sedang Ditangani").length,
+    unassigned: items.filter((item) => item.queueStatus === "Menunggu Asignasi")
+      .length,
+    active: items.filter((item) => item.queueStatus === "Sedang Ditangani")
+      .length,
     completed: items.filter((item) => item.queueStatus === "Selesai").length,
     averageWaitingTimeMinutes: getAverageWaitingTimeMinutes(items),
   };
@@ -245,7 +265,8 @@ function getAssignmentRecommendation(
     const unitName = member.unitName?.trim().toLocaleLowerCase("id-ID") ?? "";
     return (
       (normalizedAgency.length > 0 && opdName.includes(normalizedAgency)) ||
-      (normalizedCategory.length > 0 && unitName.includes(normalizedCategory)) ||
+      (normalizedCategory.length > 0 &&
+        unitName.includes(normalizedCategory)) ||
       (normalizedService.length > 0 && unitName.includes(normalizedService))
     );
   });
@@ -262,7 +283,8 @@ function getAssignmentRecommendation(
 
   return {
     staffId: staff[0]?.id ?? "",
-    reason: "Belum ada kecocokan unit yang spesifik, gunakan petugas aktif teratas sebagai rekomendasi awal.",
+    reason:
+      "Belum ada kecocokan unit yang spesifik, gunakan petugas aktif teratas sebagai rekomendasi awal.",
   };
 }
 
@@ -304,7 +326,9 @@ function AssignmentModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={item ? `Asignasikan ${item.trackingNumber}` : "Asignasikan pengajuan"}
+      title={
+        item ? `Asignasikan ${item.trackingNumber}` : "Asignasikan pengajuan"
+      }
       description="Pilih petugas ASN aktif untuk menangani pengajuan ini."
       contentClassName="max-w-md"
     >
@@ -313,7 +337,7 @@ function AssignmentModal({
           <input type="hidden" name="itemType" value="service_application" />
           <input type="hidden" name="itemId" value={item.id} />
           <label className="block space-y-2">
-            <span className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
+            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               Petugas
             </span>
             <Select
@@ -344,12 +368,19 @@ function AssignmentModal({
             </p>
           ) : null}
           {state.success ? (
-            <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">
+            <p
+              role="status"
+              className="text-sm text-emerald-700 dark:text-emerald-300"
+            >
               {state.success}
             </p>
           ) : null}
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button type="submit" disabled={pending}>
@@ -363,15 +394,21 @@ function AssignmentModal({
   );
 }
 
-export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
+export function SubmissionQueue({
+  initialItems,
+  staffByCategory,
+  accessibleCategories,
+}: SubmissionQueueProps) {
   const [items, setItems] = React.useState(initialItems);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState<(typeof STATUS_OPTIONS)[number]["value"]>("all");
+  const [statusFilter, setStatusFilter] =
+    React.useState<(typeof STATUS_OPTIONS)[number]["value"]>("all");
   const [serviceFilter, setServiceFilter] = React.useState("all");
   const [dateFilter, setDateFilter] = React.useState<DateFilter>("all");
-  const [selectedItem, setSelectedItem] = React.useState<SubmissionQueueItem | null>(null);
+  const [selectedItem, setSelectedItem] =
+    React.useState<SubmissionQueueItem | null>(null);
   const [assignmentOpen, setAssignmentOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const loadQueueRequestIdRef = React.useRef(0);
@@ -410,7 +447,9 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
       setDateFilter("all");
       setPage(1);
       setSelectedItem((currentItem) =>
-        currentItem ? nextItems.find((item) => item.id === currentItem.id) ?? null : null,
+        currentItem
+          ? (nextItems.find((item) => item.id === currentItem.id) ?? null)
+          : null,
       );
       setError("");
     } catch (loadError) {
@@ -445,7 +484,9 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
     return items.filter((item) => {
       const matchesSearch =
         normalizedQuery.length === 0 ||
-        item.trackingNumber.toLocaleLowerCase("id-ID").includes(normalizedQuery) ||
+        item.trackingNumber
+          .toLocaleLowerCase("id-ID")
+          .includes(normalizedQuery) ||
         item.serviceName.toLocaleLowerCase("id-ID").includes(normalizedQuery) ||
         item.applicantName.toLocaleLowerCase("id-ID").includes(normalizedQuery);
       const matchesStatus =
@@ -466,8 +507,14 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
     return filteredItems.slice(startIndex, startIndex + PAGE_SIZE);
   }, [currentPage, filteredItems]);
   const currentRecommendation = React.useMemo(
-    () => (selectedItem ? getAssignmentRecommendation(selectedItem, staff) : null),
-    [selectedItem, staff],
+    () =>
+      selectedItem
+        ? getAssignmentRecommendation(
+            selectedItem,
+            staffByCategory[selectedItem.categoryKey],
+          )
+        : null,
+    [selectedItem, staffByCategory],
   );
 
   React.useEffect(() => {
@@ -489,21 +536,37 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-muted-foreground text-sm">
-          Pantau antrean pengajuan tertua lebih dulu, lalu ambil atau asignasikan petugas tanpa memuat ulang halaman.
+          Pantau antrean pengajuan tertua lebih dulu, lalu ambil atau
+          asignasikan petugas tanpa memuat ulang halaman.
         </p>
-        <Button type="button" variant="outline" size="sm" onClick={() => void loadQueue()} disabled={loading}>
-          <RefreshCw className={cn("size-4", loading ? "animate-spin" : "")} aria-hidden="true" />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void loadQueue()}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={cn("size-4", loading ? "animate-spin" : "")}
+            aria-hidden="true"
+          />
           Segarkan Antrean
         </Button>
       </div>
 
       {error ? (
-        <p role="alert" className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm">
+        <p
+          role="alert"
+          className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm"
+        >
           {error}
         </p>
       ) : null}
 
-      <section aria-label="Ringkasan antrean pengajuan" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="Ringkasan antrean pengajuan"
+        className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+      >
         <SummaryCard
           label="Total Antrean"
           value={stats.total}
@@ -551,9 +614,14 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
         <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/40">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <label className="space-y-1">
-              <span className="text-muted-foreground text-sm font-medium">Cari nomor atau pemohon</span>
+              <span className="text-muted-foreground text-sm font-medium">
+                Cari nomor atau pemohon
+              </span>
               <div className="relative">
-                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
+                <Search
+                  className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+                  aria-hidden="true"
+                />
                 <Input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
@@ -564,16 +632,25 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
               </div>
             </label>
             <label className="space-y-1">
-              <span className="text-muted-foreground text-sm font-medium">Status Antrean</span>
+              <span className="text-muted-foreground text-sm font-medium">
+                Status Antrean
+              </span>
               <Select
                 aria-label="Filter status antrean"
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]["value"])}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target
+                      .value as (typeof STATUS_OPTIONS)[number]["value"],
+                  )
+                }
                 options={STATUS_OPTIONS}
               />
             </label>
             <label className="space-y-1">
-              <span className="text-muted-foreground text-sm font-medium">Jenis Layanan</span>
+              <span className="text-muted-foreground text-sm font-medium">
+                Jenis Layanan
+              </span>
               <Select
                 aria-label="Filter jenis layanan"
                 value={serviceFilter}
@@ -582,21 +659,30 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-muted-foreground text-sm font-medium">Tanggal Masuk</span>
+              <span className="text-muted-foreground text-sm font-medium">
+                Tanggal Masuk
+              </span>
               <Select
                 aria-label="Filter tanggal masuk"
                 value={dateFilter}
-                onChange={(event) => setDateFilter(event.target.value as DateFilter)}
+                onChange={(event) =>
+                  setDateFilter(event.target.value as DateFilter)
+                }
                 options={DATE_OPTIONS}
               />
             </label>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="bg-card overflow-hidden rounded-2xl border shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 text-sm">
             <p className="text-muted-foreground">
-              Menampilkan {filteredItems.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredItems.length)} dari {filteredItems.length} pengajuan.
+              Menampilkan{" "}
+              {filteredItems.length === 0
+                ? 0
+                : (currentPage - 1) * PAGE_SIZE + 1}
+              -{Math.min(currentPage * PAGE_SIZE, filteredItems.length)} dari{" "}
+              {filteredItems.length} pengajuan.
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -616,7 +702,9 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={currentPage >= totalPages}
               >
                 Berikutnya
@@ -625,7 +713,10 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm" aria-label="Tabel antrean pengajuan">
+            <table
+              className="min-w-full text-sm"
+              aria-label="Tabel antrean pengajuan"
+            >
               <thead className="bg-muted/50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">Nomor Pengajuan</th>
@@ -640,54 +731,91 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-muted-foreground px-4 py-8 text-center">
+                    <td
+                      colSpan={7}
+                      className="text-muted-foreground px-4 py-8 text-center"
+                    >
                       Tidak ada pengajuan yang cocok dengan filter saat ini.
                     </td>
                   </tr>
                 ) : (
                   paginatedItems.map((item) => {
-                    const canTake = item.assigneeId === null && item.queueStatus === "Menunggu Asignasi";
+                    const categoryStaff = staffByCategory[item.categoryKey];
+                    const canTake =
+                      accessibleCategories.includes(item.categoryKey) &&
+                      item.assigneeId === null &&
+                      item.queueStatus === "Menunggu Asignasi";
                     const slaTone = getSlaTone(item.waitingTimeMinutes);
-                    const recommendation = getAssignmentRecommendation(item, staff);
+                    const recommendation = getAssignmentRecommendation(
+                      item,
+                      categoryStaff,
+                    );
                     return (
                       <tr key={item.id} className="border-t align-top">
                         <td className="px-4 py-4">
                           <div className="space-y-1">
                             <p className="font-medium">{item.trackingNumber}</p>
-                            <p className="text-muted-foreground text-xs">{item.agency}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {item.agency}
+                            </p>
                           </div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="space-y-1">
                             <p className="font-medium">{item.serviceName}</p>
-                            <p className="text-muted-foreground text-xs">{item.category}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {item.category}
+                            </p>
                           </div>
                         </td>
                         <td className="px-4 py-4">
                           <p>{item.applicantLabel}</p>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">{formatDateTimeWib(item.submittedAt)}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {formatDateTimeWib(item.submittedAt)}
+                        </td>
                         <td className="px-4 py-4">
-                          <Badge variant="outline" className={slaToneClassName(slaTone)}>
+                          <Badge
+                            variant="outline"
+                            className={slaToneClassName(slaTone)}
+                          >
                             {formatWaitingTime(item.waitingTimeMinutes)}
                           </Badge>
                         </td>
                         <td className="px-4 py-4">
-                          <Badge variant="outline" className={queueStatusClassName(item.queueStatus)}>
+                          <Badge
+                            variant="outline"
+                            className={queueStatusClassName(item.queueStatus)}
+                          >
                             {item.queueStatus}
                           </Badge>
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-wrap gap-2">
                             {canTake ? (
-                              <QuickAssignButton itemId={item.id} onSubmitted={loadQueue} />
+                              <QuickAssignButton
+                                itemId={item.id}
+                                onSubmitted={loadQueue}
+                              />
                             ) : null}
-                            <Button type="button" variant="outline" size="sm" onClick={() => openAssignment(item)}>
-                              <UserRoundPlus className="size-4" aria-hidden="true" />
-                              {recommendation ? "Asignasikan (disarankan)" : "Asignasikan"}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openAssignment(item)}
+                            >
+                              <UserRoundPlus
+                                className="size-4"
+                                aria-hidden="true"
+                              />
+                              {recommendation
+                                ? "Asignasikan (disarankan)"
+                                : "Asignasikan"}
                             </Button>
                             <Button asChild variant="ghost" size="sm">
-                              <Link href={`/asn/management/${item.id}`}>Buka</Link>
+                              <Link href={`/asn/management/${item.id}`}>
+                                Buka
+                              </Link>
                             </Button>
                           </div>
                         </td>
@@ -705,7 +833,7 @@ export function SubmissionQueue({ initialItems, staff }: SubmissionQueueProps) {
         item={selectedItem}
         open={assignmentOpen}
         onOpenChange={setAssignmentOpen}
-        staff={staff}
+        staff={selectedItem ? staffByCategory[selectedItem.categoryKey] : []}
         recommendation={currentRecommendation}
         onSubmitted={loadQueue}
       />

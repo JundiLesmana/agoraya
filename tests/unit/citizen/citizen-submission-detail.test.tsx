@@ -30,6 +30,10 @@ vi.mock('@/lib/db', () => ({
   }),
 }));
 
+vi.mock('@/lib/tenancy/reporting', () => ({
+  resolveReportingTenantId: vi.fn().mockResolvedValue(null),
+}));
+
 import CitizenServiceDetailPage from '@/app/(citizen)/citizen/service/[id]/page';
 
 function mockApplicationQueries(applicationRows: Record<string, unknown>[]) {

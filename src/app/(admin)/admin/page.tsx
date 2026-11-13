@@ -13,6 +13,28 @@ const REVIEW_LINKS = [
 
 const ADMIN_LINKS = [
   {
+    href: "/admin/apbd/review",
+    title: "Tinjauan APBD",
+    description: "Tinjau dan kelola pengajuan data APBD.",
+  },
+  {
+    href: "/admin/apbd/assignments",
+    title: "Penugasan APBD",
+    description: "Atur cakupan instansi, wilayah, dan urusan operator APBD.",
+  },
+  {
+    href: "/admin/statistics/assignments",
+    title: "Penugasan Statistik",
+    description:
+      "Atur cakupan instansi, wilayah, dan sektor operator statistik agar ruang input tersedia.",
+  },
+  {
+    href: "/admin/projects",
+    title: "Proyek Infrastruktur",
+    description:
+      "Buat dan kelola proyek serta tetapkan penanggung jawab agar operator dapat menginput progres.",
+  },
+  {
     href: "/admin/kyc/citizen",
     title: "Verifikasi Warga",
     description: "Tinjau dan kelola pengajuan verifikasi akun warga.",

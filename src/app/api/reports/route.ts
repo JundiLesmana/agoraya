@@ -1,102 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
-import { z } from "zod";
 import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { ticketSubmissionDetails, tickets, tenants } from "@/lib/db/schema";
+import { ticketSubmissionDetails, tickets } from "@/lib/db/schema";
 import { logger } from "@/lib/logger";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
+import { reportSubmissionSchema } from "@/lib/validators/report";
 
 export const dynamic = "force-dynamic";
-
-const categories = ["Infrastruktur", "Dugaan korupsi", "Lingkungan"] as const;
-const subcategories: Record<(typeof categories)[number], string[]> = {
-  Infrastruktur: [
-    "Jalan rusak",
-    "Jembatan rusak",
-    "Lampu jalan",
-    "Fasilitas umum",
-    "Lainnya",
-  ],
-  "Dugaan korupsi": [
-    "Penyalahgunaan anggaran",
-    "Pungutan liar",
-    "Penyalahgunaan wewenang",
-    "Lainnya",
-  ],
-  Lingkungan: [
-    "Sampah menumpuk",
-    "Pencemaran",
-    "Saluran tersumbat",
-    "Kerusakan ruang hijau",
-    "Lainnya",
-  ],
-};
-const submissionSchema = z
-  .object({
-    category: z.enum(categories),
-    subcategory: z.string().trim().min(1).max(100),
-    title: z.string().trim().min(1).max(100),
-    description: z.string().trim().min(50).max(10_000),
-    province: z.string().trim().min(1).max(100),
-    city: z.string().trim().min(1).max(100),
-    location: z.string().trim().min(1).max(2_000),
-    name: z.string().trim().max(255),
-    email: z.string().trim().email().max(255),
-    phone: z
-      .string()
-      .trim()
-      .refine((value) =>
-        /^(?:\+62|62|0)8[1-9]\d{6,11}$/.test(value.replace(/[\s()-]/g, "")),
-      ),
-    isPublic: z.boolean(),
-    showIdentity: z.boolean(),
-    attachments: z.array(z.string().trim().min(1).max(255)).max(5),
-  })
-  .refine(
-    (values) => subcategories[values.category].includes(values.subcategory),
-    {
-      path: ["subcategory"],
-      message: "Subkategori tidak sesuai dengan kategori laporan.",
-    },
-  )
-  .refine(
-    (values) =>
-      values.isPublic && values.showIdentity ? values.name.length > 0 : true,
-    { path: ["name"], message: "Nama wajib diisi jika identitas ditampilkan." },
-  );
-
-async function getReportingTenantId(): Promise<string | null> {
-  const database = db();
-  const configuredTenantId = process.env.REPORTING_TENANT_ID?.trim();
-  if (configuredTenantId) {
-    if (!z.string().uuid().safeParse(configuredTenantId).success) return null;
-    const [tenant] = await database
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(eq(tenants.id, configuredTenantId))
-      .limit(1);
-    return tenant?.id ?? null;
-  }
-
-  if (process.env.NODE_ENV === "production") {
-    // Production wajib atur REPORTING_TENANT_ID, tapi fallback ke tenant aktif
-    // (selain agoraya-local-testing) untuk mempermudah testing.
-    const [tenant] = await database
-      .select({ id: tenants.id })
-      .from(tenants)
-      .where(eq(tenants.status, "active"))
-      .limit(1);
-    return tenant?.id ?? null;
-  }
-
-  const [tenant] = await database
-    .select({ id: tenants.id })
-    .from(tenants)
-    .where(eq(tenants.slug, "agoraya-local-testing"))
-    .limit(1);
-  return tenant?.id ?? null;
-}
 
 function isAsnRole(roles: readonly string[]): boolean {
   return roles.some((role) =>
@@ -119,6 +31,24 @@ export async function GET(): Promise<Response> {
         { status: 403 },
       );
     }
+    const reportingTenantId = await resolveReportingTenantId();
+    if (!reportingTenantId) {
+      return NextResponse.json(
+        { error: "Tenant penerima laporan belum dikonfigurasi atau tidak aktif." },
+        { status: 503 },
+      );
+    }
+    if (reportingTenantId !== session.tenantId) {
+      logger.error("reports.recipient_tenant_mismatch", {
+        userId: session.userId,
+        sessionTenantId: session.tenantId,
+        reportingTenantId,
+      });
+      return NextResponse.json(
+        { error: "Akun ASN tidak berada pada tenant penerima laporan." },
+        { status: 403 },
+      );
+    }
 
     const rows = await db()
       .select({
@@ -135,8 +65,6 @@ export async function GET(): Promise<Response> {
         city: ticketSubmissionDetails.city,
         address: ticketSubmissionDetails.address,
         reporterName: ticketSubmissionDetails.reporterName,
-        reporterEmail: ticketSubmissionDetails.reporterEmail,
-        reporterPhone: ticketSubmissionDetails.reporterPhone,
         isPublic: ticketSubmissionDetails.isPublic,
         showIdentity: ticketSubmissionDetails.showIdentity,
         attachments: ticketSubmissionDetails.attachmentNames,
@@ -146,7 +74,7 @@ export async function GET(): Promise<Response> {
         ticketSubmissionDetails,
         eq(ticketSubmissionDetails.ticketId, tickets.id),
       )
-      .where(eq(tickets.tenantId, session.tenantId))
+      .where(eq(tickets.tenantId, reportingTenantId))
       .orderBy(desc(tickets.submittedAt));
 
     return NextResponse.json({ reports: rows });
@@ -173,7 +101,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const parsed = submissionSchema.safeParse(body);
+  const parsed = reportSubmissionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Periksa kembali kategori dan kelengkapan laporan." },
@@ -182,7 +110,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const tenantId = await getReportingTenantId();
+    const tenantId = await resolveReportingTenantId();
     if (!tenantId) {
       return NextResponse.json(
         { error: "Tenant tujuan laporan belum dikonfigurasi." },
@@ -206,11 +134,14 @@ export async function POST(request: Request): Promise<Response> {
         title: input.title,
         description: input.description,
         status: "submitted",
+        provenanceSource: "ACTUAL",
         urgency: "medium",
         location: {
-          province: input.province,
-          city: input.city,
-          address: input.location,
+          province: input.location.province,
+          city: input.location.city,
+          address: input.location.address,
+          latitude: input.location.latitude,
+          longitude: input.location.longitude,
         },
         submittedAt: now,
         responseDueAt,
@@ -222,13 +153,12 @@ export async function POST(request: Request): Promise<Response> {
         ticketId: id,
         reportNumber,
         subcategory: input.subcategory,
-        province: input.province,
-        city: input.city,
-        address: input.location,
-        reporterName:
-          input.isPublic && input.showIdentity ? input.name || null : null,
-        reporterEmail: input.email,
-        reporterPhone: input.phone.replace(/[\s()-]/g, ""),
+        province: input.location.province,
+        city: input.location.city,
+        address: input.location.address,
+        reporterName: input.name,
+        reporterEmail: null,
+        reporterPhone: null,
         isPublic: input.isPublic,
         showIdentity: input.isPublic && input.showIdentity,
         attachmentNames: input.attachments,

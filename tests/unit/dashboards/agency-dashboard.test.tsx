@@ -35,8 +35,8 @@ const report = {
   city: "Kota Bandung",
   address: "Jl. Melati",
   reporterName: "Siti Contoh",
-  reporterEmail: "siti@example.com",
-  reporterPhone: "081234567890",
+  reporterEmail: null,
+  reporterPhone: null,
   isPublic: true,
   showIdentity: true,
   attachments: ["jalan.jpg"],
@@ -62,7 +62,7 @@ const serviceApplication = {
 
 function mockReports(
   reports = [report],
-  applications: typeof serviceApplication[] = [],
+  applications: (typeof serviceApplication)[] = [],
 ) {
   vi.stubGlobal(
     "fetch",
@@ -100,15 +100,11 @@ describe("agency report privacy helpers", () => {
     expect(getSubmissionQueueStatus("submitted", null)).toBe(
       "Menunggu Asignasi",
     );
-    expect(getSubmissionQueueStatus("verified", null)).toBe(
-      "Sedang Ditangani",
-    );
+    expect(getSubmissionQueueStatus("verified", null)).toBe("Sedang Ditangani");
     expect(getSubmissionQueueStatus("submitted", "staff-1")).toBe(
       "Sedang Ditangani",
     );
-    expect(getSubmissionQueueStatus("rejected", null)).toBe(
-      "Menunggu Warga",
-    );
+    expect(getSubmissionQueueStatus("rejected", null)).toBe("Menunggu Warga");
     expect(getSubmissionQueueStatus("closed", null)).toBe("Selesai");
   });
 
@@ -121,6 +117,7 @@ describe("agency report privacy helpers", () => {
           serviceName: "Izin Usaha",
           serviceType: "izin-usaha",
           category: "Perizinan",
+          categoryKey: "permit",
           agency: "DPMPTSP",
           applicantLabel: "Siti C*** / ••••••••••••6543",
           applicantName: "Siti Contoh",
@@ -136,6 +133,7 @@ describe("agency report privacy helpers", () => {
           serviceName: "Bantuan Sosial",
           serviceType: "bansos",
           category: "Sosial",
+          categoryKey: "social",
           agency: "Dinas Sosial",
           applicantLabel: "Budi S***",
           applicantName: "Budi Santoso",
@@ -234,6 +232,7 @@ describe("SubmissionQueue", () => {
             serviceName: "Izin Usaha Mikro",
             serviceType: "izin-usaha",
             category: "Perizinan",
+            categoryKey: "permit",
             agency: "DPMPTSP",
             applicantLabel: "Siti C*** / ••••••••••••6543",
             applicantName: "Siti Contoh",
@@ -249,6 +248,7 @@ describe("SubmissionQueue", () => {
             serviceName: "Bantuan Sosial",
             serviceType: "bansos",
             category: "Sosial",
+            categoryKey: "social",
             agency: "Dinas Sosial",
             applicantLabel: "Budi S***",
             applicantName: "Budi Santoso",
@@ -259,41 +259,65 @@ describe("SubmissionQueue", () => {
             assigneeId: "staff-1",
           },
         ]}
-        staff={[{ id: "staff-1", name: "Petugas Satu" }]}
+        staffByCategory={{
+          permit: [{ id: "staff-1", name: "Petugas Satu" }],
+          education: [],
+          social: [],
+          health: [],
+        }}
+        accessibleCategories={["permit", "education", "social", "health"]}
       />,
     );
 
-    const table = screen.getByRole("table", { name: "Tabel antrean pengajuan" });
+    const table = screen.getByRole("table", {
+      name: "Tabel antrean pengajuan",
+    });
     expect(within(table).getByText("SV-20261027-ABC123")).toBeTruthy();
     expect(within(table).getByText("SV-20261026-DEF456")).toBeTruthy();
 
     fireEvent.change(
-      screen.getByRole("textbox", { name: "Cari nomor pengajuan atau pemohon" }),
+      screen.getByRole("textbox", {
+        name: "Cari nomor pengajuan atau pemohon",
+      }),
       { target: { value: "Budi" } },
     );
     expect(within(table).getByText("SV-20261026-DEF456")).toBeTruthy();
     expect(within(table).queryByText("SV-20261027-ABC123")).toBeNull();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter status antrean" }), {
-      target: { value: "Sedang Ditangani" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter status antrean" }),
+      {
+        target: { value: "Sedang Ditangani" },
+      },
+    );
     expect(within(table).getByText("SV-20261026-DEF456")).toBeTruthy();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter jenis layanan" }), {
-      target: { value: "Sosial" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter jenis layanan" }),
+      {
+        target: { value: "Sosial" },
+      },
+    );
     expect(within(table).getByText("Bantuan Sosial")).toBeTruthy();
 
     fireEvent.change(
-      screen.getByRole("textbox", { name: "Cari nomor pengajuan atau pemohon" }),
+      screen.getByRole("textbox", {
+        name: "Cari nomor pengajuan atau pemohon",
+      }),
       { target: { value: "" } },
     );
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter status antrean" }), {
-      target: { value: "all" },
-    });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filter jenis layanan" }), {
-      target: { value: "all" },
-    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter status antrean" }),
+      {
+        target: { value: "all" },
+      },
+    );
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Filter jenis layanan" }),
+      {
+        target: { value: "all" },
+      },
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Segarkan Antrean" }));
     await waitFor(() => {
@@ -340,6 +364,7 @@ describe("SubmissionQueue", () => {
       serviceName: `Layanan ${index + 1}`,
       serviceType: `service-${index + 1}`,
       category: index % 2 === 0 ? "Perizinan" : "Sosial",
+      categoryKey: index % 2 === 0 ? ("permit" as const) : ("social" as const),
       agency: index % 2 === 0 ? "DPMPTSP" : "Dinas Sosial",
       applicantLabel: `Pemohon ${index + 1}`,
       applicantName: `Pemohon ${index + 1}`,
@@ -350,9 +375,22 @@ describe("SubmissionQueue", () => {
       assigneeId: null,
     }));
 
-    render(<SubmissionQueue initialItems={initialItems} staff={[]} />);
+    render(
+      <SubmissionQueue
+        initialItems={initialItems}
+        staffByCategory={{
+          permit: [],
+          education: [],
+          social: [],
+          health: [],
+        }}
+        accessibleCategories={["permit", "education", "social", "health"]}
+      />,
+    );
 
-    const table = screen.getByRole("table", { name: "Tabel antrean pengajuan" });
+    const table = screen.getByRole("table", {
+      name: "Tabel antrean pengajuan",
+    });
     expect(within(table).getByText("SV-QUEUE-001")).toBeTruthy();
     expect(within(table).getByText("SV-QUEUE-010")).toBeTruthy();
     expect(within(table).queryByText("SV-QUEUE-011")).toBeNull();
@@ -382,6 +420,7 @@ describe("SubmissionQueue", () => {
             serviceName: "Bantuan Sosial Lansia",
             serviceType: "bansos-lansia",
             category: "Sosial",
+            categoryKey: "social",
             agency: "Dinas Sosial",
             applicantLabel: "Siti C***",
             applicantName: "Siti Contoh",
@@ -392,32 +431,46 @@ describe("SubmissionQueue", () => {
             assigneeId: null,
           },
         ]}
-        staff={[
-          {
-            id: "staff-1",
-            name: "Petugas Umum",
-            opdName: "Sekretariat Daerah",
-            unitName: "Layanan Umum",
-          },
-          {
-            id: "staff-2",
-            name: "Petugas Sosial",
-            opdName: "Dinas Sosial",
-            unitName: "Sosial dan Bantuan Sosial Lansia",
-          },
-        ]}
+        staffByCategory={{
+          permit: [],
+          education: [],
+          social: [
+            {
+              id: "staff-1",
+              name: "Petugas Umum",
+              opdName: "Sekretariat Daerah",
+              unitName: "Layanan Umum",
+            },
+            {
+              id: "staff-2",
+              name: "Petugas Sosial",
+              opdName: "Dinas Sosial",
+              unitName: "Sosial dan Bantuan Sosial Lansia",
+            },
+          ],
+          health: [],
+        }}
+        accessibleCategories={["social"]}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Asignasikan (disarankan)" }));
-    const dialog = screen.getByRole("dialog", { name: /Asignasikan SV-20261027-ABC123/i });
-    expect(within(dialog).getByText("Rekomendasi asignasi tersedia.")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Asignasikan (disarankan)" }),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: /Asignasikan SV-20261027-ABC123/i,
+    });
+    expect(
+      within(dialog).getByText("Rekomendasi asignasi tersedia."),
+    ).toBeTruthy();
     expect(
       within(dialog).getByText(
         "Direkomendasikan karena profil petugas terkait Sosial dan Bantuan Sosial Lansia.",
       ),
     ).toBeTruthy();
-    const select = within(dialog).getByRole("combobox", { name: "Pilih petugas" }) as HTMLSelectElement;
+    const select = within(dialog).getByRole("combobox", {
+      name: "Pilih petugas",
+    }) as HTMLSelectElement;
     expect(select.value).toBe("staff-2");
   });
 });

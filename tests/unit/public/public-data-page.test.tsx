@@ -11,26 +11,200 @@ import PublicDataPage from "@/app/(public)/data/page";
 import PublicBudgetPage from "@/app/(public)/data/anggaran/page";
 import PublicProjectsPage from "@/app/(public)/data/project/page";
 
+const publishedApbd = {
+  entries: [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      agencyId: "pemda-jabar",
+      regionId: "jabar",
+      regionName: "Jawa Barat",
+      sectorId: "pendidikan",
+      referenceYear: 2025,
+      publishedAt: "2026-11-10T00:00:00.000Z",
+      items: [
+        {
+          code: "PENDIDIKAN",
+          programName: "Layanan pendidikan",
+          subactivityName: "Penyelenggaraan pendidikan",
+          pagu: "80000000000000",
+          realisasi: "60000000000000",
+          periodValue: "Q1",
+        },
+        ...["Q2", "Q3", "Q4"].map((periodValue) => ({
+          code: "PENDIDIKAN",
+          programName: "Layanan pendidikan",
+          subactivityName: "Penyelenggaraan pendidikan",
+          pagu: "0",
+          realisasi: "0",
+          periodValue,
+        })),
+      ],
+    },
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      agencyId: "pemda-bogor",
+      regionId: "bogor",
+      regionName: "Kabupaten Bogor",
+      sectorId: "pendidikan",
+      referenceYear: 2024,
+      publishedAt: "2026-11-10T00:00:00.000Z",
+      items: [
+        {
+          code: "PENDIDIKAN",
+          programName: "Layanan pendidikan",
+          subactivityName: "Penyelenggaraan pendidikan",
+          pagu: "8000000000000",
+          realisasi: "4000000000000",
+          periodValue: "Q1",
+        },
+        {
+          code: "PENDIDIKAN",
+          programName: "Layanan pendidikan",
+          subactivityName: "Penyelenggaraan pendidikan",
+          pagu: "8900000000000",
+          realisasi: "4500000000000",
+          periodValue: "Q2",
+        },
+        ...["Q3", "Q4"].map((periodValue) => ({
+          code: "PENDIDIKAN",
+          programName: "Layanan pendidikan",
+          subactivityName: "Penyelenggaraan pendidikan",
+          pagu: "0",
+          realisasi: "0",
+          periodValue,
+        })),
+      ],
+    },
+  ],
+};
+
+const publishedStatistics = {
+  entries: [
+    ...["tpt", "inflasi"].map((indicatorId, index) => ({
+      id: index === 0
+        ? "44444444-4444-4444-8444-444444444444"
+        : "55555555-5555-4555-8555-555555555555",
+      regionId: "bogor",
+      regionName: "Kabupaten Bogor",
+      sectorId: "economy",
+      indicatorId,
+      indicatorName: indicatorId === "tpt" ? "TPT" : "Inflasi",
+      unit: "Persen",
+      referenceYear: 2024,
+      sourceName: "BPS",
+      methodology: "Survei tahunan.",
+      publishedAt: "2026-11-10T00:00:00.000Z",
+      values: [{ periodValue: "Q2", value: index + 1 }],
+    })),
+  ],
+};
+
+const publishedProjects = {
+  projects: [
+    {
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Rehabilitasi 12 sekolah",
+      agency: "Dinas Pendidikan",
+      location: "Jawa Barat",
+      sector: "pendidikan",
+      budget: 80_000_000,
+      startDate: "2025-01-01",
+      endDate: "2027-12-31",
+      fiscalYear: 2025,
+      initialPhysicalProgress: 75,
+      initialFinancialProgress: 25,
+      status: "ongoing",
+      reports: [],
+    },
+    {
+      id: "77777777-7777-4777-8777-777777777777",
+      name: "Sistem air bersih",
+      agency: "Dinas Pekerjaan Umum",
+      location: "Jawa Barat",
+      sector: "infrastruktur",
+      budget: 40_000_000,
+      startDate: "2025-01-01",
+      endDate: "2027-12-31",
+      fiscalYear: 2025,
+      initialPhysicalProgress: 30,
+      initialFinancialProgress: 15,
+      status: "delayed",
+      reports: [],
+    },
+    {
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Peningkatan jalan kabupaten",
+      agency: "Dinas Pekerjaan Umum",
+      location: "Kabupaten Bogor",
+      sector: "infrastruktur",
+      budget: 50_000_000,
+      startDate: "2024-01-01",
+      endDate: "2026-12-31",
+      fiscalYear: 2024,
+      initialPhysicalProgress: 50,
+      initialFinancialProgress: 40,
+      status: "ongoing",
+      reports: [],
+    },
+  ],
+};
+
+const emptyDatasetResponse = {
+  data: [],
+  total: 0,
+  page: 1,
+  pageSize: 12,
+  totalPages: 0,
+  filters: { categories: [], agencies: [] },
+};
+
 describe("PublicDataPage", () => {
   beforeEach(() => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json({
-        data: [],
-        total: 0,
-        page: 1,
-        pageSize: 12,
-        totalPages: 0,
-        filters: { categories: [], agencies: [] },
-      }),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === "/api/v1/apbd/published") {
+        return Response.json(publishedApbd);
+      }
+      if (url === "/api/v1/statistics/published") {
+        return Response.json(publishedStatistics);
+      }
+      if (url === "/api/v1/projects/published") {
+        return Response.json(publishedProjects);
+      }
+      if (url === "/api/analytics/statistics") {
+        return Response.json({
+          source: "BPS_API",
+          indicator: undefined,
+          region: undefined,
+          count: 1,
+          data: [
+            {
+              year: 2024,
+              value: 74.03,
+              unit: "Indeks",
+              regionCode: "31",
+              indicatorCode: "bps:0000:413:0:0",
+              indicatorName: "Indeks Pembangunan Manusia",
+              category: "Kesejahteraan",
+            },
+          ],
+        });
+      }
+      return Response.json(emptyDatasetResponse);
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("renders the public dashboard, charts, catalog, and disclaimer", () => {
+  it("renders the public dashboard, charts, catalog, and disclaimer", async () => {
     render(<PublicDataPage />);
+    expect(await screen.findByText("Rp80T")).toBeTruthy();
+    expect(await screen.findByText("Analitik statistik BPS")).toBeTruthy();
+    expect(
+      screen.getByRole("combobox", { name: "Kategori data" }),
+    ).toBeTruthy();
 
     const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(
@@ -74,6 +248,7 @@ describe("PublicDataPage", () => {
       ).options,
     ).map((option) => option.value);
     expect(summaryYearOptions).toEqual([
+      "2026",
       "2025",
       "2024",
       "2023",
@@ -124,8 +299,8 @@ describe("PublicDataPage", () => {
     ).toBeTruthy();
     expect(screen.getByText("Rp80T")).toBeTruthy();
     expect(screen.getByText("Rp60T")).toBeTruthy();
-    expect(screen.getByText("156 / 240")).toBeTruthy();
-    expect(screen.getByText("27 daerah")).toBeTruthy();
+    expect(screen.getByText("0 / 2")).toBeTruthy();
+    expect(screen.getByText("1 daerah")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Tren realisasi anggaran" }),
     ).toBeTruthy();
@@ -273,8 +448,9 @@ describe("PublicDataPage", () => {
     fetchSpy.mockRestore();
   });
 
-  it("renders the dedicated budget page with searchable sector details", () => {
+  it("renders the dedicated budget page with searchable sector details", async () => {
     render(<PublicBudgetPage />);
+    expect((await screen.findAllByText("Pendidikan")).length).toBeGreaterThan(0);
 
     const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(
@@ -320,7 +496,7 @@ describe("PublicDataPage", () => {
           }) as HTMLSelectElement
         ).options,
       ).map((option) => option.value),
-    ).toEqual(["2025", "2024", "2023", "2022", "2021", "2020"]);
+    ).toEqual(["2026", "2025", "2024", "2023", "2022", "2021", "2020"]);
     expect(budgetRegions.map((option) => option.label)).toContain(
       "Kota Bandung",
     );
@@ -359,8 +535,9 @@ describe("PublicDataPage", () => {
     expect(within(table).queryByText("Kesehatan")).toBeNull();
   });
 
-  it("opens the project subpage with project-specific tabs and filters", () => {
+  it("opens the project subpage with project-specific tabs and filters", async () => {
     render(<PublicProjectsPage />);
+    expect(await screen.findByText("Sistem air bersih")).toBeTruthy();
 
     const categoryNavigation = screen.getByRole("navigation", {
       name: "Kategori data pemerintah",
@@ -399,7 +576,7 @@ describe("PublicDataPage", () => {
           name: "Periode kumulatif",
         }) as HTMLSelectElement
       ).options,
-    ).toHaveLength(24);
+    ).toHaveLength(28);
     expect(screen.getByText("Progres penyelesaian")).toBeTruthy();
     expect(screen.getByText("Penyelesaian per sektor")).toBeTruthy();
 
@@ -414,8 +591,23 @@ describe("PublicDataPage", () => {
     ).toBeNull();
   });
 
-  it("updates summary and chart data when region, year, and period filters change", () => {
+  it("shows unavailable project percentages when no public projects are available", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json(emptyDatasetResponse),
+    );
+
+    render(<PublicProjectsPage />);
+
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Progres penyelesaian" }),
+    ).toBeTruthy();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("updates summary and chart data when region, year, and period filters change", async () => {
     render(<PublicDataPage />);
+    expect(await screen.findByText("Rp80T")).toBeTruthy();
 
     fireEvent.change(screen.getByRole("combobox", { name: "Wilayah" }), {
       target: { value: "bogor" },
@@ -439,20 +631,24 @@ describe("PublicDataPage", () => {
     expect(screen.getByText(/Januari – Jun 2024/)).toBeTruthy();
   });
 
-  it("allows selecting a province outside the original regional options", () => {
+  it("allows selecting a province outside the original regional options", async () => {
     render(<PublicBudgetPage />);
+    expect((await screen.findAllByText("Pendidikan")).length).toBeGreaterThan(0);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Wilayah" }), {
+    const regionSelect = screen.getByRole("combobox", { name: "Wilayah" }) as HTMLSelectElement;
+    fireEvent.change(regionSelect, {
       target: { value: "provinsi-aceh" },
     });
 
-    expect(screen.getAllByText(/Provinsi Aceh · 2025/).length).toBeGreaterThan(
-      0,
-    );
+    expect(regionSelect.value).toBe("provinsi-aceh");
+    expect(
+      screen.getByRole("heading", { name: "Ringkasan anggaran Aceh" }),
+    ).toBeTruthy();
   });
 
-  it("filters and sorts project rows and opens project details", () => {
+  it("filters and sorts project rows and opens project details", async () => {
     render(<PublicDataPage />);
+    expect(await screen.findByText("Rehabilitasi 12 sekolah")).toBeTruthy();
 
     fireEvent.change(
       screen.getByRole("textbox", { name: "Cari nama proyek atau instansi" }),
@@ -470,14 +666,14 @@ describe("PublicDataPage", () => {
         target: { value: "q1" },
       },
     );
-    expect(within(table).getByText("Rp20M")).toBeTruthy();
+    expect(within(table).getByText("Rp20.000.000")).toBeTruthy();
 
     fireEvent.click(within(table).getByRole("button", { name: "Detail" }));
     const dialog = screen.getByRole("dialog", {
       name: "Rehabilitasi 12 sekolah",
     });
     expect(within(dialog).getByText("75% · Berjalan")).toBeTruthy();
-    expect(within(dialog).getByText("3.600 orang")).toBeTruthy();
+    expect(within(dialog).getByText("Laporan ASN terpublikasi")).toBeTruthy();
     expect(
       within(dialog).getByRole("heading", { name: "Timeline proyek" }),
     ).toBeTruthy();

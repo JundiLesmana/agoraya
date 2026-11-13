@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import type { Session } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { reviewActivities, serviceApplications, users } from "@/lib/db/schema";
+import { appendAuditEvent } from "@/modules/audit";
 import {
-  reviewActivities,
-  serviceApplications,
-  users,
-} from "@/lib/db/schema";
+  canManageServiceApplication,
+  isServiceApplicationCategory,
+} from "@/modules/service-applications/access";
 
 export const PROCESSING_STATUS = {
   submitted: "submitted",
@@ -119,11 +120,14 @@ interface ProcessingStateRecord {
 interface ServiceApplicationRow {
   readonly id: string;
   readonly tenantId: string;
+  readonly category: string;
+  readonly serviceId: string;
   readonly trackingNumber: string;
   readonly serviceName: string;
   readonly agency: string;
   readonly status: string;
   readonly submittedAt: Date;
+  readonly updatedAt: Date;
   readonly assigneeId: string | null;
   readonly applicantName: string;
   readonly contactEmail: string;
@@ -132,7 +136,11 @@ interface ServiceApplicationRow {
 }
 
 const MAX_OUTPUT_SIZE = 5 * 1024 * 1024;
-const OUTPUT_FILE_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const OUTPUT_FILE_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
 const OUTPUT_EXTENSIONS = new Set(["pdf", "jpg", "jpeg", "png"]);
 const SUPERVISOR_ROLES = new Set(["admin", "superadmin"]);
 
@@ -189,7 +197,11 @@ const processingStateSchema = z.object({
   completionRequest: z
     .object({
       note: z.string().max(2_000).nullable().default(null),
-      requestedAt: z.string().datetime({ offset: true }).nullable().default(null),
+      requestedAt: z
+        .string()
+        .datetime({ offset: true })
+        .nullable()
+        .default(null),
     })
     .default({ note: null, requestedAt: null }),
   outputDocuments: z.array(outputDocumentSchema).default([]),
@@ -207,7 +219,9 @@ function createSlug(value: string, fallback: string): string {
   return normalized || fallback;
 }
 
-function deriveChecklist(payload: Record<string, unknown>): ProcessingChecklistItem[] {
+function deriveChecklist(
+  payload: Record<string, unknown>,
+): ProcessingChecklistItem[] {
   const data = payload.data;
   if (!data || typeof data !== "object") {
     return [
@@ -253,7 +267,8 @@ function extractCitizenDocuments(
     .flatMap(([key, value]) => {
       if (!value || typeof value !== "object") return [];
       const entry = value as Record<string, unknown>;
-      const url = asString(entry.cloudinarySecureUrl) ?? asString(entry.secureUrl);
+      const url =
+        asString(entry.cloudinarySecureUrl) ?? asString(entry.secureUrl);
       const fileName =
         asString(entry.fileName) ??
         asString(entry.originalName) ??
@@ -275,45 +290,88 @@ function extractCitizenDocuments(
         },
       ];
     })
-    .filter((value, index, array) =>
-      array.findIndex((candidate) => candidate.id === value.id) === index,
+    .filter(
+      (value, index, array) =>
+        array.findIndex((candidate) => candidate.id === value.id) === index,
     );
 }
 
 function normalizeStatus(status: string): ProcessingStatus {
-  if (status === PROCESSING_STATUS.processing || status === "verified") {
+  if (
+    status === PROCESSING_STATUS.processing ||
+    status === "verified" ||
+    status === "in_progress"
+  ) {
     return PROCESSING_STATUS.processing;
   }
   if (status === PROCESSING_STATUS.waitingForCitizen || status === "rejected") {
     return PROCESSING_STATUS.waitingForCitizen;
   }
-  if (status === PROCESSING_STATUS.completed || status === "resolved" || status === "closed") {
+  if (
+    status === PROCESSING_STATUS.completed ||
+    status === "resolved" ||
+    status === "closed"
+  ) {
     return PROCESSING_STATUS.completed;
   }
   return PROCESSING_STATUS.submitted;
 }
 
-function parseProcessingState(row: ServiceApplicationRow): ProcessingStateRecord {
+function parseProcessingState(
+  row: ServiceApplicationRow,
+): ProcessingStateRecord {
   const payloadState =
-    row.payload.processingState && typeof row.payload.processingState === "object"
+    row.payload.processingState &&
+    typeof row.payload.processingState === "object"
       ? row.payload.processingState
       : null;
 
   const parsed = processingStateSchema.safeParse(payloadState);
   if (parsed.success) {
-    return parsed.data;
+    const status = normalizeStatus(row.status);
+    const isPaused = status === PROCESSING_STATUS.waitingForCitizen;
+    const wasPaused =
+      parsed.data.status === PROCESSING_STATUS.waitingForCitizen;
+    const resumedPausedMinutes =
+      wasPaused && !isPaused && parsed.data.slaPausedAt
+        ? diffMinutes(parsed.data.slaPausedAt, row.updatedAt.toISOString())
+        : 0;
+    return {
+      ...parsed.data,
+      status,
+      slaPausedAt: isPaused
+        ? (parsed.data.slaPausedAt ?? row.updatedAt.toISOString())
+        : null,
+      slaPausedTotalMinutes:
+        parsed.data.slaPausedTotalMinutes + resumedPausedMinutes,
+      completionRequest: isPaused
+        ? parsed.data.completionRequest.requestedAt
+          ? parsed.data.completionRequest
+          : {
+              note: null,
+              requestedAt: row.updatedAt.toISOString(),
+            }
+        : { note: null, requestedAt: null },
+    };
   }
 
+  const status = normalizeStatus(row.status);
   return {
-    status: normalizeStatus(row.status),
+    status,
     slaTargetMinutes: 2_880,
     processingStartedAt: row.submittedAt.toISOString(),
-    slaPausedAt: null,
+    slaPausedAt:
+      status === PROCESSING_STATUS.waitingForCitizen
+        ? row.updatedAt.toISOString()
+        : null,
     slaPausedTotalMinutes: 0,
     checklist: deriveChecklist(row.payload),
     documents: extractCitizenDocuments(row.payload),
     internalNote: "",
-    completionRequest: { note: null, requestedAt: null },
+    completionRequest:
+      status === PROCESSING_STATUS.waitingForCitizen
+        ? { note: null, requestedAt: row.updatedAt.toISOString() }
+        : { note: null, requestedAt: null },
     outputDocuments: [],
   };
 }
@@ -325,15 +383,21 @@ function diffMinutes(start: string, end: string): number {
   );
 }
 
-export function computeSlaSnapshot(state: Pick<
-  ProcessingStateRecord,
-  "processingStartedAt" | "slaPausedAt" | "slaPausedTotalMinutes" | "slaTargetMinutes"
->): SubmissionProcessingDetail["sla"] {
+export function computeSlaSnapshot(
+  state: Pick<
+    ProcessingStateRecord,
+    | "processingStartedAt"
+    | "slaPausedAt"
+    | "slaPausedTotalMinutes"
+    | "slaTargetMinutes"
+  >,
+): SubmissionProcessingDetail["sla"] {
   const now = new Date().toISOString();
   const activeEnd = state.slaPausedAt ?? now;
   const elapsedMinutes = Math.max(
     0,
-    diffMinutes(state.processingStartedAt, activeEnd) - state.slaPausedTotalMinutes,
+    diffMinutes(state.processingStartedAt, activeEnd) -
+      state.slaPausedTotalMinutes,
   );
   const remainingMinutes = state.slaTargetMinutes - elapsedMinutes;
   return {
@@ -362,16 +426,22 @@ export function canManageSubmission(
   return application.assigneeId === session.userId;
 }
 
-async function getApplicationRow(id: string): Promise<ServiceApplicationRow | null> {
+async function getApplicationRow(
+  id: string,
+  tenantId: string,
+): Promise<ServiceApplicationRow | null> {
   const [row] = await db()
     .select({
       id: serviceApplications.id,
       tenantId: serviceApplications.tenantId,
+      category: serviceApplications.category,
+      serviceId: serviceApplications.serviceId,
       trackingNumber: serviceApplications.trackingNumber,
       serviceName: serviceApplications.serviceName,
       agency: serviceApplications.agency,
       status: serviceApplications.status,
       submittedAt: serviceApplications.submittedAt,
+      updatedAt: serviceApplications.updatedAt,
       assigneeId: serviceApplications.assigneeId,
       applicantName: serviceApplications.applicantName,
       contactEmail: serviceApplications.contactEmail,
@@ -379,7 +449,12 @@ async function getApplicationRow(id: string): Promise<ServiceApplicationRow | nu
       payload: serviceApplications.payload,
     })
     .from(serviceApplications)
-    .where(eq(serviceApplications.id, id))
+    .where(
+      and(
+        eq(serviceApplications.id, id),
+        eq(serviceApplications.tenantId, tenantId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -388,8 +463,15 @@ export async function getSubmissionProcessingDetail(
   id: string,
   session: Session,
 ): Promise<SubmissionProcessingDetail | null> {
-  const row = await getApplicationRow(id);
-  if (!row || !canManageSubmission(session, row)) return null;
+  const row = await getApplicationRow(id, session.tenantId);
+  if (
+    !row ||
+    !canManageSubmission(session, row) ||
+    !isServiceApplicationCategory(row.category) ||
+    !(await canManageServiceApplication(session, row))
+  ) {
+    return null;
+  }
 
   const state = parseProcessingState(row);
   const activities = await db()
@@ -453,6 +535,19 @@ function serializeState(state: ProcessingStateRecord): Record<string, unknown> {
   };
 }
 
+function toWorkflowStatus(status: ProcessingStatus): string {
+  switch (status) {
+    case PROCESSING_STATUS.processing:
+      return "in_progress";
+    case PROCESSING_STATUS.waitingForCitizen:
+      return "waiting_for_citizen";
+    case PROCESSING_STATUS.completed:
+      return "resolved";
+    default:
+      return PROCESSING_STATUS.submitted;
+  }
+}
+
 function mergePayload(
   payload: Record<string, unknown>,
   state: ProcessingStateRecord,
@@ -461,27 +556,6 @@ function mergePayload(
     ...payload,
     processingState: serializeState(state),
   };
-}
-
-async function appendActivity(
-  tenantId: string,
-  itemId: string,
-  actorId: string,
-  activityType: "internal_note" | "public_update" | "assignment",
-  message: string,
-  status: string,
-): Promise<void> {
-  await db().insert(reviewActivities).values({
-    id: randomUUID(),
-    tenantId,
-    itemType: "service_application",
-    itemId,
-    activityType,
-    status,
-    message,
-    actorId,
-    createdAt: new Date(),
-  });
 }
 
 function ensureOutputFile(file: File): void {
@@ -511,6 +585,7 @@ async function uploadOutputDocuments(
       tenantId,
       fileName: file.name,
       mimeType: file.type,
+      module: "service-applications",
     });
     uploads.push({
       id: randomUUID(),
@@ -526,29 +601,37 @@ async function uploadOutputDocuments(
   return uploads;
 }
 
-export async function updateSubmissionProcessing(
-  input: {
+export async function updateSubmissionProcessing(input: {
+  readonly id: string;
+  readonly session: Session;
+  readonly action: CompletionAction;
+  readonly note: string;
+  readonly checklistIds: readonly string[];
+  readonly documentDecisions: ReadonlyArray<{
     readonly id: string;
-    readonly session: Session;
-    readonly action: CompletionAction;
+    readonly status: "pending" | "valid" | "invalid";
     readonly note: string;
-    readonly checklistIds: readonly string[];
-    readonly documentDecisions: ReadonlyArray<{
-      readonly id: string;
-      readonly status: "pending" | "valid" | "invalid";
-      readonly note: string;
-    }>;
-    readonly outputFiles: readonly File[];
-  },
-): Promise<SubmissionProcessingDetail> {
-  const row = await getApplicationRow(input.id);
-  if (!row || !canManageSubmission(input.session, row)) {
+  }>;
+  readonly outputFiles: readonly File[];
+}): Promise<SubmissionProcessingDetail> {
+  const row = await getApplicationRow(input.id, input.session.tenantId);
+  if (
+    !row ||
+    !canManageSubmission(input.session, row) ||
+    !isServiceApplicationCategory(row.category) ||
+    !(await canManageServiceApplication(input.session, row))
+  ) {
     throw new Error("FORBIDDEN");
   }
 
   const state = parseProcessingState(row);
+  if (state.status === PROCESSING_STATUS.completed) {
+    throw new Error("ALREADY_COMPLETED");
+  }
   const nextDocuments = state.documents.map((document) => {
-    const decision = input.documentDecisions.find((item) => item.id === document.id);
+    const decision = input.documentDecisions.find(
+      (item) => item.id === document.id,
+    );
     if (!decision) return document;
     return {
       ...document,
@@ -570,7 +653,10 @@ export async function updateSubmissionProcessing(
   let outputDocuments = state.outputDocuments;
 
   if (state.slaPausedAt && input.action !== "request_completion") {
-    pausedTotalMinutes += diffMinutes(state.slaPausedAt, new Date().toISOString());
+    pausedTotalMinutes += diffMinutes(
+      state.slaPausedAt,
+      new Date().toISOString(),
+    );
     pausedAt = null;
   }
 
@@ -632,27 +718,70 @@ export async function updateSubmissionProcessing(
   };
 
   const persistedPayload = mergePayload(row.payload, nextState);
-  await db()
-    .update(serviceApplications)
-    .set({
-      status: nextStatus,
-      payload: persistedPayload,
-      updatedAt: new Date(),
-    })
-    .where(eq(serviceApplications.id, row.id));
+  const workflowStatus = toWorkflowStatus(nextStatus);
+  const now = new Date();
+  const auditAction =
+    input.action === "complete_and_publish"
+      ? "service_application.completed"
+      : input.action === "request_completion"
+        ? "service_application.completion_requested"
+        : "service_application.processing.updated";
+  await db().transaction(async (transaction) => {
+    const [updated] = await transaction
+      .update(serviceApplications)
+      .set({
+        status: workflowStatus,
+        payload: persistedPayload,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(serviceApplications.id, row.id),
+          eq(serviceApplications.tenantId, row.tenantId),
+          eq(serviceApplications.status, row.status),
+        ),
+      )
+      .returning({ id: serviceApplications.id });
+    if (!updated) throw new Error("CONFLICT");
 
-  await appendActivity(
-    row.tenantId,
-    row.id,
-    input.session.userId,
-    input.action === "request_completion" ? "public_update" : "internal_note",
-    input.action === "request_completion"
-      ? input.note.trim() || "Petugas meminta kelengkapan tambahan dari warga."
-      : input.action === "complete_and_publish"
-        ? "Pengajuan diselesaikan dan hasil layanan diterbitkan."
-        : input.note.trim() || "Progres penanganan diperbarui.",
-    nextStatus,
-  );
+    await transaction.insert(reviewActivities).values({
+      id: randomUUID(),
+      tenantId: row.tenantId,
+      itemType: "service_application",
+      itemId: row.id,
+      activityType:
+        input.action === "request_completion"
+          ? "public_update"
+          : "internal_note",
+      status: workflowStatus,
+      message:
+        input.action === "request_completion"
+          ? input.note.trim() ||
+            "Petugas meminta kelengkapan tambahan dari warga."
+          : input.action === "complete_and_publish"
+            ? "Pengajuan diselesaikan dan hasil layanan diterbitkan."
+            : input.note.trim() || "Progres penanganan diperbarui.",
+      actorId: input.session.userId,
+      createdAt: now,
+    });
+
+    await appendAuditEvent(transaction, {
+      actorId: input.session.userId,
+      action: auditAction,
+      targetTable: "service_applications",
+      targetId: row.id,
+      metadata: {
+        tenantId: row.tenantId,
+        itemType: "service_application",
+        category: row.category,
+        serviceId: row.serviceId,
+        status: workflowStatus,
+        operatorId: row.assigneeId ?? input.session.userId,
+        result: "success",
+      },
+      occurredAt: now,
+    });
+  });
 
   const detail = await getSubmissionProcessingDetail(row.id, input.session);
   if (!detail) {

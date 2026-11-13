@@ -149,6 +149,9 @@ export function DatasetSubmissionWorkspace() {
   const submitted = submissions.filter(
     (submission) => submission.status === "submitted",
   );
+  const published = submissions.filter(
+    (submission) => submission.status === "published",
+  );
 
   const loadWorkspace = useCallback(async (submissionId?: string) => {
     const url = submissionId
@@ -1054,8 +1057,9 @@ export function DatasetSubmissionWorkspace() {
                   <p>01 · Operator ASN menyiapkan metadata dan sumber.</p>
                   <p>02 · Penugasan dan cakupan diverifikasi di server.</p>
                   <p>
-                    03 · Dataset masuk ke APBD/proyek terkait dan menunggu
-                    tinjauan.
+                    03 · Dataset ditinjau operator lain sebelum masuk katalog
+                    publik; pengiriman tidak mengubah angka APBD atau progres
+                    proyek secara otomatis.
                   </p>
                 </CardContent>
               </Card>
@@ -1070,7 +1074,8 @@ export function DatasetSubmissionWorkspace() {
                 {assignments.length} penugasan dataset
               </Badge>
               <Badge variant="secondary">{drafts.length} draf</Badge>
-              <Badge variant="secondary">{submitted.length} terkirim</Badge>
+              <Badge variant="secondary">{submitted.length} menunggu tinjauan</Badge>
+              <Badge variant="secondary">{published.length} dipublikasikan</Badge>
             </div>
             <label className="flex items-center gap-2 text-xs sm:min-w-[26rem]">
               <span className="text-muted-foreground shrink-0">
@@ -1095,15 +1100,15 @@ export function DatasetSubmissionWorkspace() {
           </div>
           <details className="rounded-lg border bg-white px-3 py-2 text-sm dark:bg-slate-900">
             <summary className="cursor-pointer text-xs font-medium">
-              Dataset saya · Draf &amp; terkirim
+              Dataset saya · Draf, tinjauan &amp; publikasi
             </summary>
             <div className="space-y-2 pt-3">
-              {drafts.length + submitted.length === 0 ? (
+              {drafts.length + submitted.length + published.length === 0 ? (
                 <p className="text-muted-foreground text-xs">
                   Belum ada dataset pada penugasan akun Anda.
                 </p>
               ) : (
-                [...drafts, ...submitted].slice(0, 5).map((submission) => (
+                [...drafts, ...submitted, ...published].slice(0, 5).map((submission) => (
                   <div
                     key={submission.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-2"
@@ -1118,12 +1123,16 @@ export function DatasetSubmissionWorkspace() {
                     </div>
                     <Badge
                       variant={
-                        submission.status === "submitted"
+                        submission.status !== "draft"
                           ? "default"
                           : "outline"
                       }
                     >
-                      {submission.status === "submitted" ? "Terkirim" : "Draf"}
+                      {submission.status === "published"
+                        ? "Dipublikasikan"
+                        : submission.status === "submitted"
+                          ? "Menunggu tinjauan"
+                          : "Draf"}
                     </Badge>
                     {submission.status === "draft" ? (
                       <Button
@@ -1137,9 +1146,10 @@ export function DatasetSubmissionWorkspace() {
                   </div>
                 ))
               )}
-              {drafts.length + submitted.length > 5 ? (
+              {drafts.length + submitted.length + published.length > 5 ? (
                 <p className="text-muted-foreground text-xs">
-                  Menampilkan 5 dari {drafts.length + submitted.length}{" "}
+                  Menampilkan 5 dari{" "}
+                  {drafts.length + submitted.length + published.length}{" "}
                   pengajuan.
                 </p>
               ) : null}

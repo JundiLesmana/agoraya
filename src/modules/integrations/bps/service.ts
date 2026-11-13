@@ -8,10 +8,12 @@ const MAX_CACHED_STATISTICS_ROWS = 2_000;
 
 export interface BpsStatisticsInput {
   readonly indicatorCode: string;
+  readonly indicatorName?: string;
   readonly regionCode: string;
   readonly year: number;
   readonly value: number;
   readonly unit: string;
+  readonly category?: string;
 }
 
 export interface UpsertBpsStatisticsResult {
@@ -19,13 +21,6 @@ export interface UpsertBpsStatisticsResult {
   readonly rows: readonly unknown[];
 }
 
-/**
- * Menyimpan statistik BPS secara idempoten. Jika baris untuk kombinasi
- * (indicator_code, region_code, year) sudah ada, hanya `value` dan
- * `last_synced_at` yang diperbarui, sehingga eksekusi berulang (CRON harian)
- * tidak membengkakkan tabel. `source_label` diisi secara otomatis dengan
- * 'BPS_API'.
- */
 export async function upsertBpsStatistics(
   inputs: readonly BpsStatisticsInput[],
   database = db(),
@@ -46,10 +41,12 @@ export async function upsertBpsStatistics(
       .values(
         inputs.map((input) => ({
           indicatorCode: input.indicatorCode,
+          indicatorName: input.indicatorName ?? input.indicatorCode,
           regionCode: input.regionCode,
           year: input.year,
           value: input.value,
           unit: input.unit,
+          category: input.category ?? "",
           sourceLabel: SOURCE_LABEL,
           lastSyncedAt: now,
         })),
@@ -62,7 +59,9 @@ export async function upsertBpsStatistics(
         ],
         set: {
           value: sql`excluded.value`,
+          indicatorName: sql`excluded.indicator_name`,
           unit: sql`excluded.unit`,
+          category: sql`excluded.category`,
           sourceLabel: SOURCE_LABEL,
           lastSyncedAt: now,
         },

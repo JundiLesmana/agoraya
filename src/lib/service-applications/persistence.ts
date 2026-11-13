@@ -2,12 +2,12 @@
 import { getCurrentSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { serviceApplications } from "@/lib/db/schema";
-
-export type ServiceApplicationCategory =
-  | "permit"
-  | "education"
-  | "social"
-  | "health";
+import { resolveReportingTenantId } from "@/lib/tenancy/reporting";
+import { appendAuditEvent } from "@/modules/audit";
+import {
+  SERVICE_APPLICATION_CATALOG,
+  type ServiceApplicationCategory,
+} from "@/modules/service-applications/catalog";
 
 type CatalogEntry = {
   serviceName: string;
@@ -15,91 +15,32 @@ type CatalogEntry = {
   prefix: "IZN" | "EDU" | "SCL" | "KSE";
 };
 
-const CATALOG: Record<ServiceApplicationCategory, Record<string, CatalogEntry>> = {
-  permit: {
-    "nib-usaha-mikro": {
-      serviceName: "NIB / usaha mikro",
-      agency: "Dinas Penanaman Modal dan PTSP",
-      prefix: "IZN",
-    },
-    "izin-kegiatan": {
-      serviceName: "Izin kegiatan",
-      agency: "Dinas Penanaman Modal dan PTSP",
-      prefix: "IZN",
-    },
-    "perizinan-lainnya": {
-      serviceName: "Perizinan lainnya",
-      agency: "Dinas Penanaman Modal dan PTSP",
-      prefix: "IZN",
-    },
-  },
-  education: {
-    "bantuan-biaya": {
-      serviceName: "Bantuan biaya",
-      agency: "Dinas Pendidikan",
-      prefix: "EDU",
-    },
-    "administrasi-siswa": {
-      serviceName: "Administrasi siswa",
-      agency: "Dinas Pendidikan",
-      prefix: "EDU",
-    },
-    "konsultasi-pendidikan": {
-      serviceName: "Konsultasi pendidikan",
-      agency: "Dinas Pendidikan",
-      prefix: "EDU",
-    },
-  },
-  social: {
-    "kebutuhan-dasar": {
-      serviceName: "Kebutuhan dasar",
-      agency: "Dinas Sosial",
-      prefix: "SCL",
-    },
-    "dukungan-keluarga": {
-      serviceName: "Dukungan keluarga",
-      agency: "Dinas Sosial",
-      prefix: "SCL",
-    },
-    "bantuan-darurat": {
-      serviceName: "Bantuan darurat",
-      agency: "Dinas Sosial",
-      prefix: "SCL",
-    },
-  },
-  health: {
-    "konsultasi-informasi": {
-      serviceName: "Konsultasi & informasi layanan",
-      agency: "Dinas Kesehatan",
-      prefix: "KSE",
-    },
-    "permohonan-layanan-puskesmas": {
-      serviceName: "Permohonan layanan Puskesmas",
-      agency: "Dinas Kesehatan",
-      prefix: "KSE",
-    },
-    "aduan-fasilitas-kesehatan": {
-      serviceName: "Aduan fasilitas kesehatan",
-      agency: "Dinas Kesehatan",
-      prefix: "KSE",
-    },
-  },
-};
+export { type ServiceApplicationCategory } from "@/modules/service-applications/catalog";
 
 function getCatalogEntry(
   category: ServiceApplicationCategory,
   serviceId: string,
 ): CatalogEntry {
-  const entry = CATALOG[category][serviceId];
-  if (!entry) {
+  const catalog = SERVICE_APPLICATION_CATALOG[category];
+  const serviceName = Object.entries(catalog.services).find(
+    ([id]) => id === serviceId,
+  )?.[1];
+  if (!serviceName) {
     throw new Error(
       `Unknown service application type: ${category}:${serviceId}`,
     );
   }
-  return entry;
+  return {
+    serviceName,
+    agency: catalog.agency,
+    prefix: catalog.prefix,
+  };
 }
 
-function createTrackingNumber(prefix: CatalogEntry["prefix"], now: Date): string {
+function createTrackingNumber(
+  prefix: CatalogEntry["prefix"],
+  now: Date,
+): string {
   const date = [now.getFullYear() % 100, now.getMonth() + 1, now.getDate()]
     .map((part) => String(part).padStart(2, "0"))
     .join("");
@@ -141,12 +82,13 @@ export async function persistServiceApplication(
     };
   }
 
-  if (!session.tenantId) {
+  const tenantId = await resolveReportingTenantId();
+  if (!tenantId) {
     return {
       ok: false,
       status: 503,
       error:
-        "Tenant tujuan pengajuan layanan belum dikonfigurasi. Pengajuan tidak dapat disimpan.",
+        "Tenant penerima pengajuan layanan belum dikonfigurasi atau tidak aktif. Pengajuan tidak dapat disimpan.",
     };
   }
 
@@ -157,25 +99,42 @@ export async function persistServiceApplication(
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const now = new Date();
     const trackingNumber = createTrackingNumber(entry.prefix, now);
+    const applicationId = randomUUID();
     try {
-      await database.insert(serviceApplications).values({
-        id: randomUUID(),
-        tenantId: session.tenantId,
-        applicantUserId: session.userId,
-        trackingNumber,
-        category: payload.category,
-        serviceType: payload.serviceType,
-        serviceId: payload.serviceId,
-        routeKey,
-        serviceName: entry.serviceName,
-        agency: entry.agency,
-        status: "submitted",
-        applicantName: payload.data.namaPemohon,
-        contactEmail: payload.data.kontakNotifikasi,
-        payload: payload as unknown as Record<string, unknown>,
-        submittedAt: now,
-        createdAt: now,
-        updatedAt: now,
+      await database.transaction(async (transaction) => {
+        await transaction.insert(serviceApplications).values({
+          id: applicationId,
+          tenantId,
+          applicantUserId: session.userId,
+          trackingNumber,
+          category: payload.category,
+          serviceType: payload.serviceType,
+          serviceId: payload.serviceId,
+          routeKey,
+          serviceName: entry.serviceName,
+          agency: entry.agency,
+          status: "submitted",
+          applicantName: payload.data.namaPemohon,
+          contactEmail: payload.data.kontakNotifikasi,
+          payload: payload as unknown as Record<string, unknown>,
+          submittedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+        await appendAuditEvent(transaction, {
+          actorId: session.userId,
+          action: "service_application.submitted",
+          targetTable: "service_applications",
+          targetId: applicationId,
+          metadata: {
+            tenantId,
+            category: payload.category,
+            serviceId: payload.serviceId,
+            routeKey,
+            result: "success",
+          },
+          occurredAt: now,
+        });
       });
       return {
         ok: true,
@@ -197,5 +156,5 @@ export async function persistServiceApplication(
 }
 
 export function getServiceApplicationCatalog() {
-  return CATALOG;
+  return SERVICE_APPLICATION_CATALOG;
 }
