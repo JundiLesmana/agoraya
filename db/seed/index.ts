@@ -1,5 +1,6 @@
 import { getDb } from "../../src/lib/db/index.js";
 import { seedApbdBudget } from "./apbd-budget.js";
+import { seedAsnProjects } from "./asn-projects.js";
 import { seedBpsSnapshots, seedBpsStatisticsSimulated } from "./bps-snapshot.js";
 import { seedDatasetCatalog } from "./dataset-catalog.js";
 import { seedDemoScenario } from "./demo-scenario.js";
@@ -14,6 +15,9 @@ export async function seedAll(dbx: DbClient = getDb()): Promise<{
   apbdItems: number;
   apbdPeriodValues: number;
   apbdAssignments: number;
+  projectTenants: number;
+  projects: number;
+  projectProgressReports: number;
   tenants: number;
   users: number;
   roles: number;
@@ -27,6 +31,7 @@ export async function seedAll(dbx: DbClient = getDb()): Promise<{
   const datasetCatalog = await seedDatasetCatalog(dbx);
   const scenario = await seedDemoScenario(dbx);
   const apbd = await seedApbdBudget(dbx);
+  const asnProjects = await seedAsnProjects(dbx);
   return {
     bpsSnapshots: bpsCount,
     bpsStatistics,
@@ -35,6 +40,9 @@ export async function seedAll(dbx: DbClient = getDb()): Promise<{
     apbdItems: apbd.items,
     apbdPeriodValues: apbd.periodValues,
     apbdAssignments: apbd.assignments,
+    projectTenants: asnProjects.tenants,
+    projects: asnProjects.projects,
+    projectProgressReports: asnProjects.progressReports,
     ...scenario,
   };
 }
@@ -47,7 +55,8 @@ async function main(): Promise<void> {
       `permissions: ${result.permissions}, tickets: ${result.tickets}, ` +
       `policies: ${result.policies}, audit_events: ${result.auditEvents}, ` +
       `dataset_catalog: ${result.datasetCatalog}, apbd entries: ${result.apbdEntries}, ` +
-      `apbd items: ${result.apbdItems}, apbd period values: ${result.apbdPeriodValues}`,
+      `apbd items: ${result.apbdItems}, apbd period values: ${result.apbdPeriodValues}, ` +
+      `projects: ${result.projects}, project reports: ${result.projectProgressReports}`,
   );
 }
 
