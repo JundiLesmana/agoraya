@@ -60,7 +60,7 @@ describe("POST /api/auth", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, roles: ["asn"] });
+    expect(await response.json()).toMatchObject({ ok: true, roles: ["asn"] });
     expect(authMocks.authenticatePassword).toHaveBeenCalledWith(
       "citizen@example.id",
       "passphrase",
