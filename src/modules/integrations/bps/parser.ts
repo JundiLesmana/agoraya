@@ -7,6 +7,7 @@ export interface BpsParsedRecord {
   readonly value: number;
   readonly year: number;
   readonly unit: string;
+  readonly category: string;
 }
 
 export const MAX_BPS_RECORDS_PER_SYNC = 2_000;
@@ -152,7 +153,7 @@ export function parseBpsResponse(
   const {
     var: variables,
     tahun,
-    turvar,
+    turvar: turvarList,
     turtahun,
     vervar,
     datacontent,
@@ -164,16 +165,23 @@ export function parseBpsResponse(
   const selectedYear = tahun.find(
     (item) => expectedId(item.val) === yearId && Number(item.label) === year,
   );
-  const selectedTurvar = turvar.find(
+  const selectedTurvar = turvarList.find(
     (item) => expectedId(item.val) === selector.turvarId,
   );
   const selectedTurtahun = turtahun.find(
     (item) => expectedId(item.val) === selector.turtahunId,
   );
-  if (!variable || !selectedYear || !selectedTurvar || !selectedTurtahun) {
+  if (!variable || !selectedYear || !selectedTurtahun) {
     throw new BpsResponseError(
       [],
       "Dimensi respons BPS tidak cocok dengan konfigurasi indikator.",
+    );
+  }
+
+  if (!selectedTurvar) {
+    throw new BpsResponseError(
+      [],
+      "Dimensi turvar tidak ditemukan dalam respons BPS.",
     );
   }
 
@@ -187,45 +195,49 @@ export function parseBpsResponse(
   const unit = (variable.unit?.trim() || "Tidak Ada Satuan").slice(0, 50);
   const records: BpsParsedRecord[] = [];
   const dataContent = new Map(Object.entries(datacontent));
-  for (const region of vervar) {
-    const key = [
-      region.val,
-      variable.val,
-      selectedTurvar.val,
-      selectedYear.val,
-      selectedTurtahun.val,
-    ]
-      .map(expectedId)
-      .join("");
-    const rawValue = dataContent.get(key);
-    if (
-      rawValue === undefined ||
-      rawValue === null ||
-      (typeof rawValue === "string" && ["", "-"].includes(rawValue.trim()))
-    ) {
-      continue;
-    }
+  for (const turvar of turvarList) {
+    const category = turvar.label.trim().slice(0, 100);
+    for (const region of vervar) {
+      const key = [
+        region.val,
+        variable.val,
+        turvar.val,
+        selectedYear.val,
+        selectedTurtahun.val,
+      ]
+        .map(expectedId)
+        .join("");
+      const rawValue = dataContent.get(key);
+      if (
+        rawValue === undefined ||
+        rawValue === null ||
+        (typeof rawValue === "string" && ["", "-"].includes(rawValue.trim()))
+      ) {
+        continue;
+      }
 
-    const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
-    if (!Number.isFinite(value) || value < 0) {
-      throw new BpsResponseError(
-        [],
-        "Respons BPS memuat nilai agregat yang tidak valid.",
-      );
-    }
-    records.push({
-      indicatorCode,
-      indicatorName: variable.label.trim().slice(0, 255),
-      regionCode: expectedId(region.val),
-      value,
-      year,
-      unit,
-    });
-    if (records.length > MAX_BPS_RECORDS_PER_SYNC) {
-      throw new BpsResponseError(
-        [],
-        `Respons melebihi batas ${MAX_BPS_RECORDS_PER_SYNC} agregat.`,
-      );
+      const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
+      if (!Number.isFinite(value) || value < 0) {
+        throw new BpsResponseError(
+          [],
+          "Respons BPS memuat nilai agregat yang tidak valid.",
+        );
+      }
+      records.push({
+        indicatorCode,
+        indicatorName: variable.label.trim().slice(0, 255),
+        regionCode: expectedId(region.val),
+        value,
+        year,
+        unit,
+        category,
+      });
+      if (records.length > MAX_BPS_RECORDS_PER_SYNC) {
+        throw new BpsResponseError(
+          [],
+          `Respons melebihi batas ${MAX_BPS_RECORDS_PER_SYNC} agregat.`,
+        );
+      }
     }
   }
 

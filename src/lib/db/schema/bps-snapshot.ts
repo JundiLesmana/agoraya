@@ -23,6 +23,7 @@ export const bpsStatistics = pgTable(
     year: integer("year").notNull(),
     value: numeric("value", { precision: 20, scale: 6, mode: "number" }).notNull(),
     unit: varchar("unit", { length: 50 }).notNull(),
+    category: varchar("category", { length: 100 }).notNull().default(""),
     sourceLabel: varchar("source_label", { length: 100 }).notNull(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true })
       .notNull()

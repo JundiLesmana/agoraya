@@ -77,6 +77,7 @@ describe("BPS parser", () => {
         value: 74.03,
         year: 2024,
         unit: "Indeks",
+        category: "Tidak ada",
       },
       {
         indicatorCode: "bps:0000:413:0:0",
@@ -85,6 +86,7 @@ describe("BPS parser", () => {
         value: 69.01,
         year: 2024,
         unit: "Indeks",
+        category: "Tidak ada",
       },
     ]);
   });

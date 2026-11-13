@@ -1,49 +1,48 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bpsStatistics, datasetResources, datasets } from "@/lib/db/schema";
-import { categorizeBpsIndicator } from "./category";
 
 const BPS_DATASET_SLUG = "statistik-bps";
 const BPS_STATISTICS_RESOURCE_URL = "/api/analytics/statistics";
 const BPS_CSV_RESOURCE_URL = `/api/asn/datasets/${BPS_DATASET_SLUG}/download`;
 
 const BPS_DATA_DICTIONARY = [
-  {
-    name: "indicator_name",
-    type: "string",
-    description: "Nama indikator dari metadata BPS.",
-  },
-  {
-    name: "category",
-    type: "string",
-    description: "Kategori indikator yang diturunkan dari nama indikator BPS.",
-  },
-  {
-    name: "indicator_code",
-    type: "string",
-    description: "Kode indikator statistik BPS.",
-  },
-  {
-    name: "region_code",
-    type: "string",
-    description: "Kode wilayah statistik BPS.",
-  },
-  {
-    name: "year",
-    type: "integer",
-    description: "Tahun referensi data.",
-  },
-  {
-    name: "value",
-    type: "decimal",
-    description: "Nilai agregat indikator.",
-  },
-  {
-    name: "unit",
-    type: "string",
-    description: "Satuan nilai indikator.",
-  },
-] as const;
+    {
+      name: "indicator_name",
+      type: "string",
+      description: "Nama indikator dari metadata BPS.",
+    },
+    {
+      name: "category",
+      type: "string",
+      description: "Kategori indikator yang diterima dari BPS API (turvar).",
+    },
+    {
+      name: "indicator_code",
+      type: "string",
+      description: "Kode indikator statistik BPS.",
+    },
+    {
+      name: "region_code",
+      type: "string",
+      description: "Kode wilayah statistik BPS.",
+    },
+    {
+      name: "year",
+      type: "integer",
+      description: "Tahun referensi data.",
+    },
+    {
+      name: "value",
+      type: "decimal",
+      description: "Nilai agregat indikator.",
+    },
+    {
+      name: "unit",
+      type: "string",
+      description: "Satuan nilai indikator.",
+    },
+  ] as const;
 
 function csvCell(value: string | number): string {
   const safeValue =
@@ -61,6 +60,7 @@ export function serializeBpsStatisticsCsv(
     readonly year: number;
     readonly value: number;
     readonly unit: string;
+    readonly category: string;
   }[],
 ): string {
   const records = [
@@ -75,7 +75,7 @@ export function serializeBpsStatisticsCsv(
     ],
     ...rows.map((row) => [
       row.indicatorName || row.indicatorCode,
-      categorizeBpsIndicator(row.indicatorName),
+      row.category,
       row.indicatorCode,
       row.regionCode,
       row.year,
@@ -101,6 +101,7 @@ export async function upsertBpsDatasetCatalog(
       year: bpsStatistics.year,
       value: bpsStatistics.value,
       unit: bpsStatistics.unit,
+      category: bpsStatistics.category,
     })
     .from(bpsStatistics)
     .where(eq(bpsStatistics.sourceLabel, "BPS_API"))

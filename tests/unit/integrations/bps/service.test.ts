@@ -74,6 +74,7 @@ const baseInput: BpsStatisticsInput = {
   year: 2023,
   value: 11.04,
   unit: "persen",
+  category: "Kesejahteraan",
 };
 
 beforeEach(() => {
@@ -105,6 +106,7 @@ describe("upsertBpsStatistics", () => {
       "value",
       "indicatorName",
       "unit",
+      "category",
       "sourceLabel",
       "lastSyncedAt",
     ]);
@@ -120,6 +122,7 @@ describe("upsertBpsStatistics", () => {
         regionCode: expect.any(String),
         year: expect.any(Number),
         unit: expect.any(String),
+        category: expect.any(String),
         lastSyncedAt: expect.any(Date),
       });
     }

@@ -942,6 +942,7 @@ export async function importAssignedBpsDataset(
       year: bpsStatistics.year,
       value: bpsStatistics.value,
       unit: bpsStatistics.unit,
+      category: bpsStatistics.category,
     })
     .from(bpsStatistics)
     .where(

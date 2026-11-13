@@ -23,6 +23,7 @@ const selectRows = [
     year: 2024,
     value: 74.03,
     unit: "Indeks",
+    category: "Kesejahteraan",
   },
 ];
 
@@ -113,6 +114,7 @@ describe("upsertBpsDatasetCatalog", () => {
           year: 2024,
           value: 74.03,
           unit: "Indeks",
+          category: "Statistik",
         },
       ]),
     ).toContain(

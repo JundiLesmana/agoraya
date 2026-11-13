@@ -13,6 +13,7 @@ export interface BpsStatisticsInput {
   readonly year: number;
   readonly value: number;
   readonly unit: string;
+  readonly category?: string;
 }
 
 export interface UpsertBpsStatisticsResult {
@@ -45,6 +46,7 @@ export async function upsertBpsStatistics(
           year: input.year,
           value: input.value,
           unit: input.unit,
+          category: input.category ?? "",
           sourceLabel: SOURCE_LABEL,
           lastSyncedAt: now,
         })),
@@ -59,6 +61,7 @@ export async function upsertBpsStatistics(
           value: sql`excluded.value`,
           indicatorName: sql`excluded.indicator_name`,
           unit: sql`excluded.unit`,
+          category: sql`excluded.category`,
           sourceLabel: SOURCE_LABEL,
           lastSyncedAt: now,
         },

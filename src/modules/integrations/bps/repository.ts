@@ -9,6 +9,7 @@ export interface BpsStatisticsRow {
   readonly year: number;
   readonly value: number;
   readonly unit: string;
+  readonly category: string;
   readonly sourceLabel: string;
   readonly lastSyncedAt: Date;
 }

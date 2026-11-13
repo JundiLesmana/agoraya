@@ -71,6 +71,7 @@ describe("syncBpsStatistics", () => {
         year: 2024,
         value: 74.03,
         unit: "Indeks",
+        category: "Tidak ada",
       },
     ]);
     expect(mockUpsertCatalog).toHaveBeenCalledTimes(1);

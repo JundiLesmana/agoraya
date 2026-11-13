@@ -135,7 +135,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       regionCode: row.regionCode,
       indicatorCode: row.indicatorCode,
       indicatorName: row.indicatorName || row.indicatorCode,
-      category: categorizeBpsIndicator(row.indicatorName || row.indicatorCode),
+      category:
+        row.category ||
+        categorizeBpsIndicator(row.indicatorName || row.indicatorCode),
     })),
   };
 
